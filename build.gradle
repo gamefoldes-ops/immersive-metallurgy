@@ -33,6 +33,12 @@ repositories {
         }
         filter { includeGroup 'maven.modrinth' }
     }
+    exclusiveContent {
+        forRepository {
+            maven { url = 'https://maven.blamejared.com' }
+        }
+        filter { includeGroup 'vazkii.patchouli' }
+    }
 }
 
 base {
@@ -116,6 +122,7 @@ dependencies {
     // TerraFirmaCraft: compile against it and load it in dev runs, but don't publish it as a dependency
     compileOnly "maven.modrinth:terrafirmacraft:${tfc_version}"
     localRuntime "maven.modrinth:terrafirmacraft:${tfc_version}"
+    localRuntime "vazkii.patchouli:Patchouli:${patchouli_version}"
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
