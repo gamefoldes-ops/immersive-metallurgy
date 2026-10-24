@@ -195,3 +195,13 @@ idea {
         downloadJavadoc = true
     }
 }
+
+tasks.register('deploy', Copy) {
+    group = 'deployment'
+    description = "Builds the jar and copies it into the launcher instance in deploy_mods_dir"
+    dependsOn 'build'
+    from layout.buildDirectory.dir('libs')
+    include "${mod_id}-${mod_version}.jar"
+    into file(deploy_mods_dir)
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
