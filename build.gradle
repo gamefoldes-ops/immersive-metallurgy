@@ -208,6 +208,12 @@ tasks.register('deploy', Copy) {
     dependsOn 'build'
     from layout.buildDirectory.dir('libs')
     include "${mod_id}-${mod_version}.jar"
-    into deployModsDir.get()
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    // No launcher instance exists off-Windows, so the task must configure cleanly without one
+    if (deployModsDir.isPresent()) {
+        into deployModsDir.get()
+    } else {
+        enabled = false
+        description = "Skipped: set -Pdeploy_mods_dir=<dir>; the auto-detected path needs USERPROFILE (Windows)"
+    }
 }
