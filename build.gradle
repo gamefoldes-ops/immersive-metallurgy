@@ -196,12 +196,18 @@ idea {
     }
 }
 
+// Launcher instance that receives the built jar. Resolved without hard-coding a user path:
+// -Pdeploy_mods_dir=<dir> wins, otherwise the "TFC + Millenaire" profile inside the default .minecraft.
+def deployModsDir = providers.gradleProperty('deploy_mods_dir')
+        .orElse(providers.environmentVariable('USERPROFILE')
+                .map { new File(it, 'AppData/Roaming/.minecraft/versions/TFC+Millenaire/mods').absolutePath })
+
 tasks.register('deploy', Copy) {
     group = 'deployment'
     description = "Builds the jar and copies it into the launcher instance in deploy_mods_dir"
     dependsOn 'build'
     from layout.buildDirectory.dir('libs')
     include "${mod_id}-${mod_version}.jar"
-    into file(deploy_mods_dir)
+    into deployModsDir.get()
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
