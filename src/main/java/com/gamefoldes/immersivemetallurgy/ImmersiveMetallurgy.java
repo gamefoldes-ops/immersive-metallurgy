@@ -1,4 +1,4 @@
-package com.imalloys.imalloys_tfc;
+package com.gamefoldes.immersivemetallurgy;
 
 import org.slf4j.Logger;
 
@@ -22,9 +22,9 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-@Mod(ImAlloysTFC.MODID)
-public class ImAlloysTFC {
-    public static final String MODID = "imalloys_tfc";
+@Mod(ImmersiveMetallurgy.MODID)
+public class ImmersiveMetallurgy {
+    public static final String MODID = "immersive_metallurgy";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
@@ -38,7 +38,7 @@ public class ImAlloysTFC {
     public static final DeferredItem<Item> EXAMPLE_ITEM = ITEMS.registerSimpleItem("example_item",
             new Item.Properties().food(new FoodProperties.Builder().alwaysEdible().nutrition(1).saturationModifier(2f).build()));
 
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> EXAMPLE_TAB = CREATIVE_MODE_TABS.register("main_tab", () -> CreativeModeTab.builder()
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MAIN_TAB = CREATIVE_MODE_TABS.register("main_tab", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup." + MODID))
             .withTabsBefore(CreativeModeTabs.COMBAT)
             .icon(() -> EXAMPLE_ITEM.get().getDefaultInstance())
@@ -47,7 +47,7 @@ public class ImAlloysTFC {
                 output.accept(EXAMPLE_BLOCK_ITEM.get());
             }).build());
 
-    public ImAlloysTFC(IEventBus modEventBus) {
+    public ImmersiveMetallurgy(IEventBus modEventBus) {
         BLOCKS.register(modEventBus);
         ITEMS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
@@ -56,6 +56,6 @@ public class ImAlloysTFC {
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
-        LOGGER.info("Im Alloys TFC common setup");
+        LOGGER.info("Immersive Metallurgy common setup");
     }
 }
