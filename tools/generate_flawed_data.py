@@ -22,6 +22,10 @@ DOUBLE_INGOT_HEAT_CAPACITY = 5.714286
 MILLIBUCKETS = 100
 CAST_BREAK_CHANCE = 0.1
 
+# Item colour comes from the palette in the flaw profile file and is applied as a multiply tint, so the
+# base art is near-white: a tint of a light grey shape shows the metal colour almost unchanged.
+NEUTRAL = 0xEDEDED
+
 ALLOYS = [
     ("bronze", "Bronze", 950.0, 570.0, 760.0, True, 0x9B7A44),
     ("bismuth_bronze", "Bismuth Bronze", 985.0, 591.0, 788.0, True, 0x7F8A76),
@@ -161,7 +165,7 @@ for key, display, melt, forging, welding, has_double, tint in ALLOYS:
         "parent": "item/generated",
         "textures": {"layer0": f"{MOD}:item/metal/ingot/{flawed}"},
     })
-    write_png_if_missing("assets", MOD, "textures", "item", "metal", "ingot", f"{flawed}.png", pixels=make_ingot(tint, False))
+    write_png_if_missing("assets", MOD, "textures", "item", "metal", "ingot", f"{flawed}.png", pixels=make_ingot(NEUTRAL, False))
 
     ingot_tag_values.append(f"#c:ingots/{flawed}")
     mold_fluids.append(fluid)
@@ -201,7 +205,7 @@ for key, display, melt, forging, welding, has_double, tint in ALLOYS:
         "parent": "item/generated",
         "textures": {"layer0": f"{MOD}:item/metal/double_ingot/{flawed}"},
     })
-    write_png_if_missing("assets", MOD, "textures", "item", "metal", "double_ingot", f"{flawed}.png", pixels=make_ingot(tint, True))
+    write_png_if_missing("assets", MOD, "textures", "item", "metal", "double_ingot", f"{flawed}.png", pixels=make_ingot(NEUTRAL, True))
 
     double_ingot_tag_values.append(f"#c:double_ingots/{flawed}")
     lang[f"item.{MOD}.metal.double_ingot.{flawed}"] = f"Flawed {display} Double Ingot"

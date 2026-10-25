@@ -12,6 +12,8 @@ import io.netty.buffer.ByteBuf;
 
 import net.dries007.tfc.common.recipes.RecipeHelpers;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -25,8 +27,10 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.world.level.material.Fluid;
 import java.util.function.ToDoubleFunction;
 
 /**
@@ -34,18 +38,20 @@ import java.util.function.ToDoubleFunction;
  * archetype, and what an archetype then costs a tool. Like the tolerance rules it ships as a recipe,
  * because the profile is computed on the client too and only recipes are both synced and reloadable.
  */
-public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wear) implements Recipe<NoopInput> {
+public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wear, Palette palette) implements Recipe<NoopInput> {
 
     public static final MapCodec<FlawProfiles> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Defect.CODEC.listOf().fieldOf("defects").forGetter(FlawProfiles::defects),
             Codec.FLOAT.fieldOf("durability_floor").forGetter(FlawProfiles::durabilityFloor),
-            Wear.CODEC.fieldOf("wear").forGetter(FlawProfiles::wear)
+            Wear.CODEC.fieldOf("wear").forGetter(FlawProfiles::wear),
+            Palette.CODEC.fieldOf("palette").forGetter(FlawProfiles::palette)
     ).apply(instance, FlawProfiles::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, FlawProfiles> STREAM_CODEC = StreamCodec.composite(
             Defect.STREAM_CODEC.apply(ByteBufCodecs.list()), FlawProfiles::defects,
             ByteBufCodecs.FLOAT, FlawProfiles::durabilityFloor,
             Wear.STREAM_CODEC, FlawProfiles::wear,
+            Palette.STREAM_CODEC, FlawProfiles::palette,
             FlawProfiles::new);
 
     public static RecipeSerializer<FlawProfiles> serializer() {
@@ -149,6 +155,49 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wea
 
         // Seven fields is one more than StreamCodec.composite reaches.
         public static final StreamCodec<ByteBuf, Wear> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
+    }
+
+    /**
+     * What a melt should look like. A flawed object is drawn from a neutral grey base and multiplied by
+     * this, so the colour it leans to is whichever metal its composition has most of: a tin-heavy bronze
+     * reads pale and cold, a copper-heavy one reads reddish. {@code lean} is how far from untouched the
+     * colour goes at a full imbalance, and {@code defectDarken} dulls whatever is left as the melt gets
+     * worse overall.
+     */
+    public record Palette(List<MetalColor> colors, float lean, float defectDarken) {
+
+        public static final Codec<Palette> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                MetalColor.CODEC.listOf().fieldOf("colors").forGetter(Palette::colors),
+                Codec.FLOAT.fieldOf("lean").forGetter(Palette::lean),
+                Codec.FLOAT.fieldOf("defectDarken").forGetter(Palette::defectDarken)
+        ).apply(instance, Palette::new));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, Palette> STREAM_CODEC = StreamCodec.composite(
+                MetalColor.STREAM_CODEC.apply(ByteBufCodecs.list()), Palette::colors,
+                ByteBufCodecs.FLOAT, Palette::lean,
+                ByteBufCodecs.FLOAT, Palette::defectDarken,
+                Palette::new);
+
+        public Map<Fluid, Integer> byFluid() {
+            Map<Fluid, Integer> byFluid = new HashMap<>();
+            for (MetalColor color : colors()) {
+                byFluid.put(color.fluid(), color.color());
+            }
+            return byFluid;
+        }
+    }
+
+    public record MetalColor(Fluid fluid, int color) {
+
+        public static final Codec<MetalColor> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                BuiltInRegistries.FLUID.byNameCodec().fieldOf("fluid").forGetter(MetalColor::fluid),
+                Codec.INT.fieldOf("color").forGetter(MetalColor::color)
+        ).apply(instance, MetalColor::new));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, MetalColor> STREAM_CODEC = StreamCodec.composite(
+                ByteBufCodecs.registry(Registries.FLUID), MetalColor::fluid,
+                ByteBufCodecs.VAR_INT, MetalColor::color,
+                MetalColor::new);
     }
 
     public Map<Archetype, Defect> byArchetype() {
