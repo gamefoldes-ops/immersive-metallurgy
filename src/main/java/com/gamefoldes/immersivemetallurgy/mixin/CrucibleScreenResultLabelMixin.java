@@ -2,12 +2,20 @@ package com.gamefoldes.immersivemetallurgy.mixin;
 
 import com.gamefoldes.immersivemetallurgy.client.IMMetalNames;
 import com.gamefoldes.immersivemetallurgy.component.AlloyRecord;
+import com.gamefoldes.immersivemetallurgy.component.MeltComposition;
 import com.gamefoldes.immersivemetallurgy.registry.IMDataComponents;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import net.dries007.tfc.client.screen.CrucibleScreen;
 import net.dries007.tfc.common.blockentities.CrucibleBlockEntity;
 import net.dries007.tfc.common.container.BlockEntityContainer;
-import net.dries007.tfc.client.screen.CrucibleScreen;
+import net.dries007.tfc.util.FluidAlloy;
 import net.dries007.tfc.util.data.FluidHeat;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.MenuAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -17,33 +25,69 @@ import net.neoforged.neoforge.fluids.FluidType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * The crucible screen names its contents after the fluid, and TFC only ships molten names, so a cooled
- * crucible still reads "Molten Bronze" and junk or flawed metal says nothing about what is in it. This
- * relabels the result line: below the metal's melt temperature it uses the plain metal name, and a fluid
- * whose identity hides its recipe gets that recipe spelled out next to it.
+ * crucible still reads "Molten Bronze", and junk or flawed metal says nothing about what is in it. This
+ * relabels the result line by temperature, and writes the composition of any fluid whose name hides it as
+ * its own list under the content rows.
  */
 @Mixin(CrucibleScreen.class)
 public class CrucibleScreenResultLabelMixin {
+    /** TFC draws its content rows from this offset, 18px apart, three of them at a time. */
+    @Unique
+    private static final int LIST_TOP = 22;
+    @Unique
+    private static final int LIST_ROW_HEIGHT = 18;
+    @Unique
+    private static final int LIST_VISIBLE_ROWS = 3;
+    @Unique
+    private static final int LINE_HEIGHT = 9;
+    @Unique
+    private static final int TEXT_COLOUR = 0x555555;
+
     @Redirect(method = "renderBg(Lnet/minecraft/client/gui/GuiGraphics;FII)V",
             at = @At(value = "INVOKE", target = "Lnet/neoforged/neoforge/fluids/FluidType;getDescription()Lnet/minecraft/network/chat/Component;", ordinal = 0))
-    private Component immersiveMetallurgy$nameContents(FluidType type) {
+    private Component immersiveMetallurgy$nameResult(FluidType type) {
         Component molten = type.getDescription();
-        CrucibleBlockEntity crucible = immersiveMetallurgy$crucible();
-        FluidStack result = crucible.getAlloyResult();
+        FluidStack result = immersiveMetallurgy$crucible().getAlloyResult();
         if (result.isEmpty()) {
             return molten;
         }
-        Fluid fluid = result.getFluid();
-        Component label = immersiveMetallurgy$stateAwareName(crucible, fluid, molten);
+        return immersiveMetallurgy$stateAwareName(result.getFluid(), molten);
+    }
 
-        AlloyRecord record = result.get(IMDataComponents.ALLOY_RECORD.get());
-        if (record == null || record.parts().size() < 2 || !IMMetalNames.hidesItsComponents(fluid)) {
-            return label;
+    @Inject(method = "renderBg(Lnet/minecraft/client/gui/GuiGraphics;FII)V", at = @At("TAIL"))
+    private void immersiveMetallurgy$listCompositions(GuiGraphics graphics, float partialTick, int mouseX, int mouseY, CallbackInfo ci) {
+        CrucibleBlockEntity crucible = immersiveMetallurgy$crucible();
+        FluidAlloy alloy = crucible.getAlloy();
+        if (alloy.getAmount() <= 0) {
+            return;
         }
-        return label.copy().append(Component.literal(" (").append(immersiveMetallurgy$breakdown(record)).append(")"));
+        Object2ObjectMap<Fluid, AlloyRecord> compositions = ((MeltComposition) (Object) alloy).immersiveMetallurgyCompositions();
+        if (compositions.isEmpty()) {
+            return;
+        }
+        AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
+        Font font = Minecraft.getInstance().font;
+        int left = screen.getGuiLeft() + 10;
+        int top = screen.getGuiTop() + LIST_TOP + Math.min(alloy.getContent().size(), LIST_VISIBLE_ROWS) * LIST_ROW_HEIGHT + 2;
+        for (Object2ObjectMap.Entry<Fluid, AlloyRecord> entry : compositions.object2ObjectEntrySet()) {
+            if (!alloy.getContent().containsKey(entry.getKey()) || entry.getValue().parts().size() < 2) {
+                continue;
+            }
+            graphics.drawString(font, immersiveMetallurgy$stateAwareName(entry.getKey(), entry.getKey().getFluidType().getDescription())
+                    .copy().withStyle(ChatFormatting.UNDERLINE), left, top, TEXT_COLOUR);
+            top += LINE_HEIGHT;
+            for (AlloyRecord.FluidParts part : entry.getValue().parts()) {
+                graphics.drawString(font, immersiveMetallurgy$part(part, entry.getValue().totalParts()), left + 6, top, TEXT_COLOUR);
+                top += LINE_HEIGHT;
+            }
+            top += 2;
+        }
     }
 
     @Unique
@@ -52,25 +96,18 @@ public class CrucibleScreenResultLabelMixin {
     }
 
     @Unique
-    private Component immersiveMetallurgy$stateAwareName(CrucibleBlockEntity crucible, Fluid fluid, Component molten) {
+    private Component immersiveMetallurgy$stateAwareName(Fluid fluid, Component molten) {
         FluidHeat heat = FluidHeat.get(fluid);
-        if (heat == null || crucible.getTemperature() >= heat.meltTemperature()) {
+        if (heat == null || immersiveMetallurgy$crucible().getTemperature() >= heat.meltTemperature()) {
             return molten;
         }
         return IMMetalNames.metalName(fluid).orElse(molten);
     }
 
     @Unique
-    private static Component immersiveMetallurgy$breakdown(AlloyRecord record) {
-        int total = record.totalParts();
-        MutableComponent list = Component.empty();
-        for (AlloyRecord.FluidParts part : record.parts()) {
-            if (!list.getSiblings().isEmpty()) {
-                list.append(", ");
-            }
-            list.append(IMMetalNames.name(part.fluid()))
-                    .append(Component.literal(" " + Math.round(100F * part.parts() / total) + "%"));
-        }
-        return list;
+    private static MutableComponent immersiveMetallurgy$part(AlloyRecord.FluidParts part, int total) {
+        return Component.empty()
+                .append(IMMetalNames.name(part.fluid()))
+                .append(Component.literal(" " + Math.round(100F * part.parts() / total) + "%"));
     }
 }

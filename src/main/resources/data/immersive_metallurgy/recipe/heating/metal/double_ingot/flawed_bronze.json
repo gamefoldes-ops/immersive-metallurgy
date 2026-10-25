@@ -1,0 +1,11 @@
+{
+  "type": "tfc:heating",
+  "ingredient": {
+    "tag": "c:double_ingots/flawed_bronze"
+  },
+  "result_fluid": {
+    "amount": 200,
+    "id": "immersive_metallurgy:metal/flawed_bronze"
+  },
+  "temperature": 950.0
+}

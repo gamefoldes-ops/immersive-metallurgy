@@ -12,6 +12,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -30,7 +31,9 @@ public record AlloyRecord(List<FluidParts> parts) {
             FluidParts.STREAM_CODEC.apply(ByteBufCodecs.list()).map(AlloyRecord::new, AlloyRecord::parts);
 
     public AlloyRecord {
-        parts = List.copyOf(parts);
+        List<FluidParts> ordered = new ArrayList<>(parts);
+        ordered.sort(Comparator.comparingInt(FluidParts::parts).reversed());
+        parts = List.copyOf(ordered);
     }
 
     /** Reduces the crucible's contents to the smallest whole-number ratio that describes them. */

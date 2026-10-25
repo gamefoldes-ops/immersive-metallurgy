@@ -5,6 +5,9 @@
   "metal.immersive_metallurgy.flawed_bronze": "Flawed Bronze",
   "metal.immersive_metallurgy.slag": "Slag",
   "item.immersive_metallurgy.metal.ingot.flawed_bronze": "Flawed Bronze Ingot",
+  "item.immersive_metallurgy.metal.double_ingot.flawed_bronze": "Flawed Bronze Double Ingot",
   "tag.item.c.ingots.flawed": "Flawed Ingots",
-  "tag.item.c.ingots.flawed_bronze": "Flawed Bronze Ingots"
+  "tag.item.c.ingots.flawed_bronze": "Flawed Bronze Ingots",
+  "tag.item.c.double_ingots.flawed": "Flawed Double Ingots",
+  "tag.item.c.double_ingots.flawed_bronze": "Flawed Bronze Double Ingots"
 }

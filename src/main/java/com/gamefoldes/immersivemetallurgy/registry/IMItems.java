@@ -18,6 +18,8 @@ public final class IMItems {
 
     public static final DeferredItem<Item> FLAWED_BRONZE_INGOT = ITEMS.registerItem("metal/ingot/flawed_bronze", Item::new);
 
+    public static final DeferredItem<Item> FLAWED_BRONZE_DOUBLE_INGOT = ITEMS.registerItem("metal/double_ingot/flawed_bronze", Item::new);
+
     private IMItems() {
     }
 
