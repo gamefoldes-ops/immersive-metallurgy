@@ -11,12 +11,15 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import net.dries007.tfc.common.blockentities.CrucibleBlockEntity;
 import net.dries007.tfc.util.data.FluidHeat;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionResult;
+import net.neoforged.neoforge.common.util.TriState;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -73,6 +76,17 @@ public final class IMSlagSkim {
             give(level, player, new ItemStack(IMItems.SLAG_DUST.get(), dust));
         }
         level.playSound(null, event.getPos(), SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.7F, 0.9F);
+
+        // The bowl has a salad interface of its own and TFC opens it on this exact gesture, so the skim has
+        // to claim the click; otherwise the GUI pops up over the top of the work and it reads as nothing
+        // happening. Only a skim that actually took slag claims it, so an empty bowl still makes a salad.
+        event.setUseBlock(TriState.FALSE);
+        event.setUseItem(TriState.FALSE);
+        event.setCancellationResult(InteractionResult.CONSUME);
+        crucible.markForSync();
+        crucible.setChanged();
+        BlockPos pos = event.getPos();
+        level.sendBlockUpdated(pos, level.getBlockState(pos), level.getBlockState(pos), Block.UPDATE_ALL);
     }
 
     /** Slag floats in a liquid bath, so a cold crucible has nothing to take off the top of. */
