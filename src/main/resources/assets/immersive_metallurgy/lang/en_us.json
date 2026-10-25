@@ -1,5 +1,8 @@
 {
   "itemGroup.immersive_metallurgy": "Immersive Metallurgy",
   "fluid.immersive_metallurgy.slag": "Molten Slag",
-  "fluid.immersive_metallurgy.flawed_bronze": "Molten Flawed Bronze"
+  "fluid.immersive_metallurgy.flawed_bronze": "Molten Flawed Bronze",
+  "item.immersive_metallurgy.metal.ingot.flawed_bronze": "Flawed Bronze Ingot",
+  "tag.item.c.ingots.flawed": "Flawed Ingots",
+  "tag.item.c.ingots.flawed_bronze": "Flawed Bronze Ingots"
 }

@@ -4,7 +4,7 @@
     {
       "alloy": "tfc:metal/bronze",
       "flawed_result": "immersive_metallurgy:metal/flawed_bronze",
-      "tolerance": 0.06,
+      "tolerance": 0.1,
       "slag_tolerance": 0.02,
       "max_slag": 0.25
     }

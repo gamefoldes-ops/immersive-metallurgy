@@ -5,7 +5,9 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AlloyRecipeGetMixin",
-    "CrucibleResultProbeMixin"
+    "CastingRecipeRecordMixin",
+    "FluidAlloyRecordMixin",
+    "HeatingRecipeRecordMixin"
   ],
   "injectors": {
     "defaultRequire": 1

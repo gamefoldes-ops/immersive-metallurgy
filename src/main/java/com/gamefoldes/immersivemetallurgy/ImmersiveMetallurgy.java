@@ -4,7 +4,9 @@ import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 
+import com.gamefoldes.immersivemetallurgy.registry.IMDataComponents;
 import com.gamefoldes.immersivemetallurgy.registry.IMFluids;
+import com.gamefoldes.immersivemetallurgy.registry.IMItems;
 import com.gamefoldes.immersivemetallurgy.registry.IMRecipes;
 
 import net.neoforged.bus.api.IEventBus;
@@ -17,7 +19,9 @@ public class ImmersiveMetallurgy {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ImmersiveMetallurgy(IEventBus modEventBus) {
+        IMDataComponents.register(modEventBus);
         IMFluids.register(modEventBus);
+        IMItems.register(modEventBus);
         IMRecipes.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
