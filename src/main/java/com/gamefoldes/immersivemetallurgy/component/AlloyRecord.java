@@ -13,7 +13,6 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 /**
  * What a pour was actually made of. TFC reduces a crucible to one fluid, so the moment metal leaves it
@@ -65,36 +64,16 @@ public record AlloyRecord(List<FluidParts> parts) {
     }
 
     /**
-     * Splits an amount of metal back into the fluids it was made of. The whole remainder goes to the
-     * largest part so the pieces always add up to exactly the amount that came in.
+     * Splits an amount of metal back over the fluids it was made of, keeping the ratio exact and letting
+     * the caller sum repeated pours.
      */
-    public void expand(int amount, BiConsumer<Fluid, Integer> sink) {
+    public void addTo(double amount, Object2DoubleMap<Fluid> sink) {
         int total = totalParts();
         if (total <= 0) {
             return;
         }
-        int largest = 0;
-        int handedOut = 0;
-        for (int index = 1; index < parts.size(); index++) {
-            if (parts.get(index).parts() > parts.get(largest).parts()) {
-                largest = index;
-            }
-        }
-        for (int index = 0; index < parts.size(); index++) {
-            FluidParts part = parts.get(index);
-            if (index == largest) {
-                continue;
-            }
-            int share = (int) ((long) amount * part.parts() / total);
-            handedOut += share;
-            if (share > 0) {
-                sink.accept(part.fluid(), share);
-            }
-        }
-        FluidParts biggest = parts.get(largest);
-        int rest = amount - handedOut;
-        if (rest > 0) {
-            sink.accept(biggest.fluid(), rest);
+        for (FluidParts part : parts) {
+            sink.mergeDouble(part.fluid(), amount * part.parts() / total, Double::sum);
         }
     }
 

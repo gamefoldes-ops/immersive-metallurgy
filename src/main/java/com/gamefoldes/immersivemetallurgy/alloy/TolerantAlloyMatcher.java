@@ -1,6 +1,7 @@
 package com.gamefoldes.immersivemetallurgy.alloy;
 
 import com.gamefoldes.immersivemetallurgy.ImmersiveMetallurgy;
+import com.gamefoldes.immersivemetallurgy.component.MeltComposition;
 import com.gamefoldes.immersivemetallurgy.recipe.AlloyTolerances;
 import com.gamefoldes.immersivemetallurgy.recipe.AlloyTolerances.Rule;
 import com.gamefoldes.immersivemetallurgy.registry.IMFluids;
@@ -46,7 +47,7 @@ public final class TolerantAlloyMatcher {
             return null;
         }
 
-        Object2DoubleMap<Fluid> content = alloy.getContent();
+        Object2DoubleMap<Fluid> content = ((MeltComposition) (Object) alloy).immersiveMetallurgyLeafContent();
         Candidate best = null;
         for (RecipeHolder<AlloyRecipe> holder : RecipeHelpers.getRecipes(recipes, TFCRecipeTypes.ALLOY)) {
             AlloyRecipe recipe = holder.value();
