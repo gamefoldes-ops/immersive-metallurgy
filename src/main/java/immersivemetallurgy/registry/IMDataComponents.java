@@ -36,6 +36,17 @@ public final class IMDataComponents {
                     .networkSynchronized(ByteBufCodecs.FLOAT)
                     .build());
 
+    /**
+     * Slag a melting item brings with it, per unit of the metal it yields. It rides the fluid stack rather
+     * than being added as slag immediately, because the vessel multiplies a melt by stack size after the
+     * recipe has run, and an absolute millilitre figure would not follow.
+     */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Float>> SLAG_RATIO =
+            DATA_COMPONENTS.register("slag_ratio", () -> DataComponentType.<Float>builder()
+                    .persistent(Codec.FLOAT)
+                    .networkSynchronized(ByteBufCodecs.FLOAT)
+                    .build());
+
     private IMDataComponents() {
     }
 

@@ -3,6 +3,7 @@ package immersivemetallurgy.mixin;
 import immersivemetallurgy.client.IMMetalNames;
 import immersivemetallurgy.component.AlloyRecord;
 import immersivemetallurgy.component.MeltComposition;
+import immersivemetallurgy.registry.IMFluids;
 
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
@@ -117,6 +118,13 @@ public class CrucibleScreenResultLabelMixin {
         for (Object2DoubleMap.Entry<Fluid> leaf : ordered) {
             graphics.drawString(font, immersiveMetallurgy$line(leaf.getKey(), 100F * leaf.getDoubleValue() / alloy.getAmount()), left + 6, top, PART_COLOUR);
             top += LINE_HEIGHT;
+        }
+        // Slag is the one thing in the crucible the metal list hides, and the only number that says how much
+        // refining is left to do, so it is spelled out rather than left as the gap between the rows.
+        double slag = alloy.getContent().getOrDefault(IMFluids.SLAG.fluid(), 0D);
+        if (slag > 0) {
+            graphics.drawString(font, immersiveMetallurgy$line(IMFluids.SLAG.fluid(), 100F * slag / alloy.getAmount()),
+                    left + 6, top, PART_COLOUR);
         }
     }
 

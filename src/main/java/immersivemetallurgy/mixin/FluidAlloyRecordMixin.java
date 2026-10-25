@@ -4,6 +4,7 @@ import immersivemetallurgy.component.AlloyRecord;
 import immersivemetallurgy.component.DefectProfile;
 import immersivemetallurgy.component.MeltComposition;
 import immersivemetallurgy.registry.IMDataComponents;
+import immersivemetallurgy.registry.IMFluids;
 
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
@@ -17,6 +18,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
@@ -94,13 +96,23 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     @Inject(method = "fill(Lnet/neoforged/neoforge/fluids/FluidStack;Lnet/neoforged/neoforge/fluids/capability/IFluidHandler$FluidAction;Lnet/dries007/tfc/common/component/fluid/FluidContainerInfo;)I",
             at = @At("TAIL"))
     private void immersiveMetallurgy$rememberComposition(FluidStack stack, IFluidHandler.FluidAction action, FluidContainerInfo capacity, CallbackInfoReturnable<Integer> cir) {
-        if (cir.getReturnValue() <= 0) {
+        int filled = cir.getReturnValue();
+        if (filled <= 0) {
             return;
         }
         this.immersiveMetallurgy$leafRecord = null;
         AlloyRecord record = stack.get(IMDataComponents.ALLOY_RECORD.get());
         if (record != null && record.parts().size() > 1) {
             immersiveMetallurgyCompositions().put(stack.getFluid(), record);
+        }
+
+        // The gangue an ore carried follows the metal into the alloy, so smelting straight from rock makes a
+        // dirtier melt than smelting refined metal. Only on the real fill: a simulate must not change content.
+        Float ratio = action == IFluidHandler.FluidAction.EXECUTE && stack.getFluid() != IMFluids.SLAG.fluid()
+                ? stack.get(IMDataComponents.SLAG_RATIO.get())
+                : null;
+        if (ratio != null && ratio > 0) {
+            ((FluidAlloy) (Object) this).fill(new FluidStack(IMFluids.SLAG.fluid(), Mth.floor(filled * ratio)), action, capacity);
         }
     }
 
