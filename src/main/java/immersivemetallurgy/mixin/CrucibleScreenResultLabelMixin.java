@@ -137,7 +137,7 @@ public class CrucibleScreenResultLabelMixin {
     private Component immersiveMetallurgy$stateAwareName(Fluid fluid, Component molten) {
         FluidHeat heat = FluidHeat.get(fluid);
         if (heat == null || immersiveMetallurgy$crucible().getTemperature() >= heat.meltTemperature()) {
-            return molten;
+            return IMMetalNames.moltenName(fluid);
         }
         return IMMetalNames.metalName(fluid).orElse(molten);
     }

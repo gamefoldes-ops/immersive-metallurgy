@@ -183,7 +183,8 @@ lang = {
     "immersive_metallurgy.grade.medium": "Major",
     "immersive_metallurgy.grade.heavy": "Severe",
     f"metal.{MOD}.slag": "Slag",
-    f"fluid.{MOD}.slag": "Molten Slag",
+    f"fluid.{MOD}.slag": "Slag",
+    "immersive_metallurgy.molten": "Molten %s",
 }
 
 mold_fluids = []
@@ -245,7 +246,9 @@ for key, display, melt, forging, welding, has_double, tint, specific_heat in ALL
     ingot_tag_values.append(f"#c:ingots/{flawed}")
     mold_fluids.append(fluid)
 
-    lang[f"fluid.{MOD}.{flawed}"] = f"Molten Flawed {display}"
+    # The fluid is named after the metal it is; "Molten" is added where the game knows the
+    # contents are above their melting point, so tooltips and JEI stop claiming a cold object is melt.
+    lang[f"fluid.{MOD}.{flawed}"] = f"Flawed {display}"
     lang[f"metal.{MOD}.{flawed}"] = f"Flawed {display}"
     lang[f"item.{MOD}.metal.ingot.{flawed}"] = f"Flawed {display} Ingot"
     lang[f"tag.item.c.ingots.{flawed}"] = f"Flawed {display} Ingots"

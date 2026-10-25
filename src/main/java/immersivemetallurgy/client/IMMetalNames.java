@@ -32,6 +32,20 @@ public final class IMMetalNames {
         return Optional.ofNullable(METAL_NAMES.get(fluid));
     }
 
+    /**
+     * How the fluid is called while it really is molten: TFC's own metals are already named that way
+     * ("Molten Bronze"), ours say the metal and get the word added here.
+     */
+    public static Component moltenName(Fluid fluid) {
+        Component metal = METAL_NAMES.get(fluid);
+        if (metal == null) {
+            return fluid.getFluidType().getDescription();
+        }
+        return OPAQUE.contains(fluid)
+                ? Component.translatable("immersive_metallurgy.molten", metal)
+                : fluid.getFluidType().getDescription();
+    }
+
     public static Component name(Fluid fluid) {
         ensureLoaded();
         Component metal = METAL_NAMES.get(fluid);
