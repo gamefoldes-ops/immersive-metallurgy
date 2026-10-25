@@ -2,7 +2,6 @@ package com.gamefoldes.immersivemetallurgy.event;
 
 import com.gamefoldes.immersivemetallurgy.ImmersiveMetallurgy;
 import com.gamefoldes.immersivemetallurgy.component.DefectProfile;
-import com.gamefoldes.immersivemetallurgy.component.MeltCarries;
 import com.gamefoldes.immersivemetallurgy.recipe.FlawProfiles;
 import com.gamefoldes.immersivemetallurgy.registry.IMDataComponents;
 
@@ -30,6 +29,11 @@ public final class IMItemTooltips {
 
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
+        // The item name already says what the object is; what it costs belongs at the bottom, under the
+        // same F3+H advanced tooltip the rest of the game uses for numbers.
+        if (!event.getFlags().isAdvanced()) {
+            return;
+        }
         ItemStack stack = event.getItemStack();
         List<Component> lines = new ArrayList<>();
 
@@ -41,14 +45,12 @@ public final class IMItemTooltips {
         }
 
         Float sharpness = stack.get(IMDataComponents.SHARPNESS.get());
-        if (sharpness != null && sharpness < MeltCarries.FULL_SHARPNESS) {
+        if (sharpness != null) {
             lines.add(translated("tooltip.sharpness", percent(sharpness))
                     .withStyle(sharpness < 40 ? ChatFormatting.RED : ChatFormatting.GRAY));
         }
 
-        if (!lines.isEmpty()) {
-            event.getToolTip().addAll(0, lines);
-        }
+        event.getToolTip().addAll(lines);
     }
 
     private static List<Component> defectLines(DefectProfile profile, FlawProfiles profiles) {
@@ -69,7 +71,7 @@ public final class IMItemTooltips {
             worst = Math.max(worst, severity);
         }
         ChatFormatting colour = worst >= 0.66 ? ChatFormatting.RED : ChatFormatting.GOLD;
-        lines.add(translated("tooltip.flawed", names).withStyle(colour));
+        lines.add(translated("tooltip.defects", names).withStyle(colour));
         lines.add(translated("tooltip.structure", percent(profile.durabilityFactor())).withStyle(ChatFormatting.GRAY));
 
         if (profiles != null) {

@@ -6,6 +6,7 @@ import com.mojang.logging.LogUtils;
 
 import com.gamefoldes.immersivemetallurgy.registry.IMDataComponents;
 import com.gamefoldes.immersivemetallurgy.registry.IMFluids;
+import com.gamefoldes.immersivemetallurgy.registry.IMItemModifiers;
 import com.gamefoldes.immersivemetallurgy.registry.IMItems;
 import com.gamefoldes.immersivemetallurgy.registry.IMRecipes;
 
@@ -21,6 +22,7 @@ public class ImmersiveMetallurgy {
     public ImmersiveMetallurgy(IEventBus modEventBus) {
         IMDataComponents.register(modEventBus);
         IMFluids.register(modEventBus);
+        IMItemModifiers.register(modEventBus);
         IMItems.register(modEventBus);
         IMRecipes.register(modEventBus);
 

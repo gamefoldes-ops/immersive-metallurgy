@@ -67,6 +67,44 @@ def fluid_tags_of(archive, alloy):
     return set(tags)
 
 
+def assemble_recipes(archive):
+    """Teach TFC's own tool-assembly recipes to pass the melt on, by overriding them with one more modifier.
+
+    The event route cannot work: the crafting event is handed a copy of the result, so components written
+    there never reach the player. TFC already solves this for the forging bonus with an output modifier, so
+    we add ours to exactly the recipes that consume a metal part of one of our nine alloys, and write the
+    file back at the same path, which replaces TFC's recipe by id.
+    """
+    # any metal item of one of our alloys: "tfc:metal/pickaxe_head/bronze" ends with the alloy name
+    count = 0
+    for name in archive.namelist():
+        if not name.startswith("data/tfc/recipe/crafting/") or not name.endswith(".json"):
+            continue
+        recipe = read_json(archive, name)
+        if recipe is None:
+            continue
+        referenced = set()
+        for entry in list(recipe.get("key", {}).values()) + list(recipe.get("ingredients", [])):
+            if isinstance(entry, dict) and isinstance(entry.get("item"), str):
+                referenced.add(entry["item"])
+        if not any(item.startswith("tfc:metal/") and item.rsplit("/", 1)[-1] in ALLOY_KEYS
+                   for item in referenced):
+            continue
+        result = recipe.get("result")
+        if not isinstance(result, dict):
+            continue
+        modifiers = list(result.get("modifiers", []))
+        if not any(modifier.get("type") == "tfc:copy_forging_bonus" for modifier in modifiers):
+            continue
+        modifiers.append({"type": f"{MOD}:copy_melt"})
+        twin = dict(recipe)
+        twin["result"] = dict(result)
+        twin["result"]["modifiers"] = modifiers
+        write("data", *os.path.relpath(name, "data").split(os.sep), value=twin)
+        count += 1
+    return count
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--jar", default=default_jar())
@@ -134,8 +172,11 @@ def main():
     for tag, fluids in by_tag.items():
         write("data", "tfc", "tags", "fluid", f"{tag}.json", value={"values": fluids})
 
+    assemble_count = assemble_recipes(archive)
+
     print(f"anvil twins: {anvil_count}, casting twins: {casting_count}, mold tags extended: {len(by_tag)}")
     print("tags:", ", ".join(sorted(by_tag)))
+    print(f"assembly recipes taught to pass the melt on: {assemble_count}")
 
 
 if __name__ == "__main__":
