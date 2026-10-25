@@ -33,7 +33,12 @@ public final class IMFluids {
     private static final List<Molten> ALL = new ArrayList<>();
 
     public static final Molten SLAG = register("slag", "slag", 0xFF5C5449);
-    public static final Molten FLAWED_BRONZE = register("metal/flawed_bronze", "flawed_bronze", 0xFF9B7A44);
+
+    static {
+        for (IMAlloys alloy : IMAlloys.ALL) {
+            register(alloy.flawedFluidPath(), "flawed_" + alloy.key(), alloy.tint());
+        }
+    }
 
     private IMFluids() {
     }

@@ -4,21 +4,24 @@ import com.gamefoldes.immersivemetallurgy.ImmersiveMetallurgy;
 
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 /**
  * Ingots that TFC cannot have, because its ingot items are keyed one-to-one on a metal fluid and a flawed
- * pour has no metal. They exist only to be cast, told apart by their {@code c:ingots/flawed_*} tags, and
- * melted back down with their composition attached.
+ * pour has no metal. One pair of items per flawed alloy, never one per defect: the defect profile travels
+ * as a data component, and the alloy identity is what TFC recipes and Millenaire need to see.
  */
 public final class IMItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(ImmersiveMetallurgy.MODID);
 
-    public static final DeferredItem<Item> FLAWED_BRONZE_INGOT = ITEMS.registerItem("metal/ingot/flawed_bronze", Item::new);
-
-    public static final DeferredItem<Item> FLAWED_BRONZE_DOUBLE_INGOT = ITEMS.registerItem("metal/double_ingot/flawed_bronze", Item::new);
+    static {
+        for (IMAlloys alloy : IMAlloys.ALL) {
+            ITEMS.registerItem(alloy.flawedIngotPath(), Item::new);
+            if (alloy.doubleIngot()) {
+                ITEMS.registerItem(alloy.flawedDoubleIngotPath(), Item::new);
+            }
+        }
+    }
 
     private IMItems() {
     }

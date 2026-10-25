@@ -1,6 +1,1 @@
-{
-  "parent": "item/generated",
-  "textures": {
-    "layer0": "tfc:item/metal/double_ingot/bronze"
-  }
-}
+{"parent":"item/generated","textures":{"layer0":"tfc:item/metal/double_ingot/bronze"}}

@@ -1,8 +1,1 @@
-{
-  "ingredient": {
-    "tag": "c:double_ingots/flawed_bronze"
-  },
-  "forging_temperature": 570.0,
-  "welding_temperature": 760.0,
-  "heat_capacity": 5.714286
-}
+{"ingredient":{"tag":"c:double_ingots/flawed_bronze"},"forging_temperature":570.0,"welding_temperature":760.0,"heat_capacity":5.714286}
