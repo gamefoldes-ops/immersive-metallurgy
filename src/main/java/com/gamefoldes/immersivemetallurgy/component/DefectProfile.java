@@ -38,6 +38,24 @@ public record DefectProfile(float brittle, float soft, float edgeWear, float flo
 
     public static final DefectProfile CLEAN = new DefectProfile(0, 0, 0, 0, 0, 1);
 
+    /**
+     * Severity is a quotient of melt proportions, so each millilitre poured shifts it in the last bits.
+     * A mold only merges a new drip when its fluid stack is component-equal to the one inside, so the
+     * floats have to be coarse enough that two drips of the same melt agree.
+     */
+    public DefectProfile {
+        brittle = quantize(brittle);
+        soft = quantize(soft);
+        edgeWear = quantize(edgeWear);
+        flowy = quantize(flowy);
+        slagShare = quantize(slagShare);
+        durabilityFactor = quantize(durabilityFactor);
+    }
+
+    private static float quantize(float value) {
+        return Math.round(value * 250F) / 250F;
+    }
+
     public boolean isClean() {
         return brittle <= 0 && soft <= 0 && edgeWear <= 0 && flowy <= 0;
     }
