@@ -37,17 +37,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(CrucibleScreen.class)
 public class CrucibleScreenResultLabelMixin {
-    /** TFC draws its content rows from this offset, 18px apart, three of them at a time. */
-    @Unique
-    private static final int LIST_TOP = 22;
-    @Unique
-    private static final int LIST_ROW_HEIGHT = 18;
-    @Unique
-    private static final int LIST_VISIBLE_ROWS = 3;
+    /** One line per metal, and the block sits outside the texture, so it is drawn in screen colours. */
     @Unique
     private static final int LINE_HEIGHT = 9;
     @Unique
-    private static final int TEXT_COLOUR = 0x555555;
+    private static final int HEADER_COLOUR = 0xE0E0E0;
+    @Unique
+    private static final int PART_COLOUR = 0xA0A0A0;
 
     @Redirect(method = "renderBg(Lnet/minecraft/client/gui/GuiGraphics;FII)V",
             at = @At(value = "INVOKE", target = "Lnet/neoforged/neoforge/fluids/FluidType;getDescription()Lnet/minecraft/network/chat/Component;", ordinal = 0))
@@ -74,16 +70,16 @@ public class CrucibleScreenResultLabelMixin {
         AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
         Font font = Minecraft.getInstance().font;
         int left = screen.getGuiLeft() + 10;
-        int top = screen.getGuiTop() + LIST_TOP + Math.min(alloy.getContent().size(), LIST_VISIBLE_ROWS) * LIST_ROW_HEIGHT + 2;
+        int top = screen.getGuiTop() + screen.getYSize() + 3;
         for (Object2ObjectMap.Entry<Fluid, AlloyRecord> entry : compositions.object2ObjectEntrySet()) {
             if (!alloy.getContent().containsKey(entry.getKey()) || entry.getValue().parts().size() < 2) {
                 continue;
             }
             graphics.drawString(font, immersiveMetallurgy$stateAwareName(entry.getKey(), entry.getKey().getFluidType().getDescription())
-                    .copy().withStyle(ChatFormatting.UNDERLINE), left, top, TEXT_COLOUR);
+                    .copy().withStyle(ChatFormatting.UNDERLINE), left, top, HEADER_COLOUR);
             top += LINE_HEIGHT;
             for (AlloyRecord.FluidParts part : entry.getValue().parts()) {
-                graphics.drawString(font, immersiveMetallurgy$part(part, entry.getValue().totalParts()), left + 6, top, TEXT_COLOUR);
+                graphics.drawString(font, immersiveMetallurgy$part(part, entry.getValue().totalParts()), left + 6, top, PART_COLOUR);
                 top += LINE_HEIGHT;
             }
             top += 2;
