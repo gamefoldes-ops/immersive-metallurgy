@@ -93,6 +93,7 @@ lang = {
     "itemGroup.immersive_metallurgy": "Immersive Metallurgy",
     "immersive_metallurgy.screen.metal_totals": "Total metals",
     "immersive_metallurgy.tooltip.defects": "Defects: %s",
+    "immersive_metallurgy.name.flawed": "Flawed %s",
     "immersive_metallurgy.tooltip.sharpness": "Edge: %s",
     "immersive_metallurgy.tooltip.structure": "Structure: %s of clean metal",
     "immersive_metallurgy.tooltip.damage": "Attack damage: %s",

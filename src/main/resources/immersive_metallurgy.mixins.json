@@ -9,6 +9,7 @@
     "CastingRecipeRecordMixin",
     "FluidAlloyRecordMixin",
     "HeatingRecipeRecordMixin",
+    "ItemStackFlawedNameMixin",
     "WeldingRecipeRecordMixin"
   ],
   "client": [
