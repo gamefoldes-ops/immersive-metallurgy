@@ -17,15 +17,16 @@ import argparse
 import json
 import os
 import shutil
+import re
 import zipfile
 
 MOD = "immersive_metallurgy"
 RES = os.path.join(os.path.dirname(__file__), os.pardir, "src", "main", "resources")
 
-ALLOY_KEYS = [
-    "bronze", "bismuth_bronze", "black_bronze", "brass", "rose_gold", "sterling_silver",
-    "weak_steel", "weak_blue_steel", "weak_red_steel",
-]
+ALLOY_KEYS = re.findall(r'new IMAlloys\("(\w+)"',
+                        open(os.path.join(os.path.dirname(__file__), os.pardir, "src", "main", "java",
+                                          "immersivemetallurgy", "registry", "IMAlloys.java"),
+                             encoding="utf-8").read())
 
 
 def default_jar():

@@ -23,6 +23,7 @@ import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.material.Fluid;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -74,7 +75,51 @@ public final class TolerantAlloyMatcher {
                 best = candidate;
             }
         }
-        return best == null ? null : best.toMatch();
+        return best == null ? pureMetalWithGangue(content, rules, profiles) : best.toMatch();
+    }
+
+    /**
+     * One metal plus its gangue is the commonest melt in the game - copper ore smelts to copper and slag - and
+     * TFC has no recipe for a metal mixed with something that is not a metal, so the whole crucible would
+     * collapse to unknown. Slag inside the tolerance is still that metal, slag past it is the metal's flawed
+     * form, and slag past the ceiling really is not this metal any more.
+     */
+    private static Match pureMetalWithGangue(Object2DoubleMap<Fluid> content, Map<Fluid, Rule> rules, FlawProfiles profiles) {
+        double slag = 0;
+        Fluid metal = null;
+        double metalAmount = 0;
+        for (Object2DoubleMap.Entry<Fluid> entry : content.object2DoubleEntrySet()) {
+            if (entry.getDoubleValue() <= EPS) {
+                continue;
+            }
+            if (entry.getKey() == IMFluids.SLAG.fluid()) {
+                slag += entry.getDoubleValue();
+                continue;
+            }
+            if (metal != null) {
+                return null;
+            }
+            metal = entry.getKey();
+            metalAmount = entry.getDoubleValue();
+        }
+        if (metal == null || slag <= EPS) {
+            return null;
+        }
+        Rule rule = rules.get(metal);
+        if (rule == null) {
+            return null;
+        }
+        double slagShare = slag / (metalAmount + slag);
+        if (slagShare > rule.maxSlag()) {
+            return null;
+        }
+        boolean clean = slagShare <= rule.slagTolerance();
+        AlloyRecipe recipe = new AlloyRecipe(List.of(new AlloyRange(metal, 1D, 1D)),
+                clean ? metal : rule.flawedResult());
+        DefectProfile defect = clean || profiles == null
+                ? DefectProfile.CLEAN
+                : toProfile(profiles, Map.of(), Map.of(), slagSeverity(rule, slagShare), 0F, (float) slagShare);
+        return new Match(recipe, clean, 0, slagShare, defect, Map.of(metal, metalAmount));
     }
 
     private static Candidate analyze(AlloyRecipe recipe, Rule rule, FlawProfiles profiles, ResourceLocation id, Object2DoubleMap<Fluid> content) {

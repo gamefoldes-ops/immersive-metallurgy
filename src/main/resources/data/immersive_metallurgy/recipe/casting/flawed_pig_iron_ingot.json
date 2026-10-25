@@ -1,0 +1,1 @@
+{"type":"tfc:casting","break_chance":0.1,"fluid":{"amount":100,"fluid":"immersive_metallurgy:metal/flawed_pig_iron"},"mold":{"item":"tfc:ceramic/ingot_mold"},"result":{"count":1,"id":"immersive_metallurgy:metal/ingot/flawed_pig_iron"}}

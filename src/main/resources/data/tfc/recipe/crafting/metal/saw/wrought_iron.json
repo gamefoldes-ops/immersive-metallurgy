@@ -1,0 +1,1 @@
+{"type":"tfc:advanced_shaped_crafting","key":{"S":{"tag":"c:rods/wooden"},"X":{"item":"tfc:metal/saw_blade/wrought_iron"}},"pattern":["X","S"],"result":{"modifiers":[{"type":"tfc:copy_forging_bonus"},{"type":"immersive_metallurgy:copy_melt"}],"stack":{"count":1,"id":"tfc:metal/saw/wrought_iron"}}}

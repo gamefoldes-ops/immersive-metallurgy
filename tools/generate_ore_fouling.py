@@ -17,14 +17,14 @@ MOD = "immersive_metallurgy"
 HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(HERE, os.pardir, "src", "main", "resources")
 
-# Slag added per unit of metal the ore yields, by TFC's grade. Chosen so a crucible filled only with this
-# grade still pours: the slag share of the whole melt is ratio / (1 + ratio), and it has to stay under the
-# max_slag of the tolerance rules, while staying over slag_tolerance so that smelting from rock is flawed.
+# Slag added per unit of metal the ore yields, by TFC's grade. The worst grade tops out just under 20% of the
+# melt (share = ratio / (1 + ratio)), which stays comfortably under the 0.25 max_slag of the tolerance rules so
+# a crucible filled with ore still pours, while sitting above slag_tolerance so smelting from rock is flawed.
 RATIOS = {
-    "rich": 0.12,
-    "normal": 0.18,
-    "poor": 0.24,
-    "small": 0.30,
+    "rich": 0.08,
+    "normal": 0.13,
+    "poor": 0.18,
+    "small": 0.21,
 }
 
 

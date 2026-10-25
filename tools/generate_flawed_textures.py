@@ -13,6 +13,7 @@ import argparse
 import json
 import os
 import random
+import re
 import zipfile
 
 import png
@@ -20,10 +21,10 @@ import png
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, os.pardir, "src", "main", "resources", "assets", "immersive_metallurgy", "textures", "item", "metal")
 
-ALLOY_KEYS = [
-    "bronze", "bismuth_bronze", "black_bronze", "brass", "rose_gold", "sterling_silver",
-    "weak_steel", "weak_blue_steel", "weak_red_steel",
-]
+# The metals are IMAlloys' business, not this script's: reading them back keeps the art from lagging the list.
+ALLOY_KEYS = re.findall(r'new IMAlloys\("(\w+)"',
+                        open(os.path.join(HERE, os.pardir, "src", "main", "java", "immersivemetallurgy",
+                                          "registry", "IMAlloys.java"), encoding="utf-8").read())
 
 
 def default_jar():

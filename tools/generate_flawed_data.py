@@ -1,21 +1,25 @@
-"""Regenerates the flawed-metal data pack for every alloy in IMAlloys.
+"""Regenerates the flawed-metal data pack for every metal in IMAlloys.
 
-Keep ALLOYS in sync with src/main/java/.../registry/IMAlloys.java: the Java list owns identities
-(fluids, items, tints), this table owns the temperatures a flawed alloy inherits from its clean metal,
-which TFC keeps in data. Run `python tools/generate_flawed_data.py` after changing it.
+Identities (fluids, items, tints) live in src/main/java/.../registry/IMAlloys.java and are read back from that
+file here, so the two cannot drift; what TFC keeps in its own data - the melt temperature, the forging and
+welding temperatures, and the specific heat of each metal - is read out of the TFC jar. Run
+`python tools/generate_flawed_data.py` after changing the Java list or updating TFC.
 
-Item art is not written here any more: generate_flawed_textures.py derives it from TFC's own textures.
+Item art is not written here: generate_flawed_textures.py derives it from TFC's own textures.
 """
 
 import json
 import os
+import re
 import struct
+import zipfile
 import zlib
 
 MOD = "immersive_metallurgy"
-RES = os.path.join(os.path.dirname(__file__), os.pardir, "src", "main", "resources")
+HERE = os.path.dirname(os.path.abspath(__file__))
+RES = os.path.join(HERE, os.pardir, "src", "main", "resources")
+IDENTITIES = os.path.join(HERE, os.pardir, "src", "main", "java", "immersivemetallurgy", "registry", "IMAlloys.java")
 
-SPECIFIC_HEAT = 0.008571429
 INGOT_HEAT_CAPACITY = 2.857143
 DOUBLE_INGOT_HEAT_CAPACITY = 5.714286
 MILLIBUCKETS = 100
@@ -25,17 +29,57 @@ CAST_BREAK_CHANCE = 0.1
 # flawed ones. This file only draws the one item that has no TFC twin at all.
 WHETSTONE_GREY = 0x8A8A8A
 
-ALLOYS = [
-    ("bronze", "Bronze", 950.0, 570.0, 760.0, True, 0x9B7A44),
-    ("bismuth_bronze", "Bismuth Bronze", 985.0, 591.0, 788.0, True, 0x7F8A76),
-    ("black_bronze", "Black Bronze", 1070.0, 642.0, 856.0, True, 0x4E4A55),
-    ("brass", "Brass", 930.0, 558.0, 744.0, True, 0x9A8A4E),
-    ("rose_gold", "Rose Gold", 960.0, 576.0, 768.0, True, 0xA87B6E),
-    ("sterling_silver", "Sterling Silver", 950.0, 570.0, 760.0, True, 0x8C8F93),
-    ("weak_steel", "Weak Steel", 1540.0, 924.00006, 1232.0, False, 0x5B6470),
-    ("weak_blue_steel", "Weak Blue Steel", 1540.0, 924.00006, 1232.0, False, 0x4F6373),
-    ("weak_red_steel", "Weak Red Steel", 1540.0, 924.00006, 1232.0, False, 0x6E5348),
-]
+
+def default_jar():
+    base = os.environ.get("APPDATA", "")
+    return os.path.join(base, ".minecraft", "versions", "TFC+Millenaire", "mods",
+                        "TerraFirmaCraft-NeoForge-1.21.1-4.2.12.jar")
+
+
+def identities():
+    """The rows of IMAlloys.ALL, in declaration order: key, display, tint, double ingot."""
+    source = open(IDENTITIES, encoding="utf-8").read()
+    return [(key, display, int(tint, 16) & 0xFFFFFF, is_double == "true")
+            for key, display, tint, is_double
+            in re.findall(r'new IMAlloys\("(\w+)", "(.+?)", 0x([0-9A-Fa-f]{6,8}), (true|false)\)', source)]
+
+
+def tfc_temperatures(archive):
+    """melt temperature and specific heat per metal, straight from TFC's own tfc:fluid_heat data."""
+    heat = {}
+    for name in archive.namelist():
+        if name.startswith("data/tfc/tfc/fluid_heat/") and name.endswith(".json"):
+            entry = json.loads(archive.read(name))
+            heat[entry["fluid"].split("/")[-1]] = (entry["melt_temperature"], entry["specific_heat_capacity"])
+    return heat
+
+
+def tfc_work_temperatures(archive, metal):
+    """forging and welding temperature of a clean ingot of this metal, from TFC's tfc:item_heat data."""
+    name = f"data/tfc/tfc/item_heat/{metal}/ingot.json"
+    if name not in archive.namelist():
+        return 0.0, 0.0
+    entry = json.loads(archive.read(name))
+    return entry.get("forging_temperature", 0.0), entry.get("welding_temperature", 0.0)
+
+
+def build_alloys():
+    jar = default_jar()
+    if not os.path.exists(jar):
+        raise SystemExit(f"TFC jar not found at {jar}; pass nothing but fix the path in default_jar()")
+    with zipfile.ZipFile(jar) as archive:
+        heat = tfc_temperatures(archive)
+        rows = []
+        for key, display, tint, double_ingot in identities():
+            if key not in heat:
+                raise SystemExit(f"{key} is in IMAlloys.ALL but TFC has no fluid_heat for it")
+            melt, specific_heat = heat[key]
+            forging, welding = tfc_work_temperatures(archive, key)
+            rows.append((key, display, melt, forging, welding, double_ingot, tint, specific_heat))
+        return rows
+
+
+ALLOYS = build_alloys()
 
 
 def write(*path, value):
@@ -120,7 +164,7 @@ mold_fluids = []
 ingot_tag_values = []
 double_ingot_tag_values = []
 
-for key, display, melt, forging, welding, has_double, tint in ALLOYS:
+for key, display, melt, forging, welding, has_double, tint, specific_heat in ALLOYS:
     flawed = f"flawed_{key}"
     fluid = f"{MOD}:metal/{flawed}"
     ingot = f"{MOD}:metal/ingot/{flawed}"
@@ -129,7 +173,7 @@ for key, display, melt, forging, welding, has_double, tint in ALLOYS:
     write("data", MOD, "tfc", "fluid_heat", f"{flawed}.json", value={
         "fluid": fluid,
         "melt_temperature": melt,
-        "specific_heat_capacity": SPECIFIC_HEAT,
+        "specific_heat_capacity": specific_heat,
     })
 
     # TFC renders molten metal from its own fluid type, but a fluid block still needs a state and model,

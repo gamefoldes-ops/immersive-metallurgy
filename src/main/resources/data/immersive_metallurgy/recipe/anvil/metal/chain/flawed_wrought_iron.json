@@ -1,0 +1,1 @@
+{"type":"tfc:anvil","ingredient":{"tag":"c:ingots/flawed_wrought_iron"},"result":{"count":16,"id":"tfc:metal/chain/wrought_iron"},"rules":["hit_any","draw_not_last"],"tier":3}
