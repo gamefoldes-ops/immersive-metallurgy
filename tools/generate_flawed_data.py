@@ -213,8 +213,9 @@ for key, display, melt, forging, welding, has_double, tint in ALLOYS:
     lang[f"tag.item.c.double_ingots.{flawed}"] = f"Flawed {display} Double Ingots"
 
 # A mold only accepts fluids that its own tag lists, and TFC's definition of that tag is clean metal.
-write("data", "tfc", "tags", "fluid", "usable_in_ingot_mold.json",
-      value={"values": mold_fluids + [f"{MOD}:slag"]})
+# Slag is deliberately absent: it is the denominator of purity, something a crucible holds and a player
+# scrapes off, never something that gets cast into an object.
+write("data", "tfc", "tags", "fluid", "usable_in_ingot_mold.json", value={"values": mold_fluids})
 write("data", "c", "tags", "item", "ingots", "flawed.json", value={"values": ingot_tag_values})
 write("data", "c", "tags", "item", "double_ingots", "flawed.json", value={"values": double_ingot_tag_values})
 lang["tag.item.c.ingots.flawed"] = "Flawed Ingots"
