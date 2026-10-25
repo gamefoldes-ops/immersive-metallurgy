@@ -3,8 +3,8 @@ package com.gamefoldes.immersivemetallurgy.mixin;
 import com.gamefoldes.immersivemetallurgy.client.IMMetalNames;
 import com.gamefoldes.immersivemetallurgy.component.AlloyRecord;
 import com.gamefoldes.immersivemetallurgy.component.MeltComposition;
-import com.gamefoldes.immersivemetallurgy.registry.IMDataComponents;
 
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.dries007.tfc.client.screen.CrucibleScreen;
 import net.dries007.tfc.common.blockentities.CrucibleBlockEntity;
@@ -17,6 +17,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.MenuAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.level.material.Fluid;
@@ -29,15 +30,18 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 /**
  * The crucible screen names its contents after the fluid, and TFC only ships molten names, so a cooled
- * crucible still reads "Molten Bronze", and junk or flawed metal says nothing about what is in it. This
- * relabels the result line by temperature, and writes the composition of any fluid whose name hides it as
- * its own list under the content rows.
+ * crucible still reads "Molten Bronze", junk and flawed metal say nothing about what is in them, and a
+ * crucible holding copper, tin, bronze and flawed bronze together gives no way to tell how much copper it
+ * has in total. This relabels the result by temperature and writes two debug lists below the panel.
  */
 @Mixin(CrucibleScreen.class)
 public class CrucibleScreenResultLabelMixin {
-    /** One line per metal, and the block sits outside the texture, so it is drawn in screen colours. */
     @Unique
     private static final int LINE_HEIGHT = 9;
     @Unique
@@ -63,14 +67,23 @@ public class CrucibleScreenResultLabelMixin {
         if (alloy.getAmount() <= 0) {
             return;
         }
-        Object2ObjectMap<Fluid, AlloyRecord> compositions = ((MeltComposition) (Object) alloy).immersiveMetallurgyCompositions();
-        if (compositions.isEmpty()) {
+        MeltComposition container = (MeltComposition) (Object) alloy;
+        Object2ObjectMap<Fluid, AlloyRecord> compositions = container.immersiveMetallurgyCompositions();
+        Object2DoubleMap<Fluid> leaves = container.immersiveMetallurgyLeafContent();
+        if (compositions.isEmpty() && leaves.size() < 2) {
             return;
         }
         AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
         Font font = Minecraft.getInstance().font;
         int left = screen.getGuiLeft() + 10;
         int top = screen.getGuiTop() + screen.getYSize() + 3;
+        top = immersiveMetallurgy$drawHiddenRecipes(graphics, font, left, top, alloy, compositions);
+        immersiveMetallurgy$drawMetalTotals(graphics, font, left, top, alloy, leaves);
+    }
+
+    @Unique
+    private int immersiveMetallurgy$drawHiddenRecipes(GuiGraphics graphics, Font font, int left, int top,
+                                                      FluidAlloy alloy, Object2ObjectMap<Fluid, AlloyRecord> compositions) {
         for (Object2ObjectMap.Entry<Fluid, AlloyRecord> entry : compositions.object2ObjectEntrySet()) {
             if (!alloy.getContent().containsKey(entry.getKey()) || entry.getValue().parts().size() < 2) {
                 continue;
@@ -78,11 +91,32 @@ public class CrucibleScreenResultLabelMixin {
             graphics.drawString(font, immersiveMetallurgy$stateAwareName(entry.getKey(), entry.getKey().getFluidType().getDescription())
                     .copy().withStyle(ChatFormatting.UNDERLINE), left, top, HEADER_COLOUR);
             top += LINE_HEIGHT;
-            for (AlloyRecord.FluidParts part : entry.getValue().parts()) {
-                graphics.drawString(font, immersiveMetallurgy$part(part, entry.getValue().totalParts()), left + 6, top, PART_COLOUR);
+            AlloyRecord record = entry.getValue();
+            for (AlloyRecord.FluidParts part : record.parts()) {
+                graphics.drawString(font, immersiveMetallurgy$line(part.fluid(), 100F * part.parts() / record.totalParts()), left + 6, top, PART_COLOUR);
                 top += LINE_HEIGHT;
             }
             top += 2;
+        }
+        return top;
+    }
+
+    /**
+     * The rows inside the screen list bronze and flawed bronze as themselves, so the only way to see how
+     * much copper is actually in the crucible is to add the hidden recipes up.
+     */
+    @Unique
+    private void immersiveMetallurgy$drawMetalTotals(GuiGraphics graphics, Font font, int left, int top,
+                                                     FluidAlloy alloy, Object2DoubleMap<Fluid> leaves) {
+        graphics.drawString(font, Component.translatable("immersive_metallurgy.screen.metal_totals")
+                .copy().withStyle(ChatFormatting.UNDERLINE), left, top, HEADER_COLOUR);
+        top += LINE_HEIGHT;
+        List<Object2DoubleMap.Entry<Fluid>> ordered = new ArrayList<>(leaves.object2DoubleEntrySet());
+        ordered.sort(Comparator.comparingDouble((Object2DoubleMap.Entry<Fluid> entry) -> -entry.getDoubleValue())
+                .thenComparing(entry -> BuiltInRegistries.FLUID.getKey(entry.getKey()).getPath()));
+        for (Object2DoubleMap.Entry<Fluid> leaf : ordered) {
+            graphics.drawString(font, immersiveMetallurgy$line(leaf.getKey(), 100F * leaf.getDoubleValue() / alloy.getAmount()), left + 6, top, PART_COLOUR);
+            top += LINE_HEIGHT;
         }
     }
 
@@ -101,9 +135,9 @@ public class CrucibleScreenResultLabelMixin {
     }
 
     @Unique
-    private static MutableComponent immersiveMetallurgy$part(AlloyRecord.FluidParts part, int total) {
+    private static MutableComponent immersiveMetallurgy$line(Fluid fluid, double percent) {
         return Component.empty()
-                .append(IMMetalNames.name(part.fluid()))
-                .append(Component.literal(" " + Math.round(100F * part.parts() / total) + "%"));
+                .append(IMMetalNames.name(fluid))
+                .append(Component.literal(" " + Math.round(percent) + "%"));
     }
 }
