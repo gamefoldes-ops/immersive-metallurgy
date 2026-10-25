@@ -108,6 +108,10 @@ lang = {
     "immersive_metallurgy.defect.soft": "Soft",
     "immersive_metallurgy.defect.edge_wear": "Chips easily",
     "immersive_metallurgy.defect.flowy": "Cold shut",
+    "immersive_metallurgy.tooltip.grade": "Grade: %s",
+    "immersive_metallurgy.grade.light": "Minor",
+    "immersive_metallurgy.grade.medium": "Major",
+    "immersive_metallurgy.grade.heavy": "Severe",
     f"metal.{MOD}.slag": "Slag",
     f"fluid.{MOD}.slag": "Molten Slag",
 }
