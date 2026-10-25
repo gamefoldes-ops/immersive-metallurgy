@@ -1,7 +1,8 @@
 package com.gamefoldes.immersivemetallurgy.alloy;
 
 import com.gamefoldes.immersivemetallurgy.ImmersiveMetallurgy;
-import com.gamefoldes.immersivemetallurgy.recipe.AlloyTolerance;
+import com.gamefoldes.immersivemetallurgy.recipe.AlloyTolerances;
+import com.gamefoldes.immersivemetallurgy.recipe.AlloyTolerances.Rule;
 import com.gamefoldes.immersivemetallurgy.registry.IMFluids;
 import com.gamefoldes.immersivemetallurgy.registry.IMRecipes;
 
@@ -22,7 +23,7 @@ import java.util.Map;
 /**
  * TFC collapses any melt that misses every alloy band onto {@code Metal.UNKNOWN}, which destroys the
  * information about what was actually in the crucible. This walks the same alloy recipes with bands
- * widened by {@link AlloyTolerance} and keeps the deviation, so an off-ratio melt still knows what it is.
+ * widened by {@link Rule} and keeps the deviation, so an off-ratio melt still knows what it is.
  */
 public final class TolerantAlloyMatcher {
     private static final double EPS = 1.0E-9;
@@ -35,9 +36,11 @@ public final class TolerantAlloyMatcher {
      *         in which case TFC's own unknown result stands
      */
     public static Match match(RecipeManager recipes, FluidAlloy alloy) {
-        Map<Fluid, AlloyTolerance> rules = new HashMap<>();
-        for (RecipeHolder<AlloyTolerance> holder : RecipeHelpers.getRecipes(recipes, IMRecipes.ALLOY_TOLERANCE)) {
-            rules.put(holder.value().alloy(), holder.value());
+        Map<Fluid, Rule> rules = new HashMap<>();
+        for (RecipeHolder<AlloyTolerances> holder : RecipeHelpers.getRecipes(recipes, IMRecipes.ALLOY_TOLERANCE)) {
+            for (Rule rule : holder.value().rules()) {
+                rules.put(rule.alloy(), rule);
+            }
         }
         if (rules.isEmpty()) {
             return null;
@@ -47,7 +50,7 @@ public final class TolerantAlloyMatcher {
         Candidate best = null;
         for (RecipeHolder<AlloyRecipe> holder : RecipeHelpers.getRecipes(recipes, TFCRecipeTypes.ALLOY)) {
             AlloyRecipe recipe = holder.value();
-            AlloyTolerance rule = rules.get(recipe.result());
+            Rule rule = rules.get(recipe.result());
             if (rule == null) {
                 continue;
             }
@@ -63,7 +66,7 @@ public final class TolerantAlloyMatcher {
         return best == null ? null : best.toMatch();
     }
 
-    private static Candidate analyze(AlloyRecipe recipe, AlloyTolerance rule, ResourceLocation id, Object2DoubleMap<Fluid> content) {
+    private static Candidate analyze(AlloyRecipe recipe, Rule rule, ResourceLocation id, Object2DoubleMap<Fluid> content) {
         Map<Fluid, AlloyRange> bands = new HashMap<>();
         for (AlloyRange range : recipe.contents()) {
             bands.put(range.fluid(), range);

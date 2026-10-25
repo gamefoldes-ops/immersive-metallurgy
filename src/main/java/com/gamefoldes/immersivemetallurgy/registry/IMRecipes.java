@@ -1,7 +1,7 @@
 package com.gamefoldes.immersivemetallurgy.registry;
 
 import com.gamefoldes.immersivemetallurgy.ImmersiveMetallurgy;
-import com.gamefoldes.immersivemetallurgy.recipe.AlloyTolerance;
+import com.gamefoldes.immersivemetallurgy.recipe.AlloyTolerances;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -22,10 +22,10 @@ public final class IMRecipes {
     public static final DeferredRegister<RecipeType<?>> RECIPE_TYPES = DeferredRegister.create(Registries.RECIPE_TYPE, ImmersiveMetallurgy.MODID);
     public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(Registries.RECIPE_SERIALIZER, ImmersiveMetallurgy.MODID);
 
-    public static final DeferredHolder<RecipeType<?>, RecipeType<AlloyTolerance>> ALLOY_TOLERANCE =
+    public static final DeferredHolder<RecipeType<?>, RecipeType<AlloyTolerances>> ALLOY_TOLERANCE =
             RECIPE_TYPES.register("alloy_tolerance", () -> RecipeType.simple(ALLOY_TOLERANCE_ID));
-    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<AlloyTolerance>> ALLOY_TOLERANCE_SERIALIZER =
-            RECIPE_SERIALIZERS.register("alloy_tolerance", AlloyTolerance::serializer);
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<AlloyTolerances>> ALLOY_TOLERANCE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("alloy_tolerance", AlloyTolerances::serializer);
 
     private IMRecipes() {
     }
