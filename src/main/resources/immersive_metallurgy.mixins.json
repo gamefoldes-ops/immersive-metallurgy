@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.gamefoldes.immersivemetallurgy.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "CrucibleResultProbeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
