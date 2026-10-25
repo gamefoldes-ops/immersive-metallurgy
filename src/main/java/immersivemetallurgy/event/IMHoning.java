@@ -33,8 +33,6 @@ import java.util.UUID;
  * the tool's structure. The timer lives here rather than on the player because it is meaningless after a
  * reload, and nothing about an edge is worth persisting half a stroke for.
  *
- * The same numbers drive the portable whetstone, so the two routes differ only in what they cost: the stone
- * wears out, the station takes your time.
  */
 @EventBusSubscriber(modid = ImmersiveMetallurgy.MODID)
 public final class IMHoning {

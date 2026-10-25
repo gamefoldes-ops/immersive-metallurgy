@@ -14,8 +14,8 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 /**
- * A creative tab of our own, because without one the flawed metals and the whetstone have no home in the
- * creative menu and read as missing rather than as untabbed. It takes every item our namespace registers,
+ * A creative tab of our own, because without one the flawed metals have no home in the creative menu and
+ * read as missing rather than as untabbed. It takes every item our namespace registers,
  * so a new metal appears here the moment it exists.
  */
 public final class IMCreativeTab {
@@ -25,7 +25,7 @@ public final class IMCreativeTab {
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = CREATIVE_TABS.register("main",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup." + ImmersiveMetallurgy.MODID))
-                    .icon(() -> new ItemStack(IMItems.WHETSTONE.get()))
+                    .icon(() -> new ItemStack(IMItems.FLAWED_INGOTS.get(0).get()))
                     .displayItems((parameters, output) -> {
                         for (Item item : BuiltInRegistries.ITEM) {
                             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);

@@ -14,7 +14,7 @@ import net.neoforged.neoforge.common.MutableDataComponentHolder;
  * holder, so one method fits every direction the metal travels.
  */
 public final class MeltCarries {
-    /** A freshly forged edge, and the ceiling a whetstone cannot push past without a different repair. */
+    /** A freshly forged edge, and the ceiling honing alone cannot push past without a different repair. */
     public static final float FULL_SHARPNESS = 100F;
 
     private MeltCarries() {

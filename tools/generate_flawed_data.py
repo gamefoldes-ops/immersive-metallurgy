@@ -25,9 +25,6 @@ DOUBLE_INGOT_HEAT_CAPACITY = 5.714286
 MILLIBUCKETS = 100
 CAST_BREAK_CHANCE = 0.1
 
-# Flawed metal art is not made here: generate_flawed_textures.py degrades TFC's own ingot textures into
-# flawed ones. This file only draws the one item that has no TFC twin at all.
-WHETSTONE_GREY = 0x8A8A8A
 
 
 def default_jar():
@@ -63,11 +60,35 @@ def tfc_work_temperatures(archive, metal):
     return entry.get("forging_temperature", 0.0), entry.get("welding_temperature", 0.0)
 
 
+# Which mold items TFC actually pours each metal's ingot in. Some metals have two: a plain ingot mold and
+# a fire clay one, and a flawed recipe that only knows the first makes the flawed metal uncastable in the
+# mold the player is holding.
+CASTING = {}
+
+
+def collect_casting(archive):
+    for name in archive.namelist():
+        if not name.startswith("data/tfc/recipe/casting/") or not name.endswith(".json"):
+            continue
+        recipe = json.loads(archive.read(name))
+        result = recipe.get("result") or {}
+        result_id = result.get("id", "")
+        if not result_id.startswith("tfc:metal/ingot/"):
+            continue
+        key = result_id.rsplit("/", 1)[-1]
+        fluid = recipe.get("fluid", {})
+        mold = recipe.get("mold", {}).get("item")
+        if mold and fluid.get("fluid") == f"tfc:metal/{key}":
+            CASTING.setdefault(key, []).append((mold, fluid.get("amount", MILLIBUCKETS),
+                                                recipe.get("break_chance", CAST_BREAK_CHANCE)))
+
+
 def build_alloys():
     jar = default_jar()
     if not os.path.exists(jar):
         raise SystemExit(f"TFC jar not found at {jar}; pass nothing but fix the path in default_jar()")
     with zipfile.ZipFile(jar) as archive:
+        collect_casting(archive)
         heat = tfc_temperatures(archive)
         rows = []
         for key, display, tint, double_ingot in identities():
@@ -80,6 +101,12 @@ def build_alloys():
 
 
 ALLOYS = build_alloys()
+
+import shutil
+
+CASTING_FOLDER = os.path.join(RES, "data", MOD, "recipe", "casting")
+if os.path.isdir(CASTING_FOLDER):
+    shutil.rmtree(CASTING_FOLDER)
 
 
 def write(*path, value):
@@ -147,7 +174,6 @@ lang = {
     "immersive_metallurgy.tooltip.mining": "Mining speed: %s",
     "immersive_metallurgy.tooltip.blunting": "Dulling: %s",
     "immersive_metallurgy.tooltip.chipping": "Chipping: %s per hit",
-    f"item.{MOD}.whetstone": "Whetstone",
     "immersive_metallurgy.defect.brittle": "Brittle",
     "immersive_metallurgy.defect.soft": "Soft",
     "immersive_metallurgy.defect.edge_wear": "Chips easily",
@@ -185,13 +211,16 @@ for key, display, melt, forging, welding, has_double, tint, specific_heat in ALL
         "textures": {"particle": "tfc:block/molten_still"},
     })
 
-    write("data", MOD, "recipe", "casting", f"{flawed}_ingot.json", value={
-        "type": "tfc:casting",
-        "break_chance": CAST_BREAK_CHANCE,
-        "fluid": {"amount": MILLIBUCKETS, "fluid": fluid},
-        "mold": {"item": "tfc:ceramic/ingot_mold"},
-        "result": {"count": 1, "id": ingot},
-    })
+    molds = CASTING.get(key) or [("tfc:ceramic/ingot_mold", MILLIBUCKETS, CAST_BREAK_CHANCE)]
+    for mold_item, amount, break_chance in molds:
+        write("data", MOD, "recipe", "casting",
+              f"{flawed}_ingot_{mold_item.rsplit('/', 1)[-1]}.json", value={
+            "type": "tfc:casting",
+            "break_chance": break_chance,
+            "fluid": {"amount": amount, "fluid": fluid},
+            "mold": {"item": mold_item},
+            "result": {"count": 1, "id": ingot},
+        })
 
     write("data", MOD, "recipe", "heating", "metal", "ingot", f"{flawed}.json", value={
         "type": "tfc:heating",
@@ -264,7 +293,6 @@ write("data", "c", "tags", "item", "double_ingots", "flawed.json", value={"value
 lang["tag.item.c.ingots.flawed"] = "Flawed Ingots"
 lang["tag.item.c.double_ingots.flawed"] = "Flawed Double Ingots"
 
-write_png_if_missing("assets", MOD, "textures", "item", "whetstone.png", pixels=make_ingot(WHETSTONE_GREY, True))
 write("assets", MOD, "lang", "en_us.json", value=dict(sorted(lang.items())))
 
 doubles = sum(1 for alloy in ALLOYS if alloy[5])

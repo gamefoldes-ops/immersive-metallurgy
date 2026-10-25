@@ -78,7 +78,7 @@ public final class IMWearOnUse {
     }
 
     /**
-     * Losing sharpness is what makes an edge need a whetstone; chipping is the same defect seen from the
+     * Losing sharpness is what makes an edge need honing; chipping is the same defect seen from the
      * durability side, and only flawed metal does it. Tools made before this mod was loaded have no
      * sharpness to track, so they keep TFC's own behaviour until they are sharpened once.
      */
