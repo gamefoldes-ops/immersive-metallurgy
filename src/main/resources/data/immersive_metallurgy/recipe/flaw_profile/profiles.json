@@ -1,0 +1,54 @@
+{
+  "type": "immersive_metallurgy:flaw_profile",
+  "durability_floor": 0.25,
+  "defects": [
+    {
+      "key": "brittle",
+      "short_weight": 0.0,
+      "over_weight": 0.9,
+      "slag_weight": 0.15,
+      "spread_weight": 0.1,
+      "max_damage": 0.7,
+      "damage": 1.1,
+      "mining_speed": 0.95,
+      "dulling": 1.0,
+      "chip_chance": 0.1
+    },
+    {
+      "key": "soft",
+      "short_weight": 0.8,
+      "over_weight": 0.0,
+      "slag_weight": 0.1,
+      "spread_weight": 0.05,
+      "max_damage": 0.9,
+      "damage": 0.85,
+      "mining_speed": 0.85,
+      "dulling": 1.6,
+      "chip_chance": 0.0
+    },
+    {
+      "key": "edge_wear",
+      "short_weight": 0.25,
+      "over_weight": 0.25,
+      "slag_weight": 0.7,
+      "spread_weight": 0.0,
+      "max_damage": 1.0,
+      "damage": 1.0,
+      "mining_speed": 1.0,
+      "dulling": 1.9,
+      "chip_chance": 0.04
+    },
+    {
+      "key": "flowy",
+      "short_weight": 0.1,
+      "over_weight": 0.1,
+      "slag_weight": 0.25,
+      "spread_weight": 0.6,
+      "max_damage": 0.8,
+      "damage": 0.95,
+      "mining_speed": 0.9,
+      "dulling": 1.1,
+      "chip_chance": 0.06
+    }
+  ]
+}

@@ -2,6 +2,7 @@ package com.gamefoldes.immersivemetallurgy.registry;
 
 import com.gamefoldes.immersivemetallurgy.ImmersiveMetallurgy;
 import com.gamefoldes.immersivemetallurgy.component.AlloyRecord;
+import com.gamefoldes.immersivemetallurgy.component.DefectProfile;
 
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
@@ -17,6 +18,12 @@ public final class IMDataComponents {
             DATA_COMPONENTS.register("alloy_record", () -> DataComponentType.<AlloyRecord>builder()
                     .persistent(AlloyRecord.CODEC)
                     .networkSynchronized(AlloyRecord.STREAM_CODEC)
+                    .build());
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<DefectProfile>> DEFECT_PROFILE =
+            DATA_COMPONENTS.register("defect_profile", () -> DataComponentType.<DefectProfile>builder()
+                    .persistent(DefectProfile.CODEC)
+                    .networkSynchronized(DefectProfile.STREAM_CODEC)
                     .build());
 
     private IMDataComponents() {

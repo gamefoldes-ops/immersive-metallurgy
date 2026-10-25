@@ -2,6 +2,7 @@ package com.gamefoldes.immersivemetallurgy.registry;
 
 import com.gamefoldes.immersivemetallurgy.ImmersiveMetallurgy;
 import com.gamefoldes.immersivemetallurgy.recipe.AlloyTolerances;
+import com.gamefoldes.immersivemetallurgy.recipe.FlawProfiles;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -18,6 +19,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
  */
 public final class IMRecipes {
     public static final ResourceLocation ALLOY_TOLERANCE_ID = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "alloy_tolerance");
+    public static final ResourceLocation FLAW_PROFILE_ID = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "flaw_profile");
 
     public static final DeferredRegister<RecipeType<?>> RECIPE_TYPES = DeferredRegister.create(Registries.RECIPE_TYPE, ImmersiveMetallurgy.MODID);
     public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(Registries.RECIPE_SERIALIZER, ImmersiveMetallurgy.MODID);
@@ -26,6 +28,11 @@ public final class IMRecipes {
             RECIPE_TYPES.register("alloy_tolerance", () -> RecipeType.simple(ALLOY_TOLERANCE_ID));
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<AlloyTolerances>> ALLOY_TOLERANCE_SERIALIZER =
             RECIPE_SERIALIZERS.register("alloy_tolerance", AlloyTolerances::serializer);
+
+    public static final DeferredHolder<RecipeType<?>, RecipeType<FlawProfiles>> FLAW_PROFILE =
+            RECIPE_TYPES.register("flaw_profile", () -> RecipeType.simple(FLAW_PROFILE_ID));
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<FlawProfiles>> FLAW_PROFILE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("flaw_profile", FlawProfiles::serializer);
 
     private IMRecipes() {
     }

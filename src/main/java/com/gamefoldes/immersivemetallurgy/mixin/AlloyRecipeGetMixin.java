@@ -1,6 +1,7 @@
 package com.gamefoldes.immersivemetallurgy.mixin;
 
 import com.gamefoldes.immersivemetallurgy.alloy.TolerantAlloyMatcher;
+import com.gamefoldes.immersivemetallurgy.component.MeltComposition;
 
 import net.dries007.tfc.common.recipes.AlloyRecipe;
 import net.dries007.tfc.util.FluidAlloy;
@@ -25,6 +26,8 @@ public class AlloyRecipeGetMixin {
         }
         TolerantAlloyMatcher.Match match = TolerantAlloyMatcher.match(recipes, alloy);
         if (match != null) {
+            // AlloyRecipe has one return value and it is the fluid, so the defect travels through the container.
+            ((MeltComposition) (Object) alloy).immersiveMetallurgySetDefect(match.defect());
             cir.setReturnValue(match.recipe());
         }
     }

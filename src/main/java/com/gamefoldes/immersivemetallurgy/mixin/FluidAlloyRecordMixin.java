@@ -1,6 +1,7 @@
 package com.gamefoldes.immersivemetallurgy.mixin;
 
 import com.gamefoldes.immersivemetallurgy.component.AlloyRecord;
+import com.gamefoldes.immersivemetallurgy.component.DefectProfile;
 import com.gamefoldes.immersivemetallurgy.component.MeltComposition;
 import com.gamefoldes.immersivemetallurgy.registry.IMDataComponents;
 
@@ -49,6 +50,19 @@ public class FluidAlloyRecordMixin implements MeltComposition {
 
     @Unique
     private AlloyRecord immersiveMetallurgy$leafRecord;
+
+    @Unique
+    private DefectProfile immersiveMetallurgy$defect;
+
+    @Override
+    public DefectProfile immersiveMetallurgyDefect() {
+        return this.immersiveMetallurgy$defect == null ? DefectProfile.CLEAN : this.immersiveMetallurgy$defect;
+    }
+
+    @Override
+    public void immersiveMetallurgySetDefect(DefectProfile defect) {
+        this.immersiveMetallurgy$defect = defect;
+    }
 
     @Override
     public Object2ObjectMap<Fluid, AlloyRecord> immersiveMetallurgyCompositions() {
@@ -109,10 +123,15 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         if (record != null && record.parts().size() > 1) {
             result.set(IMDataComponents.ALLOY_RECORD.get(), record);
         }
+        DefectProfile defect = this.immersiveMetallurgy$defect;
+        if (defect != null && !defect.isClean()) {
+            result.set(IMDataComponents.DEFECT_PROFILE.get(), defect);
+        }
     }
 
     @Inject(method = "clearCaches()V", at = @At("TAIL"))
     private void immersiveMetallurgy$forgetGoneFluids(CallbackInfo ci) {
+        this.immersiveMetallurgy$defect = null;
         if (this.immersiveMetallurgy$compositions != null) {
             this.immersiveMetallurgy$compositions.keySet().retainAll(this.content.keySet());
         }

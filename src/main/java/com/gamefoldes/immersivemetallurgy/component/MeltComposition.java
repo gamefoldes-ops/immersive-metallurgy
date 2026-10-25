@@ -13,4 +13,13 @@ public interface MeltComposition {
     Object2DoubleMap<Fluid> immersiveMetallurgyLeafContent();
 
     Object2ObjectMap<Fluid, AlloyRecord> immersiveMetallurgyCompositions();
+
+    /**
+     * The defect the tolerant matcher worked out for this container's current result. The matcher runs
+     * inside TFC's own alloy lookup, which has nowhere to return it, so it leaves it here and the stamping
+     * of the result fluid picks it up in the same call.
+     */
+    DefectProfile immersiveMetallurgyDefect();
+
+    void immersiveMetallurgySetDefect(DefectProfile defect);
 }

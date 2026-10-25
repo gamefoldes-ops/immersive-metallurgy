@@ -41,6 +41,11 @@ def write(*path, value):
 lang = {
     "itemGroup.immersive_metallurgy": "Immersive Metallurgy",
     "immersive_metallurgy.screen.metal_totals": "Total metals",
+    "immersive_metallurgy.tooltip.flawed": "Flawed cast: %s",
+    "immersive_metallurgy.defect.brittle": "Brittle",
+    "immersive_metallurgy.defect.soft": "Soft",
+    "immersive_metallurgy.defect.edge_wear": "Chips easily",
+    "immersive_metallurgy.defect.flowy": "Cold shut",
     f"metal.{MOD}.slag": "Slag",
     f"fluid.{MOD}.slag": "Molten Slag",
 }
