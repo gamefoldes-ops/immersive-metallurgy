@@ -113,8 +113,8 @@ public final class TolerantAlloyMatcher {
         }
 
         double deficit = 0;
-        double shortSum = 0;
-        double overSum = 0;
+        Map<Fluid, Double> excess = new HashMap<>();
+        Map<Fluid, Double> shortage = new HashMap<>();
         int outOfBand = 0;
         for (AlloyRange band : bands.values()) {
             double fraction = components.getOrDefault(band.fluid(), 0D) / metal;
@@ -127,15 +127,17 @@ public final class TolerantAlloyMatcher {
             if (shortBy > EPS || overBy > EPS) {
                 outOfBand++;
             }
-            shortSum += Math.min(1D, shortBy / rule.tolerance());
-            overSum += Math.min(1D, overBy / rule.tolerance());
+            // Kept per metal on purpose: too much tin and too much bismuth are both "over band" and neither
+            // ruins a tool in the same way, so the aggregate would throw that difference away.
+            excess.put(band.fluid(), Math.min(1D, overBy / rule.tolerance()));
+            shortage.put(band.fluid(), Math.min(1D, shortBy / rule.tolerance()));
         }
 
         double flaw = deficit + Math.max(0, slagShare - rule.slagTolerance());
         AlloyRecipe result = flaw <= EPS ? recipe : new AlloyRecipe(recipe.contents(), rule.flawedResult());
         DefectProfile defect = flaw <= EPS || profiles == null
                 ? DefectProfile.CLEAN
-                : toProfile(profiles, (float) shortSum, (float) overSum, slagSeverity(rule, slagShare), spread(outOfBand), (float) slagShare);
+                : toProfile(profiles, excess, shortage, slagSeverity(rule, slagShare), spread(outOfBand), (float) slagShare);
         return new Candidate(result, id, flaw, deficit, slagShare, defect, components);
     }
 
@@ -153,11 +155,12 @@ public final class TolerantAlloyMatcher {
         return Mth.clamp((outOfBand - 1) / 2F, 0F, 1F);
     }
 
-    private static DefectProfile toProfile(FlawProfiles profiles, float shortSum, float overSum, float slagSeverity, float spread, float slagShare) {
-        float brittle = profiles.severity(Archetype.BRITTLE, shortSum, overSum, slagSeverity, spread);
-        float soft = profiles.severity(Archetype.SOFT, shortSum, overSum, slagSeverity, spread);
-        float edgeWear = profiles.severity(Archetype.EDGE_WEAR, shortSum, overSum, slagSeverity, spread);
-        float flowy = profiles.severity(Archetype.FLOWY, shortSum, overSum, slagSeverity, spread);
+    private static DefectProfile toProfile(FlawProfiles profiles, Map<Fluid, Double> excess, Map<Fluid, Double> shortage,
+                                           float slagSeverity, float spread, float slagShare) {
+        float brittle = profiles.severity(Archetype.BRITTLE, excess, shortage, slagSeverity, spread);
+        float soft = profiles.severity(Archetype.SOFT, excess, shortage, slagSeverity, spread);
+        float edgeWear = profiles.severity(Archetype.EDGE_WEAR, excess, shortage, slagSeverity, spread);
+        float flowy = profiles.severity(Archetype.FLOWY, excess, shortage, slagSeverity, spread);
         Map<Archetype, FlawProfiles.Defect> byArchetype = profiles.byArchetype();
         float durability = 1F;
         for (Map.Entry<Archetype, FlawProfiles.Defect> entry : byArchetype.entrySet()) {

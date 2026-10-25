@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " S ",
+    "PAP"
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:stick"
+    },
+    "P": {
+      "tag": "#minecraft:planks"
+    },
+    "A": {
+      "item": "tfc:sandpaper"
+    }
+  },
+  "result": {
+    "id": "minecraft:grindstone",
+    "count": 1
+  }
+}

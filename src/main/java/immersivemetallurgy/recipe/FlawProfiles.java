@@ -34,32 +34,29 @@ import net.minecraft.world.level.material.Fluid;
 import java.util.function.ToDoubleFunction;
 
 /**
- * The tuning sheet that turns a bad melt into named defects: how much each kind of deviation feeds each
- * archetype, and what an archetype then costs a tool. Like the tolerance rules it ships as a recipe,
+ * The tuning sheet that turns a bad melt into named defects: which metal being over or under pours which
+ * kind of fault, and what each fault then costs a tool. Like the tolerance rules it ships as a recipe,
  * because the profile is computed on the client too and only recipes are both synced and reloadable.
- *
- * @param gradeMedium the worst severity at which metal is no longer merely lightly flawed
- * @param gradeHeavy  the worst severity at which a casting counts as scrap rather than as flawed stock
  */
-public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wear, Palette palette,
-                           float gradeMedium, float gradeHeavy) implements Recipe<NoopInput> {
+public record FlawProfiles(List<Defect> defects, List<Role> roles, float durabilityFloor, Wear wear,
+                           Palette palette, Grades grades) implements Recipe<NoopInput> {
 
     public static final MapCodec<FlawProfiles> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Defect.CODEC.listOf().fieldOf("defects").forGetter(FlawProfiles::defects),
+            Role.CODEC.listOf().fieldOf("roles").forGetter(FlawProfiles::roles),
             Codec.FLOAT.fieldOf("durability_floor").forGetter(FlawProfiles::durabilityFloor),
             Wear.CODEC.fieldOf("wear").forGetter(FlawProfiles::wear),
             Palette.CODEC.fieldOf("palette").forGetter(FlawProfiles::palette),
-            Codec.FLOAT.fieldOf("grade_medium").forGetter(FlawProfiles::gradeMedium),
-            Codec.FLOAT.fieldOf("grade_heavy").forGetter(FlawProfiles::gradeHeavy)
+            Grades.CODEC.fieldOf("grades").forGetter(FlawProfiles::grades)
     ).apply(instance, FlawProfiles::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, FlawProfiles> STREAM_CODEC = StreamCodec.composite(
             Defect.STREAM_CODEC.apply(ByteBufCodecs.list()), FlawProfiles::defects,
+            Role.STREAM_CODEC.apply(ByteBufCodecs.list()), FlawProfiles::roles,
             ByteBufCodecs.FLOAT, FlawProfiles::durabilityFloor,
             Wear.STREAM_CODEC, FlawProfiles::wear,
             Palette.STREAM_CODEC, FlawProfiles::palette,
-            ByteBufCodecs.FLOAT, FlawProfiles::gradeMedium,
-            ByteBufCodecs.FLOAT, FlawProfiles::gradeHeavy,
+            Grades.STREAM_CODEC, FlawProfiles::grades,
             FlawProfiles::new);
 
     /**
@@ -67,10 +64,27 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wea
      * one can sit in different stacks: one stack cannot hold two verdicts, and a player reads a pile by shape.
      */
     public int grade(float worst) {
-        if (worst >= gradeHeavy) {
+        if (worst >= grades.heavy()) {
             return 2;
         }
-        return worst >= gradeMedium ? 1 : 0;
+        return worst >= grades.medium() ? 1 : 0;
+    }
+
+    /**
+     * @param medium the worst severity at which metal is no longer merely lightly flawed
+     * @param heavy  the worst severity at which a casting counts as scrap rather than as flawed stock
+     */
+    public record Grades(float medium, float heavy) {
+
+        public static final Codec<Grades> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.FLOAT.fieldOf("medium").forGetter(Grades::medium),
+                Codec.FLOAT.fieldOf("heavy").forGetter(Grades::heavy)
+        ).apply(instance, Grades::new));
+
+        public static final StreamCodec<ByteBuf, Grades> STREAM_CODEC = StreamCodec.composite(
+                ByteBufCodecs.FLOAT, Grades::medium,
+                ByteBufCodecs.FLOAT, Grades::heavy,
+                Grades::new);
     }
 
     public static RecipeSerializer<FlawProfiles> serializer() {
@@ -100,8 +114,6 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wea
 
     /**
      * @param key           which archetype this row describes
-     * @param shortWeight   how strongly a component missing its band feeds it
-     * @param overWeight    how strongly a component exceeding its band feeds it
      * @param slagWeight    how strongly slag feeds it
      * @param spreadWeight  how strongly having several components out of band at once feeds it
      * @param maxDamage     what a full dose of this defect leaves of the tool's structural durability
@@ -111,8 +123,6 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wea
      * @param chipChance    chance per hit to lose extra durability at a full dose
      */
     public record Defect(String key,
-                         float shortWeight,
-                         float overWeight,
                          float slagWeight,
                          float spreadWeight,
                          float maxDamage,
@@ -123,8 +133,6 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wea
 
         public static final Codec<Defect> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.STRING.fieldOf("key").forGetter(Defect::key),
-                Codec.FLOAT.fieldOf("short_weight").forGetter(Defect::shortWeight),
-                Codec.FLOAT.fieldOf("over_weight").forGetter(Defect::overWeight),
                 Codec.FLOAT.fieldOf("slag_weight").forGetter(Defect::slagWeight),
                 Codec.FLOAT.fieldOf("spread_weight").forGetter(Defect::spreadWeight),
                 Codec.FLOAT.fieldOf("max_damage").forGetter(Defect::maxDamage),
@@ -134,11 +142,55 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wea
                 Codec.FLOAT.fieldOf("chip_chance").forGetter(Defect::chipChance)
         ).apply(instance, Defect::new));
 
-        // StreamCodec.composite only reaches six fields, and this row has ten.
+        // Eight fields is past what StreamCodec.composite reaches, and the row is small enough to ship whole.
         public static final StreamCodec<ByteBuf, Defect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
         public Archetype archetype() {
             return Archetype.byKey(key);
+        }
+    }
+
+    /**
+     * What one metal does to the melt when there is too much or too little of it. This is where the
+     * metallurgy lives rather than in arithmetic: tin is the hardener of bronze so over-tin is brittle and
+     * under-tin is soft and an edge that will not hold, while bismuth and copper are the hot-short pair that
+     * cracks steel while it is still being forged, and nickel is the toughener whose absence makes steel
+     * brittle rather than soft.
+     */
+    public record Role(Fluid metal, Direction over, Direction under) {
+
+        public static final Codec<Role> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                BuiltInRegistries.FLUID.byNameCodec().fieldOf("metal").forGetter(Role::metal),
+                Direction.CODEC.fieldOf("over").forGetter(Role::over),
+                Direction.CODEC.fieldOf("short").forGetter(Role::under)
+        ).apply(instance, Role::new));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, Role> STREAM_CODEC = StreamCodec.composite(
+                ByteBufCodecs.registry(Registries.FLUID), Role::metal,
+                Direction.STREAM_CODEC, Role::over,
+                Direction.STREAM_CODEC, Role::under,
+                Role::new);
+    }
+
+    /** How far one deviation pushes each of the four archetypes. Omitted keys are zero. */
+    public record Direction(float brittle, float soft, float edgeWear, float flowy) {
+
+        public static final Codec<Direction> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.FLOAT.optionalFieldOf("brittle", 0F).forGetter(Direction::brittle),
+                Codec.FLOAT.optionalFieldOf("soft", 0F).forGetter(Direction::soft),
+                Codec.FLOAT.optionalFieldOf("edge_wear", 0F).forGetter(Direction::edgeWear),
+                Codec.FLOAT.optionalFieldOf("flowy", 0F).forGetter(Direction::flowy)
+        ).apply(instance, Direction::new));
+
+        public static final StreamCodec<ByteBuf, Direction> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
+
+        public float of(Archetype archetype) {
+            return switch (archetype) {
+                case BRITTLE -> brittle;
+                case SOFT -> soft;
+                case EDGE_WEAR -> edgeWear;
+                case FLOWY -> flowy;
+            };
         }
     }
 
@@ -235,16 +287,26 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wea
         return byKey;
     }
 
-    /** Severity of one archetype, clamped so that a wildly wrong melt cannot score above 1. */
-    public float severity(Archetype archetype, float shortSum, float overSum, float slagSeverity, float spread) {
+    /**
+     * Severity of one archetype: every metal that sits outside its band contributes the weight its role row
+     * gives it in that direction, and slag and spread sit on top. Clamped, so a wildly wrong melt cannot
+     * score above 1.
+     *
+     * @param excess  how far past its tolerance each metal was poured, 0 to 1
+     * @param deficit how far short of its tolerance each metal fell, 0 to 1
+     */
+    public float severity(Archetype archetype, Map<Fluid, Double> excess, Map<Fluid, Double> deficit,
+                          float slagSeverity, float spread) {
         Defect defect = byArchetype().get(archetype);
         if (defect == null) {
             return 0;
         }
-        return Mth.clamp(defect.shortWeight() * shortSum
-                + defect.overWeight() * overSum
-                + defect.slagWeight() * slagSeverity
-                + defect.spreadWeight() * spread, 0F, 1F);
+        float sum = defect.slagWeight() * slagSeverity + defect.spreadWeight() * spread;
+        for (Role role : roles) {
+            sum += role.over().of(archetype) * excess.getOrDefault(role.metal(), 0D);
+            sum += role.under().of(archetype) * deficit.getOrDefault(role.metal(), 0D);
+        }
+        return Mth.clamp(sum, 0F, 1F);
     }
 
     /**

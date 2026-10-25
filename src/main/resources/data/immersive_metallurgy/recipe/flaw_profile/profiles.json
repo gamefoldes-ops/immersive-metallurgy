@@ -1,1 +1,168 @@
-{"type": "immersive_metallurgy:flaw_profile", "durability_floor": 0.25, "wear": {"sharpness_per_block": 0.6, "sharpness_per_hit": 0.9, "dull_damage_floor": 0.6, "dull_speed_floor": 0.65, "honing_ticks": 100, "honing_restore": 30.0, "honing_ceiling": 88.0, "honing_structure_cost": 0.015}, "palette": {"colors": [{"fluid": "tfc:metal/copper", "color": 12088115}, {"fluid": "tfc:metal/tin", "color": 13357001}, {"fluid": "tfc:metal/zinc", "color": 11976386}, {"fluid": "tfc:metal/bismuth", "color": 14471135}, {"fluid": "tfc:metal/silver", "color": 14342099}, {"fluid": "tfc:metal/gold", "color": 15189579}, {"fluid": "tfc:metal/nickel", "color": 10330275}, {"fluid": "tfc:metal/steel", "color": 9212827}, {"fluid": "tfc:metal/black_steel", "color": 7238523}], "lean": 0.45, "defect_darken": 0.35, "hue_span": 0.45}, "grade_medium": 0.4, "grade_heavy": 0.65, "defects": [{"key": "brittle", "short_weight": 0.0, "over_weight": 0.9, "slag_weight": 0.15, "spread_weight": 0.1, "max_damage": 0.7, "damage": 1.1, "mining_speed": 0.95, "dulling": 1.0, "chip_chance": 0.1}, {"key": "soft", "short_weight": 0.8, "over_weight": 0.0, "slag_weight": 0.1, "spread_weight": 0.05, "max_damage": 0.9, "damage": 0.85, "mining_speed": 0.85, "dulling": 1.6, "chip_chance": 0.0}, {"key": "edge_wear", "short_weight": 0.25, "over_weight": 0.25, "slag_weight": 0.7, "spread_weight": 0.0, "max_damage": 1.0, "damage": 1.0, "mining_speed": 1.0, "dulling": 1.9, "chip_chance": 0.04}, {"key": "flowy", "short_weight": 0.1, "over_weight": 0.1, "slag_weight": 0.25, "spread_weight": 0.6, "max_damage": 0.8, "damage": 0.95, "mining_speed": 0.9, "dulling": 1.1, "chip_chance": 0.06}]}
+{
+  "type": "immersive_metallurgy:flaw_profile",
+  "durability_floor": 0.25,
+  "grades": { "medium": 0.4, "heavy": 0.65 },
+  "wear": {
+    "sharpness_per_block": 0.6,
+    "sharpness_per_hit": 0.9,
+    "dull_damage_floor": 0.6,
+    "dull_speed_floor": 0.65,
+    "honing_ticks": 100,
+    "honing_restore": 30.0,
+    "honing_ceiling": 88.0,
+    "honing_structure_cost": 0.015
+  },
+  "palette": {
+    "colors": [
+      { "fluid": "tfc:metal/copper", "color": 12088115 },
+      { "fluid": "tfc:metal/tin", "color": 13357001 },
+      { "fluid": "tfc:metal/zinc", "color": 11976386 },
+      { "fluid": "tfc:metal/bismuth", "color": 14471135 },
+      { "fluid": "tfc:metal/silver", "color": 14342099 },
+      { "fluid": "tfc:metal/gold", "color": 15189579 },
+      { "fluid": "tfc:metal/nickel", "color": 10330275 },
+      { "fluid": "tfc:metal/steel", "color": 9212827 },
+      { "fluid": "tfc:metal/black_steel", "color": 7238523 },
+      { "fluid": "tfc:metal/black_bronze", "color": 5130837 },
+      { "fluid": "tfc:metal/bismuth_bronze", "color": 8358518 },
+      { "fluid": "tfc:metal/brass", "color": 10127950 },
+      { "fluid": "tfc:metal/rose_gold", "color": 11041646 },
+      { "fluid": "tfc:metal/sterling_silver", "color": 9212819 },
+      { "fluid": "tfc:metal/wrought_iron", "color": 9080207 },
+      { "fluid": "tfc:metal/pig_iron", "color": 4080199 },
+      { "fluid": "tfc:metal/cast_iron", "color": 3751234 }
+    ],
+    "lean": 0.45,
+    "defect_darken": 0.35,
+    "hue_span": 0.45
+  },
+  "roles": [
+    {
+      "metal": "tfc:metal/tin",
+      "over": { "brittle": 1.0, "edge_wear": 0.3 },
+      "short": { "soft": 0.9, "edge_wear": 0.8 }
+    },
+    {
+      "metal": "tfc:metal/copper",
+      "over": { "soft": 0.7, "flowy": 0.1 },
+      "short": {}
+    },
+    {
+      "metal": "tfc:metal/zinc",
+      "over": { "flowy": 0.9, "brittle": 0.5 },
+      "short": { "soft": 0.5 }
+    },
+    {
+      "metal": "tfc:metal/bismuth",
+      "over": { "brittle": 0.9, "flowy": 0.6 },
+      "short": { "soft": 0.3 }
+    },
+    {
+      "metal": "tfc:metal/silver",
+      "over": { "soft": 0.6 },
+      "short": { "edge_wear": 0.3 }
+    },
+    {
+      "metal": "tfc:metal/gold",
+      "over": { "soft": 0.7 },
+      "short": { "edge_wear": 0.2 }
+    },
+    {
+      "metal": "tfc:metal/nickel",
+      "over": { "soft": 0.35, "edge_wear": 0.2 },
+      "short": { "brittle": 0.8 }
+    },
+    {
+      "metal": "tfc:metal/steel",
+      "over": { "brittle": 0.4 },
+      "short": { "soft": 0.8, "edge_wear": 0.5 }
+    },
+    {
+      "metal": "tfc:metal/black_steel",
+      "over": { "brittle": 0.3 },
+      "short": { "soft": 0.6 }
+    },
+    {
+      "metal": "tfc:metal/cast_iron",
+      "over": { "brittle": 1.0, "flowy": 0.2 },
+      "short": { "soft": 0.7 }
+    },
+    {
+      "metal": "tfc:metal/pig_iron",
+      "over": { "brittle": 0.9 },
+      "short": { "soft": 0.5 }
+    },
+    {
+      "metal": "tfc:metal/wrought_iron",
+      "over": { "soft": 0.5, "edge_wear": 0.4 },
+      "short": { "brittle": 0.2 }
+    },
+    {
+      "metal": "tfc:metal/black_bronze",
+      "over": { "brittle": 0.8, "flowy": 0.3 },
+      "short": { "soft": 0.2 }
+    },
+    {
+      "metal": "tfc:metal/bismuth_bronze",
+      "over": { "brittle": 0.7, "flowy": 0.4 },
+      "short": { "soft": 0.2 }
+    },
+    {
+      "metal": "tfc:metal/brass",
+      "over": { "brittle": 0.5, "flowy": 0.5 },
+      "short": { "soft": 0.2 }
+    },
+    {
+      "metal": "tfc:metal/rose_gold",
+      "over": { "soft": 0.4, "flowy": 0.2 },
+      "short": {}
+    },
+    {
+      "metal": "tfc:metal/sterling_silver",
+      "over": { "soft": 0.5 },
+      "short": {}
+    }
+  ],
+  "defects": [
+    {
+      "key": "brittle",
+      "slag_weight": 0.15,
+      "spread_weight": 0.1,
+      "max_damage": 0.7,
+      "damage": 1.1,
+      "mining_speed": 0.95,
+      "dulling": 1.0,
+      "chip_chance": 0.1
+    },
+    {
+      "key": "soft",
+      "slag_weight": 0.1,
+      "spread_weight": 0.05,
+      "max_damage": 0.9,
+      "damage": 0.85,
+      "mining_speed": 0.85,
+      "dulling": 1.6,
+      "chip_chance": 0.0
+    },
+    {
+      "key": "edge_wear",
+      "slag_weight": 0.7,
+      "spread_weight": 0.0,
+      "max_damage": 1.0,
+      "damage": 1.0,
+      "mining_speed": 1.0,
+      "dulling": 1.9,
+      "chip_chance": 0.04
+    },
+    {
+      "key": "flowy",
+      "slag_weight": 0.25,
+      "spread_weight": 0.6,
+      "max_damage": 0.8,
+      "damage": 0.95,
+      "mining_speed": 0.9,
+      "dulling": 1.1,
+      "chip_chance": 0.06
+    }
+  ]
+}
