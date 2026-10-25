@@ -1,5 +1,5 @@
 {
   "itemGroup.immersive_metallurgy": "Immersive Metallurgy",
-  "block.immersive_metallurgy.example_block": "Example Block",
-  "item.immersive_metallurgy.example_item": "Example Item"
+  "fluid.immersive_metallurgy.slag": "Molten Slag",
+  "fluid.immersive_metallurgy.flawed_bronze": "Molten Flawed Bronze"
 }
