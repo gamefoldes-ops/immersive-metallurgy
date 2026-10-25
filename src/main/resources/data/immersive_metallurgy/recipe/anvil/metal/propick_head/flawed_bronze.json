@@ -1,0 +1,1 @@
+{"type":"tfc:anvil","apply_bonus":true,"ingredient":{"tag":"c:ingots/flawed_bronze"},"result":{"count":1,"id":"tfc:metal/propick_head/bronze"},"rules":["punch_last","bend_not_last","draw_not_last"],"tier":2}

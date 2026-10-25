@@ -1,0 +1,1 @@
+{"type":"tfc:anvil","apply_bonus":true,"ingredient":{"tag":"c:ingots/flawed_bronze"},"result":{"count":1,"id":"tfc:metal/chisel_head/bronze"},"rules":["hit_last","draw_not_last","hit_not_last"],"tier":2}

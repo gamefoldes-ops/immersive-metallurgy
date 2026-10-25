@@ -1,0 +1,1 @@
+{"type":"tfc:anvil","ingredient":{"tag":"c:ingots/flawed_bronze"},"result":{"count":16,"id":"tfc:metal/chain/bronze"},"rules":["hit_any","draw_not_last"],"tier":2}
