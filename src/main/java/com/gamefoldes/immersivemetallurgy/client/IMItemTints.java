@@ -24,20 +24,20 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Colours flawed metal by what it is mostly made of. The item textures are neutral grey and multiplied by
- * this, so a tin-heavy bronze reads pale and cold while a copper-heavy one reads warm: the same information
- * the crucible list spells out in numbers, and unlike a texture per melt it also reaches tools, whose item
- * ids are TFC's own.
+ * Colours flawed metal by what it is mostly made of. The art already carries the metal's own colour — our
+ * ingots are degraded copies of TFC's, and tools are TFC's — so this is only a lean: a tin-heavy bronze
+ * drifts pale and cold, a copper-heavy one drifts warm, which is the same information the crucible list
+ * spells out in numbers. Unlike per-melt textures it also reaches tools, whose item ids are TFC's own.
  *
- * The palette is read from the flaw profile recipe, so it is client synced and reloadable. A stack without
- * a composition gets white, which leaves every clean object exactly as TFC drew it.
+ * The palette and the strength of the lean are read from the flaw profile recipe, so they are client synced
+ * and reloadable. A stack without a composition gets white, which leaves every clean object exactly as TFC
+ * drew it.
  */
 @EventBusSubscriber(modid = ImmersiveMetallurgy.MODID, value = Dist.CLIENT)
 public final class IMItemTints {
     private static final int NO_TINT = 0xFFFFFF;
     /** Half a second is long enough that a chest full of flawed metal costs nothing per frame. */
     private static final long PALETTE_TTL_MILLIS = 500;
-
     private static final Map<String, Integer> PALETTE = new HashMap<>();
     private static long paletteReadAt;
     private static float lean = 0.6F;
@@ -51,9 +51,6 @@ public final class IMItemTints {
         ItemColor tint = (stack, layer) -> layer == 0 ? tintOf(stack) : NO_TINT;
         event.register(tint, flawableItems().toArray(new Item[0]));
     }
-
-    /** TFC's own art is already coloured, so a full tint there reads as mud rather than as a lean. */
-    private static final float FOREIGN_TEXTURE_SOFTEN = 0.35F;
 
     private static int tintOf(ItemStack stack) {
         AlloyRecord record = stack.get(IMDataComponents.ALLOY_RECORD.get());
@@ -86,16 +83,24 @@ public final class IMItemTints {
             float worst = Math.max(defect.brittle(), Math.max(defect.soft(), Math.max(defect.edgeWear(), defect.flowy())));
             strength = Math.min(1F, strength + worst * defectDarken);
         }
-        if (!ImmersiveMetallurgy.MODID.equals(BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace())) {
-            strength *= FOREIGN_TEXTURE_SOFTEN;
-        }
-        return towardTarget(255, 255, 255, red, green, blue, strength);
+        return towardTarget(255, 255, 255, normalizeHue(red, green, blue), strength);
     }
 
-    private static int towardTarget(int fromRed, int fromGreen, int fromBlue, int toRed, int toGreen, int toBlue, float strength) {
-        return (Math.round(fromRed + (toRed - fromRed) * strength) << 16)
-                | (Math.round(fromGreen + (toGreen - fromGreen) * strength) << 8)
-                | Math.round(fromBlue + (toBlue - fromBlue) * strength);
+    /**
+     * A multiply tint darkens as easily as it recolours, and the mix's own brightness is not information we
+     * want: the art is already as light or as dark as the metal is. Keeping the brightest channel at full
+     * leaves the mix to carry the hue and the defect to carry the grime.
+     */
+    private static int normalizeHue(int red, int green, int blue) {
+        int peak = Math.max(red, Math.max(green, blue));
+        return (Math.min(255, red * 255 / peak) << 16) | (Math.min(255, green * 255 / peak) << 8)
+                | Math.min(255, blue * 255 / peak);
+    }
+
+    private static int towardTarget(int fromRed, int fromGreen, int fromBlue, int target, float strength) {
+        return (Math.round(fromRed + (((target >> 16) & 0xFF) - fromRed) * strength) << 16)
+                | (Math.round(fromGreen + (((target >> 8) & 0xFF) - fromGreen) * strength) << 8)
+                | Math.round(fromBlue + ((target & 0xFF) - fromBlue) * strength);
     }
 
     private static void refreshPalette() {

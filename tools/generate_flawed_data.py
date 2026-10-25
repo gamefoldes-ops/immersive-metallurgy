@@ -4,8 +4,7 @@ Keep ALLOYS in sync with src/main/java/.../registry/IMAlloys.java: the Java list
 (fluids, items, tints), this table owns the temperatures a flawed alloy inherits from its clean metal,
 which TFC keeps in data. Run `python tools/generate_flawed_data.py` after changing it.
 
-Item textures live under our own namespace so they can be redrawn one by one; a placeholder is only
-written when the file is missing, so real art is never overwritten.
+Item art is not written here any more: generate_flawed_textures.py derives it from TFC's own textures.
 """
 
 import json
@@ -22,9 +21,9 @@ DOUBLE_INGOT_HEAT_CAPACITY = 5.714286
 MILLIBUCKETS = 100
 CAST_BREAK_CHANCE = 0.1
 
-# Item colour comes from the palette in the flaw profile file and is applied as a multiply tint, so the
-# base art is near-white: a tint of a light grey shape shows the metal colour almost unchanged.
-NEUTRAL = 0xEDEDED
+# Flawed metal art is not made here: generate_flawed_textures.py degrades TFC's own ingot textures into
+# flawed ones. This file only draws the one item that has no TFC twin at all.
+WHETSTONE_GREY = 0x8A8A8A
 
 ALLOYS = [
     ("bronze", "Bronze", 950.0, 570.0, 760.0, True, 0x9B7A44),
@@ -165,7 +164,6 @@ for key, display, melt, forging, welding, has_double, tint in ALLOYS:
         "parent": "item/generated",
         "textures": {"layer0": f"{MOD}:item/metal/ingot/{flawed}"},
     })
-    write_png_if_missing("assets", MOD, "textures", "item", "metal", "ingot", f"{flawed}.png", pixels=make_ingot(NEUTRAL, False))
 
     ingot_tag_values.append(f"#c:ingots/{flawed}")
     mold_fluids.append(fluid)
@@ -205,7 +203,6 @@ for key, display, melt, forging, welding, has_double, tint in ALLOYS:
         "parent": "item/generated",
         "textures": {"layer0": f"{MOD}:item/metal/double_ingot/{flawed}"},
     })
-    write_png_if_missing("assets", MOD, "textures", "item", "metal", "double_ingot", f"{flawed}.png", pixels=make_ingot(NEUTRAL, True))
 
     double_ingot_tag_values.append(f"#c:double_ingots/{flawed}")
     lang[f"item.{MOD}.metal.double_ingot.{flawed}"] = f"Flawed {display} Double Ingot"
@@ -219,7 +216,7 @@ write("data", "c", "tags", "item", "double_ingots", "flawed.json", value={"value
 lang["tag.item.c.ingots.flawed"] = "Flawed Ingots"
 lang["tag.item.c.double_ingots.flawed"] = "Flawed Double Ingots"
 
-write_png_if_missing("assets", MOD, "textures", "item", "whetstone.png", pixels=make_ingot(0x6B6B6B, True))
+write_png_if_missing("assets", MOD, "textures", "item", "whetstone.png", pixels=make_ingot(WHETSTONE_GREY, True))
 write("assets", MOD, "lang", "en_us.json", value=dict(sorted(lang.items())))
 
 doubles = sum(1 for alloy in ALLOYS if alloy[5])

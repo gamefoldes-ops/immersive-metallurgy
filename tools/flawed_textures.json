@@ -1,0 +1,20 @@
+{
+  "_comment": "Knobs for tools/generate_flawed_textures.py. Rerun the script after changing them. Values are per alloy, and anything a alloy does not override falls back to default.",
+  "default": {
+    "desaturate": 0.35,
+    "darken": 0.22,
+    "pits": 5,
+    "pit_darken": 0.45,
+    "roughness": 0.1,
+    "seed": 20261025
+  },
+  "alloys": {
+    "bismuth_bronze": { "desaturate": 0.45 },
+    "black_bronze": { "darken": 0.14, "pits": 4 },
+    "rose_gold": { "desaturate": 0.3 },
+    "sterling_silver": { "desaturate": 0.4, "roughness": 0.14 },
+    "weak_steel": { "pits": 7, "pit_darken": 0.5 },
+    "weak_blue_steel": { "pits": 7, "pit_darken": 0.5 },
+    "weak_red_steel": { "pits": 7, "pit_darken": 0.5 }
+  }
+}
