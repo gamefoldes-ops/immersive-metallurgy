@@ -30,6 +30,9 @@ public final class IMItems {
         }
     }
 
+    /** What comes off a skim: dirt with a use, rather than nothing to show for the work. */
+    public static final DeferredHolder<Item, Item> SLAG_DUST = ITEMS.registerItem("slag_dust", properties -> new Item(properties.stacksTo(16)));
+
     private IMItems() {
     }
 

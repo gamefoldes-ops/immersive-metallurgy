@@ -22,6 +22,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, os.pardir, "src", "main", "resources", "assets", "immersive_metallurgy", "textures", "item", "metal")
 
 # The metals are IMAlloys' business, not this script's: reading them back keeps the art from lagging the list.
+SLAG_SOURCE = "assets/tfc/textures/item/powder/graphite.png"
+
 ALLOY_KEYS = re.findall(r'new IMAlloys\("(\w+)"',
                         open(os.path.join(HERE, os.pardir, "src", "main", "java", "immersivemetallurgy",
                                           "registry", "IMAlloys.java"), encoding="utf-8").read())
@@ -91,6 +93,13 @@ def main():
             target = os.path.join(OUT, family, f"flawed_{alloy}.png")
             convert(archive.read(source), target, knobs, suffix == "_double")
             written += 1
+
+    # The one non-metal item of ours borrows TFC's powder art the same way, so that slag dust looks like it
+    # belongs in the same game as the metal it came off.
+    dust = f"{SLAG_SOURCE}"
+    if dust in archive.namelist():
+        convert(archive.read(dust), os.path.join(OUT, os.pardir, "slag_dust.png"), dict(config["default"]), False)
+        written += 1
 
     print(f"flawed textures written: {written}")
 

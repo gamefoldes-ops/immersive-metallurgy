@@ -22,4 +22,11 @@ public interface MeltComposition {
     DefectProfile immersiveMetallurgyDefect();
 
     void immersiveMetallurgySetDefect(DefectProfile defect);
+
+    /**
+     * Takes up to {@code mB} of one fluid out of what the container holds, and answers what really came out.
+     * Skimming slag has to be able to remove dirt without touching the metal, and no public method of the
+     * container does that: its own drain is proportional, so it would take metal at the same time.
+     */
+    int immersiveMetallurgyTake(Fluid fluid, int mB);
 }

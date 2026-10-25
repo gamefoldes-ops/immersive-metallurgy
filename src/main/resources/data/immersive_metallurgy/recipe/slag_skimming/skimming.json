@@ -1,0 +1,11 @@
+{
+  "type": "immersive_metallurgy:slag_skimming",
+  "slag_share": 0.3,
+  "metal_loss": 0.015,
+  "dust_per_milli_bucket": 0.04,
+  "bowl_break_chance": 0.01,
+  "flux": [
+    { "item": "tfc:powder/flux" },
+    { "item": "tfc:powder/lime" }
+  ]
+}

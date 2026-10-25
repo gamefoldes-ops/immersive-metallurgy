@@ -102,6 +102,7 @@ def build_alloys():
 
 ALLOYS = build_alloys()
 
+
 import shutil
 
 CASTING_FOLDER = os.path.join(RES, "data", MOD, "recipe", "casting")
@@ -184,6 +185,7 @@ lang = {
     "immersive_metallurgy.grade.heavy": "Severe",
     f"metal.{MOD}.slag": "Slag",
     f"fluid.{MOD}.slag": "Slag",
+    f"item.{MOD}.slag_dust": "Slag Dust",
     "immersive_metallurgy.molten": "Molten %s",
 }
 
@@ -296,6 +298,11 @@ write("data", "c", "tags", "item", "double_ingots", "flawed.json", value={"value
 lang["tag.item.c.ingots.flawed"] = "Flawed Ingots"
 lang["tag.item.c.double_ingots.flawed"] = "Flawed Double Ingots"
 
+# The one item that is not a metal, but exists because skimmed slag has to go somewhere.
+write("assets", MOD, "models", "item", "slag_dust.json", value={
+    "parent": "item/generated",
+    "textures": {"layer0": f"{MOD}:item/slag_dust"},
+})
 write("assets", MOD, "lang", "en_us.json", value=dict(sorted(lang.items())))
 
 doubles = sum(1 for alloy in ALLOYS if alloy[5])

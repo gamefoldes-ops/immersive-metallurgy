@@ -47,6 +47,13 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     @Shadow
     private Object2DoubleMap<Fluid> content;
 
+    @Shadow
+    private int amount;
+
+    @Shadow
+    private void clearCaches() {
+    }
+
     @Unique
     private Object2ObjectMap<Fluid, AlloyRecord> immersiveMetallurgy$compositions;
 
@@ -64,6 +71,29 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     @Override
     public void immersiveMetallurgySetDefect(DefectProfile defect) {
         this.immersiveMetallurgy$defect = defect;
+    }
+
+    /**
+     * Removes one fluid without disturbing the others, which is what skimming needs: the container's own
+     * drain takes every fluid in proportion, so a skim would throw away metal with the dirt. The cached
+     * result is dropped through TFC's own path so the next lookup recomputes against the new contents.
+     */
+    @Override
+    public int immersiveMetallurgyTake(Fluid fluid, int mB) {
+        double present = this.content.getDouble(fluid);
+        int taken = (int) Math.min(mB, Math.floor(present));
+        if (taken <= 0) {
+            return 0;
+        }
+        double left = present - taken;
+        if (left < 1D) {
+            this.content.removeDouble(fluid);
+        } else {
+            this.content.put(fluid, left);
+        }
+        this.amount -= taken;
+        clearCaches();
+        return taken;
     }
 
     @Override
