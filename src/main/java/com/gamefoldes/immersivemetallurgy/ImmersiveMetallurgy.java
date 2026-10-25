@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
 import com.gamefoldes.immersivemetallurgy.registry.IMFluids;
+import com.gamefoldes.immersivemetallurgy.registry.IMRecipes;
 
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -17,6 +18,7 @@ public class ImmersiveMetallurgy {
 
     public ImmersiveMetallurgy(IEventBus modEventBus) {
         IMFluids.register(modEventBus);
+        IMRecipes.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
     }

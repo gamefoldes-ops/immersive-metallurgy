@@ -4,6 +4,7 @@
   "package": "com.gamefoldes.immersivemetallurgy.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AlloyRecipeGetMixin",
     "CrucibleResultProbeMixin"
   ],
   "injectors": {
