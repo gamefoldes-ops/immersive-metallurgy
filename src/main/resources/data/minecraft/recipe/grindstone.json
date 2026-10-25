@@ -1,19 +1,35 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    " S ",
-    "PAP"
+    "s S",
+    "Pf ",
+    "   "
   ],
   "key": {
-    "S": {
+    "s": {
       "item": "minecraft:stick"
     },
+    "S": [
+      { "item": "tfc:rock/cobble/granite" },
+      { "item": "tfc:rock/cobble/diorite" },
+      { "item": "tfc:rock/cobble/gabbro" },
+      { "item": "tfc:rock/cobble/rhyolite" },
+      { "item": "tfc:rock/cobble/basalt" },
+      { "item": "tfc:rock/cobble/andesite" },
+      { "item": "tfc:rock/cobble/dacite" }
+    ],
     "P": {
-      "tag": "#minecraft:planks"
+      "tag": "minecraft:planks"
     },
-    "A": {
-      "item": "tfc:sandpaper"
-    }
+    "f": [
+      { "item": "tfc:rock/cobble/granite" },
+      { "item": "tfc:rock/cobble/diorite" },
+      { "item": "tfc:rock/cobble/gabbro" },
+      { "item": "tfc:rock/cobble/rhyolite" },
+      { "item": "tfc:rock/cobble/basalt" },
+      { "item": "tfc:rock/cobble/andesite" },
+      { "item": "tfc:rock/cobble/dacite" }
+    ]
   },
   "result": {
     "id": "minecraft:grindstone",

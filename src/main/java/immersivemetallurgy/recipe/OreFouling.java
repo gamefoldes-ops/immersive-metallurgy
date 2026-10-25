@@ -10,6 +10,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
@@ -53,14 +54,19 @@ public record OreFouling(List<Entry> entries) implements Recipe<NoopInput> {
         };
     }
 
-    /** The fouling of one melting item, or 0 for anything that is already refined metal. */
-    public float slagRatioOf(ItemStack stack) {
+    /**
+     * The fouling of one melting item, or null for anything that is already refined metal. The roll is the
+     * hidden pollution of this particular batch of ore, so the same grade of rock does not smelt to exactly
+     * the same slag every time; it is drawn here rather than stored on the item, because ore comes from the
+     * ground, from bartering and from crushing, and every one of those routes would need its own stamp.
+     */
+    public Float slagRatioOf(ItemStack stack, float roll) {
         for (Entry entry : entries) {
             if (entry.ingredient().test(stack)) {
-                return entry.slagRatio();
+                return Mth.clamp(entry.slagRatio() + roll * entry.slagSpread(), 0F, 1F);
             }
         }
-        return 0;
+        return null;
     }
 
     public static OreFouling of(RecipeManager recipes) {
@@ -70,16 +76,18 @@ public record OreFouling(List<Entry> entries) implements Recipe<NoopInput> {
         return null;
     }
 
-    public record Entry(Ingredient ingredient, float slagRatio) {
+    public record Entry(Ingredient ingredient, float slagRatio, float slagSpread) {
 
         public static final Codec<Entry> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Ingredient.CODEC.fieldOf("ingredient").forGetter(Entry::ingredient),
-                Codec.FLOAT.fieldOf("slag_ratio").forGetter(Entry::slagRatio)
+                Codec.FLOAT.fieldOf("slag_ratio").forGetter(Entry::slagRatio),
+                Codec.FLOAT.optionalFieldOf("slag_spread", 0F).forGetter(Entry::slagSpread)
         ).apply(instance, Entry::new));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, Entry> STREAM_CODEC = StreamCodec.composite(
                 Ingredient.CONTENTS_STREAM_CODEC, Entry::ingredient,
                 ByteBufCodecs.FLOAT, Entry::slagRatio,
+                ByteBufCodecs.FLOAT, Entry::slagSpread,
                 Entry::new);
     }
 

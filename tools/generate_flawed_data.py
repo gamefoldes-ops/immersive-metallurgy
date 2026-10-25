@@ -256,10 +256,9 @@ for key, display, melt, forging, welding, has_double, tint, specific_heat in ALL
     lang[f"item.{MOD}.metal.double_ingot.{flawed}"] = f"Flawed {display} Double Ingot"
     lang[f"tag.item.c.double_ingots.{flawed}"] = f"Flawed {display} Double Ingots"
 
-# A mold only accepts fluids that its own tag lists, and TFC's definition of that tag is clean metal.
-# Slag is deliberately absent: it is the denominator of purity, something a crucible holds and a player
-# scrapes off, never something that gets cast into an object.
-write("data", "tfc", "tags", "fluid", "usable_in_ingot_mold.json", value={"values": mold_fluids})
+# Nothing is written to the mold tags here: generate_flawed_part_recipes.py extends TFC's own fluid tags
+# from the jar, which is what makes a flawed melt pourable wherever its clean metal is. Slag stays out of
+# all of them, because it is the denominator of purity, not something a mold takes.
 write("data", "c", "tags", "item", "ingots", "flawed.json", value={"values": ingot_tag_values})
 write("data", "c", "tags", "item", "double_ingots", "flawed.json", value={"values": double_ingot_tag_values})
 lang["tag.item.c.ingots.flawed"] = "Flawed Ingots"

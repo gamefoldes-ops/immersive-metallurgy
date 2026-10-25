@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    [
+      { "tag": "tfc:stones/loose/igneous_intrusive" },
+      { "tag": "tfc:stones/loose/igneous_extrusive" }
+    ],
+    [
+      { "tag": "tfc:stones/loose/igneous_intrusive" },
+      { "tag": "tfc:stones/loose/igneous_extrusive" }
+    ],
+    { "item": "minecraft:stick" }
+  ],
+  "result": {
+    "id": "immersive_metallurgy:whetstone",
+    "count": 1
+  }
+}

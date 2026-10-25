@@ -6,6 +6,8 @@ import immersivemetallurgy.registry.IMDataComponents;
 
 import net.dries007.tfc.common.recipes.HeatingRecipe;
 import net.dries007.tfc.util.Helpers;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,8 +37,8 @@ public class HeatingRecipeRecordMixin {
         if (fouling == null) {
             return;
         }
-        float ratio = fouling.slagRatioOf(input);
-        if (ratio > 0) {
+        Float ratio = fouling.slagRatioOf(input, Mth.randomBetween(RandomSource.create(), -1F, 1F));
+        if (ratio != null && ratio > 0) {
             output.set(IMDataComponents.SLAG_RATIO.get(), ratio);
         }
     }

@@ -21,6 +21,10 @@ import re
 import zipfile
 
 MOD = "immersive_metallurgy"
+
+# TFC assembles every tool onto this tag of wooden rods, which is the sixteen wood twigs and nothing else.
+WOODEN_ROD_TAGS = {"c:rods/wooden"}
+BONE = "minecraft:bone"
 RES = os.path.join(os.path.dirname(__file__), os.pardir, "src", "main", "resources")
 
 ALLOY_KEYS = re.findall(r'new IMAlloys\("(\w+)"',
@@ -69,14 +73,18 @@ def fluid_tags_of(archive, alloy):
 
 
 def assemble_recipes(archive):
-    """Teach TFC's own tool-assembly recipes to pass the melt on, by overriding them with one more modifier.
+    """Teach TFC's own tool-assembly recipes to pass the melt on, and give flawed parts their own assembly.
 
     The event route cannot work: the crafting event is handed a copy of the result, so components written
     there never reach the player. TFC already solves this for the forging bonus with an output modifier, so
-    we add ours to exactly the recipes that consume a metal part of one of our nine alloys, and write the
-    file back at the same path, which replaces TFC's recipe by id.
+    we add ours to exactly the recipes that consume a metal part of one of our metals, and write the file
+    back at the same path, which replaces TFC's recipe by id.
+
+    Then, for each of those recipes, a second recipe under our own id whose metal ingredients are the
+    flawed parts. A flawed head has to be able to become a tool at all, and the handle in TFC is the tag
+    of wooden rods, which is sixteen wood twigs; bone is not in it, so the flawed versions add it.
     """
-    # any metal item of one of our alloys: "tfc:metal/pickaxe_head/bronze" ends with the alloy name
+    # any metal item of one of our metals: "tfc:metal/pickaxe_head/bronze" ends with the metal name
     count = 0
     for name in archive.namelist():
         if not name.startswith("data/tfc/recipe/crafting/") or not name.endswith(".json"):
@@ -86,10 +94,11 @@ def assemble_recipes(archive):
             continue
         referenced = set()
         for entry in list(recipe.get("key", {}).values()) + list(recipe.get("ingredients", [])):
-            if isinstance(entry, dict) and isinstance(entry.get("item"), str):
-                referenced.add(entry["item"])
-        if not any(item.startswith("tfc:metal/") and item.rsplit("/", 1)[-1] in ALLOY_KEYS
-                   for item in referenced):
+            for item in items_of(entry):
+                referenced.add(item)
+        metals = [item for item in referenced
+                  if item.startswith("tfc:metal/") and item.rsplit("/", 1)[-1] in ALLOY_KEYS]
+        if not metals:
             continue
         result = recipe.get("result")
         if not isinstance(result, dict):
@@ -98,12 +107,43 @@ def assemble_recipes(archive):
         if not any(modifier.get("type") == "tfc:copy_forging_bonus" for modifier in modifiers):
             continue
         modifiers.append({"type": f"{MOD}:copy_melt"})
-        twin = dict(recipe)
+        twin = json.loads(json.dumps(recipe))
+        widen_handles(twin)
         twin["result"] = dict(result)
         twin["result"]["modifiers"] = modifiers
         write("data", *os.path.relpath(name, "data").split(os.sep), value=twin)
         count += 1
+
     return count
+
+
+def items_of(entry):
+    """The item ids one ingredient mentions, whether it is one object, a tag, or a list of alternatives."""
+    if isinstance(entry, list):
+        for inner in entry:
+            yield from items_of(inner)
+    elif isinstance(entry, dict):
+        if isinstance(entry.get("item"), str):
+            yield entry["item"]
+        elif isinstance(entry.get("tag"), str):
+            yield "#" + entry["tag"]
+
+
+def widen_handles(recipe):
+    """A bone shaft is a plausible handle and TFC's wooden rod tag does not contain one."""
+    for key in ("key", "ingredients"):
+        entries = recipe.get(key)
+        if isinstance(entries, dict):
+            for name, entry in list(entries.items()):
+                entries[name] = add_bone(entry)
+        elif isinstance(entries, list):
+            recipe[key] = [add_bone(entry) for entry in entries]
+
+
+def add_bone(entry):
+    if isinstance(entry, dict) and entry.get("tag") in WOODEN_ROD_TAGS:
+        return [entry, {"item": BONE}]
+    return entry
 
 
 def main():
@@ -171,13 +211,19 @@ def main():
     for tag, alloy in sorted(mold_tags):
         by_tag.setdefault(tag, []).append(f"{MOD}:metal/flawed_{alloy}")
     for tag, fluids in by_tag.items():
-        write("data", "tfc", "tags", "fluid", f"{tag}.json", value={"values": fluids})
+        # TFC's own definition of the tag has to survive: a mold tag written from scratch would take our
+        # flawed metals and quietly drop every clean one TFC listed there.
+        name = f"data/tfc/tags/fluid/{tag}.json"
+        original = read_json(archive, name) or {"values": []}
+        values = list(original.get("values", []))
+        values.extend(fluid for fluid in fluids if fluid not in values)
+        write("data", "tfc", "tags", "fluid", f"{tag}.json", value={"values": values})
 
-    assemble_count = assemble_recipes(archive)
+    assembled = assemble_recipes(archive)
 
     print(f"anvil twins: {anvil_count}, casting twins: {casting_count}, mold tags extended: {len(by_tag)}")
     print("tags:", ", ".join(sorted(by_tag)))
-    print(f"assembly recipes taught to pass the melt on: {assemble_count}")
+    print(f"assembly recipes rewritten to pass the melt on and take a bone shaft: {assembled}")
 
 
 if __name__ == "__main__":

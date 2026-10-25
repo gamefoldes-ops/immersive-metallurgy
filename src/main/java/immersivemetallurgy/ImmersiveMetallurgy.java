@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 
+import immersivemetallurgy.registry.IMCreativeTab;
 import immersivemetallurgy.registry.IMDataComponents;
 import immersivemetallurgy.registry.IMFluids;
 import immersivemetallurgy.registry.IMItemModifiers;
@@ -20,6 +21,7 @@ public class ImmersiveMetallurgy {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ImmersiveMetallurgy(IEventBus modEventBus) {
+        IMCreativeTab.register(modEventBus);
         IMDataComponents.register(modEventBus);
         IMFluids.register(modEventBus);
         IMItemModifiers.register(modEventBus);

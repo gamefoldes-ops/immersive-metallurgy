@@ -21,11 +21,15 @@ RES = os.path.join(HERE, os.pardir, "src", "main", "resources")
 # melt (share = ratio / (1 + ratio)), which stays comfortably under the 0.25 max_slag of the tolerance rules so
 # a crucible filled with ore still pours, while sitting above slag_tolerance so smelting from rock is flawed.
 RATIOS = {
-    "rich": 0.08,
-    "normal": 0.13,
-    "poor": 0.18,
-    "small": 0.21,
+    "rich": 0.07,
+    "normal": 0.12,
+    "poor": 0.16,
+    "small": 0.19,
 }
+
+# How much a batch of that grade can differ, as a fraction of its own ratio, so the dirtiest ore still tops
+# out under 20% slag in the melt.
+SPREAD = 0.3
 
 
 def default_jar():
@@ -53,7 +57,8 @@ def main():
         if variant not in RATIOS:
             unknown.append(name)
             continue
-        entries.append({"ingredient": {"item": item}, "slag_ratio": RATIOS[variant]})
+        entries.append({"ingredient": {"item": item}, "slag_ratio": RATIOS[variant],
+                        "slag_spread": round(RATIOS[variant] * SPREAD, 3)})
 
     full = os.path.join(RES, "data", MOD, "recipe", "ore_fouling", "ores.json")
     os.makedirs(os.path.dirname(full), exist_ok=True)
