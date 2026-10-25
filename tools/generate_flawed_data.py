@@ -42,6 +42,8 @@ lang = {
     "itemGroup.immersive_metallurgy": "Immersive Metallurgy",
     "immersive_metallurgy.screen.metal_totals": "Total metals",
     "immersive_metallurgy.tooltip.flawed": "Flawed cast: %s",
+    "immersive_metallurgy.tooltip.sharpness": "Edge: %s",
+    f"item.{MOD}.whetstone": "Whetstone",
     "immersive_metallurgy.defect.brittle": "Brittle",
     "immersive_metallurgy.defect.soft": "Soft",
     "immersive_metallurgy.defect.edge_wear": "Chips easily",

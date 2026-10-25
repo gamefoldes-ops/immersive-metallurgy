@@ -154,12 +154,25 @@ public final class TolerantAlloyMatcher {
     }
 
     private static DefectProfile toProfile(FlawProfiles profiles, float shortSum, float overSum, float slagSeverity, float spread, float slagShare) {
-        return new DefectProfile(
-                profiles.severity(Archetype.BRITTLE, shortSum, overSum, slagSeverity, spread),
-                profiles.severity(Archetype.SOFT, shortSum, overSum, slagSeverity, spread),
-                profiles.severity(Archetype.EDGE_WEAR, shortSum, overSum, slagSeverity, spread),
-                profiles.severity(Archetype.FLOWY, shortSum, overSum, slagSeverity, spread),
-                slagShare);
+        float brittle = profiles.severity(Archetype.BRITTLE, shortSum, overSum, slagSeverity, spread);
+        float soft = profiles.severity(Archetype.SOFT, shortSum, overSum, slagSeverity, spread);
+        float edgeWear = profiles.severity(Archetype.EDGE_WEAR, shortSum, overSum, slagSeverity, spread);
+        float flowy = profiles.severity(Archetype.FLOWY, shortSum, overSum, slagSeverity, spread);
+        Map<Archetype, FlawProfiles.Defect> byArchetype = profiles.byArchetype();
+        float durability = 1F;
+        for (Map.Entry<Archetype, FlawProfiles.Defect> entry : byArchetype.entrySet()) {
+            durability *= Mth.lerp(severityOf(entry.getKey(), brittle, soft, edgeWear, flowy), 1F, entry.getValue().maxDamage());
+        }
+        return new DefectProfile(brittle, soft, edgeWear, flowy, slagShare, Mth.clamp(durability, profiles.durabilityFloor(), 1F));
+    }
+
+    private static float severityOf(Archetype archetype, float brittle, float soft, float edgeWear, float flowy) {
+        return switch (archetype) {
+            case BRITTLE -> brittle;
+            case SOFT -> soft;
+            case EDGE_WEAR -> edgeWear;
+            case FLOWY -> flowy;
+        };
     }
 
     private record Candidate(AlloyRecipe result, ResourceLocation id, double flaw, double deficit, double slagShare, DefectProfile defect, Map<Fluid, Double> components) {

@@ -12,15 +12,19 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
  * crucible and then carried by everything made from it. The four kinds are the deficit archetypes: too much
  * of the hardener makes metal brittle, too little makes it soft, inclusions wear an edge, and a melt that is
  * off in several elements at once does not pour well.
+ *
+ * {@code durabilityFactor} is worked out at the same moment, from the tuning file, and travels with the
+ * severities because the places where an item is created have no recipe access to look it up again.
  */
-public record DefectProfile(float brittle, float soft, float edgeWear, float flowy, float slagShare) {
+public record DefectProfile(float brittle, float soft, float edgeWear, float flowy, float slagShare, float durabilityFactor) {
 
     public static final Codec<DefectProfile> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.FLOAT.fieldOf("brittle").forGetter(DefectProfile::brittle),
             Codec.FLOAT.fieldOf("soft").forGetter(DefectProfile::soft),
             Codec.FLOAT.fieldOf("edge_wear").forGetter(DefectProfile::edgeWear),
             Codec.FLOAT.fieldOf("flowy").forGetter(DefectProfile::flowy),
-            Codec.FLOAT.fieldOf("slag_share").forGetter(DefectProfile::slagShare)
+            Codec.FLOAT.fieldOf("slag_share").forGetter(DefectProfile::slagShare),
+            Codec.FLOAT.fieldOf("durability_factor").forGetter(DefectProfile::durabilityFactor)
     ).apply(instance, DefectProfile::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, DefectProfile> STREAM_CODEC = StreamCodec.composite(
@@ -29,9 +33,10 @@ public record DefectProfile(float brittle, float soft, float edgeWear, float flo
             ByteBufCodecs.FLOAT, DefectProfile::edgeWear,
             ByteBufCodecs.FLOAT, DefectProfile::flowy,
             ByteBufCodecs.FLOAT, DefectProfile::slagShare,
+            ByteBufCodecs.FLOAT, DefectProfile::durabilityFactor,
             DefectProfile::new);
 
-    public static final DefectProfile CLEAN = new DefectProfile(0, 0, 0, 0, 0);
+    public static final DefectProfile CLEAN = new DefectProfile(0, 0, 0, 0, 0, 1);
 
     public boolean isClean() {
         return brittle <= 0 && soft <= 0 && edgeWear <= 0 && flowy <= 0;

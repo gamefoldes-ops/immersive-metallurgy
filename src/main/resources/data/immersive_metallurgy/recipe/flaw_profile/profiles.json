@@ -1,6 +1,15 @@
 {
   "type": "immersive_metallurgy:flaw_profile",
   "durability_floor": 0.25,
+  "wear": {
+    "sharpness_per_block": 0.6,
+    "sharpness_per_hit": 0.9,
+    "dull_damage_floor": 0.6,
+    "dull_speed_floor": 0.65,
+    "whetstone_restore": 20.0,
+    "whetstone_ceiling": 88.0,
+    "whetstone_structure_cost": 0.015
+  },
   "defects": [
     {
       "key": "brittle",

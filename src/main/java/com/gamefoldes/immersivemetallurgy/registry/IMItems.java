@@ -2,8 +2,11 @@ package com.gamefoldes.immersivemetallurgy.registry;
 
 import com.gamefoldes.immersivemetallurgy.ImmersiveMetallurgy;
 
+import com.gamefoldes.immersivemetallurgy.item.IMWhetstoneItem;
+
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 /**
@@ -13,6 +16,9 @@ import net.neoforged.neoforge.registries.DeferredRegister;
  */
 public final class IMItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(ImmersiveMetallurgy.MODID);
+
+    public static final DeferredHolder<Item, IMWhetstoneItem> WHETSTONE =
+            ITEMS.register("whetstone", () -> new IMWhetstoneItem(new Item.Properties().stacksTo(1).durability(120)));
 
     static {
         for (IMAlloys alloy : IMAlloys.ALL) {

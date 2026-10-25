@@ -1,13 +1,16 @@
 package com.gamefoldes.immersivemetallurgy.recipe;
 
+import com.gamefoldes.immersivemetallurgy.component.DefectProfile;
 import com.gamefoldes.immersivemetallurgy.component.DefectProfile.Archetype;
 import com.gamefoldes.immersivemetallurgy.registry.IMRecipes;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import io.netty.buffer.ByteBuf;
 
+import net.dries007.tfc.common.recipes.RecipeHelpers;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -15,6 +18,8 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
@@ -22,22 +27,25 @@ import net.minecraft.world.level.Level;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.ToDoubleFunction;
 
 /**
  * The tuning sheet that turns a bad melt into named defects: how much each kind of deviation feeds each
  * archetype, and what an archetype then costs a tool. Like the tolerance rules it ships as a recipe,
  * because the profile is computed on the client too and only recipes are both synced and reloadable.
  */
-public record FlawProfiles(List<Defect> defects, float durabilityFloor) implements Recipe<NoopInput> {
+public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wear) implements Recipe<NoopInput> {
 
     public static final MapCodec<FlawProfiles> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Defect.CODEC.listOf().fieldOf("defects").forGetter(FlawProfiles::defects),
-            com.mojang.serialization.Codec.FLOAT.fieldOf("durability_floor").forGetter(FlawProfiles::durabilityFloor)
+            Codec.FLOAT.fieldOf("durability_floor").forGetter(FlawProfiles::durabilityFloor),
+            Wear.CODEC.fieldOf("wear").forGetter(FlawProfiles::wear)
     ).apply(instance, FlawProfiles::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, FlawProfiles> STREAM_CODEC = StreamCodec.composite(
             Defect.STREAM_CODEC.apply(ByteBufCodecs.list()), FlawProfiles::defects,
             ByteBufCodecs.FLOAT, FlawProfiles::durabilityFloor,
+            Wear.STREAM_CODEC, FlawProfiles::wear,
             FlawProfiles::new);
 
     public static RecipeSerializer<FlawProfiles> serializer() {
@@ -52,6 +60,17 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor) implemen
                 return STREAM_CODEC;
             }
         };
+    }
+
+    /**
+     * The tuning sheet as it stands right now. Nothing is cached, because a {@code /reload} swaps recipes
+     * inside the same RecipeManager instance, and one lookup per mined block is not worth a stale table.
+     */
+    public static FlawProfiles of(RecipeManager recipes) {
+        for (RecipeHolder<FlawProfiles> holder : RecipeHelpers.getRecipes(recipes, IMRecipes.FLAW_PROFILE)) {
+            return holder.value();
+        }
+        return null;
     }
 
     /**
@@ -77,17 +96,17 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor) implemen
                          float dulling,
                          float chipChance) {
 
-        public static final com.mojang.serialization.Codec<Defect> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-                com.mojang.serialization.Codec.STRING.fieldOf("key").forGetter(Defect::key),
-                com.mojang.serialization.Codec.FLOAT.fieldOf("short_weight").forGetter(Defect::shortWeight),
-                com.mojang.serialization.Codec.FLOAT.fieldOf("over_weight").forGetter(Defect::overWeight),
-                com.mojang.serialization.Codec.FLOAT.fieldOf("slag_weight").forGetter(Defect::slagWeight),
-                com.mojang.serialization.Codec.FLOAT.fieldOf("spread_weight").forGetter(Defect::spreadWeight),
-                com.mojang.serialization.Codec.FLOAT.fieldOf("max_damage").forGetter(Defect::maxDamage),
-                com.mojang.serialization.Codec.FLOAT.fieldOf("damage").forGetter(Defect::damage),
-                com.mojang.serialization.Codec.FLOAT.fieldOf("mining_speed").forGetter(Defect::miningSpeed),
-                com.mojang.serialization.Codec.FLOAT.fieldOf("dulling").forGetter(Defect::dulling),
-                com.mojang.serialization.Codec.FLOAT.fieldOf("chip_chance").forGetter(Defect::chipChance)
+        public static final Codec<Defect> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.STRING.fieldOf("key").forGetter(Defect::key),
+                Codec.FLOAT.fieldOf("short_weight").forGetter(Defect::shortWeight),
+                Codec.FLOAT.fieldOf("over_weight").forGetter(Defect::overWeight),
+                Codec.FLOAT.fieldOf("slag_weight").forGetter(Defect::slagWeight),
+                Codec.FLOAT.fieldOf("spread_weight").forGetter(Defect::spreadWeight),
+                Codec.FLOAT.fieldOf("max_damage").forGetter(Defect::maxDamage),
+                Codec.FLOAT.fieldOf("damage").forGetter(Defect::damage),
+                Codec.FLOAT.fieldOf("mining_speed").forGetter(Defect::miningSpeed),
+                Codec.FLOAT.fieldOf("dulling").forGetter(Defect::dulling),
+                Codec.FLOAT.fieldOf("chip_chance").forGetter(Defect::chipChance)
         ).apply(instance, Defect::new));
 
         // StreamCodec.composite only reaches six fields, and this row has ten.
@@ -96,6 +115,40 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor) implemen
         public Archetype archetype() {
             return Archetype.byKey(key);
         }
+    }
+
+    /**
+     * The numbers that are not about the melt but about use: how fast an edge goes blunt, how much a blunt
+     * edge costs, and what a whetstone gives back and takes away.
+     *
+     * @param sharpnessPerBlock     sharpness lost per block mined
+     * @param sharpnessPerHit       sharpness lost per hit landed
+     * @param dullDamageFloor       damage multiplier of an edge at zero sharpness
+     * @param dullSpeedFloor        mining speed multiplier of an edge at zero sharpness
+     * @param whetstoneRestore      sharpness one whetstone stroke adds
+     * @param whetstoneCeiling      the best a whetstone can leave an edge at
+     * @param whetstoneStructureCost share of the tool's max durability one stroke eats
+     */
+    public record Wear(float sharpnessPerBlock,
+                       float sharpnessPerHit,
+                       float dullDamageFloor,
+                       float dullSpeedFloor,
+                       float whetstoneRestore,
+                       float whetstoneCeiling,
+                       float whetstoneStructureCost) {
+
+        public static final Codec<Wear> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.FLOAT.fieldOf("sharpness_per_block").forGetter(Wear::sharpnessPerBlock),
+                Codec.FLOAT.fieldOf("sharpness_per_hit").forGetter(Wear::sharpnessPerHit),
+                Codec.FLOAT.fieldOf("dull_damage_floor").forGetter(Wear::dullDamageFloor),
+                Codec.FLOAT.fieldOf("dull_speed_floor").forGetter(Wear::dullSpeedFloor),
+                Codec.FLOAT.fieldOf("whetstone_restore").forGetter(Wear::whetstoneRestore),
+                Codec.FLOAT.fieldOf("whetstone_ceiling").forGetter(Wear::whetstoneCeiling),
+                Codec.FLOAT.fieldOf("whetstone_structure_cost").forGetter(Wear::whetstoneStructureCost)
+        ).apply(instance, Wear::new));
+
+        // Seven fields is one more than StreamCodec.composite reaches.
+        public static final StreamCodec<ByteBuf, Wear> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
     }
 
     public Map<Archetype, Defect> byArchetype() {
@@ -119,6 +172,47 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor) implemen
                 + defect.overWeight() * overSum
                 + defect.slagWeight() * slagSeverity
                 + defect.spreadWeight() * spread, 0F, 1F);
+    }
+
+    /**
+     * One stat out of the profile: every archetype that is present pulls the multiplier away from 1, and
+     * they stack, so metal that is both brittle and soft pays for both.
+     */
+    public float factor(DefectProfile profile, ToDoubleFunction<Defect> byDefect) {
+        float result = 1F;
+        Map<Archetype, Defect> defects = byArchetype();
+        for (Archetype archetype : Archetype.values()) {
+            Defect defect = defects.get(archetype);
+            if (defect != null) {
+                result *= Mth.lerp(profile.severity(archetype), 1F, (float) byDefect.applyAsDouble(defect));
+            }
+        }
+        return result;
+    }
+
+    public float damageFactor(DefectProfile profile) {
+        return factor(profile, Defect::damage);
+    }
+
+    public float speedFactor(DefectProfile profile) {
+        return factor(profile, Defect::miningSpeed);
+    }
+
+    public float dullFactor(DefectProfile profile) {
+        return factor(profile, Defect::dulling);
+    }
+
+    /** Chance per strike to lose extra durability, because a chipped edge is the same defect seen from the other side. */
+    public float chipChance(DefectProfile profile) {
+        float chance = 0;
+        Map<Archetype, Defect> defects = byArchetype();
+        for (Archetype archetype : Archetype.values()) {
+            Defect defect = defects.get(archetype);
+            if (defect != null) {
+                chance += profile.severity(archetype) * defect.chipChance();
+            }
+        }
+        return Mth.clamp(chance, 0F, 1F);
     }
 
     @Override

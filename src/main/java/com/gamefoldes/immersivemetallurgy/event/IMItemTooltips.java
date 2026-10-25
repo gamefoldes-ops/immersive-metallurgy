@@ -2,10 +2,12 @@ package com.gamefoldes.immersivemetallurgy.event;
 
 import com.gamefoldes.immersivemetallurgy.ImmersiveMetallurgy;
 import com.gamefoldes.immersivemetallurgy.component.DefectProfile;
+import com.gamefoldes.immersivemetallurgy.component.MeltCarries;
 import com.gamefoldes.immersivemetallurgy.registry.IMDataComponents;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
@@ -22,7 +24,15 @@ public final class IMItemTooltips {
 
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
-        DefectProfile profile = event.getItemStack().get(IMDataComponents.DEFECT_PROFILE.get());
+        ItemStack stack = event.getItemStack();
+        Float sharpness = stack.get(IMDataComponents.SHARPNESS.get());
+        if (sharpness != null && sharpness < MeltCarries.FULL_SHARPNESS) {
+            event.getToolTip().add(Component.translatable("immersive_metallurgy.tooltip.sharpness",
+                            Component.literal(Math.round(sharpness) + "%"))
+                    .withStyle(sharpness < 40 ? ChatFormatting.RED : ChatFormatting.GRAY));
+        }
+
+        DefectProfile profile = stack.get(IMDataComponents.DEFECT_PROFILE.get());
         if (profile == null || profile.isClean()) {
             return;
         }
