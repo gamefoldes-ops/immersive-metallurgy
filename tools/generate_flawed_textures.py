@@ -35,6 +35,20 @@ def default_jar():
                         "TerraFirmaCraft-NeoForge-1.21.1-4.2.12.jar")
 
 
+# Our slag is a warm dark grey-brown, while the powder art borrowed from TFC is plain graphite grey.
+# Multiplying grey by the slag colour gives a dust that reads as the stuff it came off, and nothing else.
+SLAG_TINT = (0x5C, 0x54, 0x49)
+
+
+def tint_grey(pixel):
+    red, green, blue, alpha = pixel
+    if alpha == 0:
+        return pixel
+    grey = 0.299 * red + 0.587 * green + 0.114 * blue
+    peak = max(SLAG_TINT)
+    return tuple(min(255, int(grey * channel / peak * 1.55)) for channel in SLAG_TINT) + (alpha,)
+
+
 def degrade(pixel, knobs, rng, pitted):
     red, green, blue, alpha = pixel
     if alpha == 0:
@@ -96,9 +110,11 @@ def main():
 
     # The one non-metal item of ours borrows TFC's powder art the same way, so that slag dust looks like it
     # belongs in the same game as the metal it came off.
-    dust = f"{SLAG_SOURCE}"
+    dust = SLAG_SOURCE
     if dust in archive.namelist():
-        convert(archive.read(dust), os.path.join(OUT, os.pardir, "slag_dust.png"), dict(config["default"]), False)
+        _, _, rows = png.read_rgba(archive.read(dust))
+        png.write_rgba(os.path.join(OUT, os.pardir, "slag_dust.png"),
+                       [[tint_grey(pixel) for pixel in row] for row in rows])
         written += 1
 
     print(f"flawed textures written: {written}")
