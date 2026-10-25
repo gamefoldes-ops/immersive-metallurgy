@@ -20,6 +20,9 @@ public final class IMTags {
     /** What a player may skim floating slag with: TFC's ceramic bowls, and anything else data adds. */
     public static final TagKey<Item> SLAG_SKIMMER = itemTag("slag_skimmers");
 
+    /** What does not survive being pushed against a bath of molten metal, and gets destroyed for trying. */
+    public static final TagKey<Item> BURNS_IN_CRUCIBLE = itemTag("burns_in_the_crucible");
+
     private IMTags() {
     }
 

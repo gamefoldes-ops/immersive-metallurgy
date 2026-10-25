@@ -298,6 +298,10 @@ write("data", "c", "tags", "item", "double_ingots", "flawed.json", value={"value
 lang["tag.item.c.ingots.flawed"] = "Flawed Ingots"
 lang["tag.item.c.double_ingots.flawed"] = "Flawed Double Ingots"
 
+# Wood would not survive touching a bath of molten metal, so the plain bowl is not a skimmer.
+write("data", MOD, "tags", "item", "slag_skimmers.json", value={"values": ["tfc:ceramic/bowl"]})
+write("data", MOD, "tags", "item", "burns_in_the_crucible.json", value={"values": ["minecraft:bowl"]})
+
 # The one item that is not a metal, but exists because skimmed slag has to go somewhere.
 write("assets", MOD, "models", "item", "slag_dust.json", value={
     "parent": "item/generated",

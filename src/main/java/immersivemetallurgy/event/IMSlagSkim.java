@@ -43,18 +43,40 @@ public final class IMSlagSkim {
         Level level = event.getLevel();
         Player player = event.getEntity();
         ItemStack bowl = event.getItemStack();
+        boolean skimmer = bowl.is(IMTags.SLAG_SKIMMER);
         if (level.isClientSide || !player.isShiftKeyDown() || event.getHand() != InteractionHand.MAIN_HAND
-                || !bowl.is(IMTags.SLAG_SKIMMER)) {
+                || (!skimmer && !bowl.is(IMTags.BURNS_IN_CRUCIBLE))) {
             return;
         }
         if (!(level.getBlockEntity(event.getPos()) instanceof CrucibleBlockEntity crucible)) {
             return;
         }
+        ImmersiveMetallurgy.LOGGER.debug("Skim attempted at {} with {} (skimmer={})", event.getPos(),
+                bowl.getHoverName().getString(), skimmer);
+        if (!isMolten(crucible)) {
+            if (skimmer) {
+                ImmersiveMetallurgy.LOGGER.debug("Skim refused at {}: nothing is molten at {} degrees",
+                        event.getPos(), crucible.getTemperature());
+            }
+            return;
+        }
+        if (!skimmer) {
+            // Wood against a bath of molten metal does not skim anything, it just stops being a bowl.
+            bowl.shrink(1);
+            level.playSound(null, event.getPos(), SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 1F, 1.4F);
+            event.setUseBlock(TriState.FALSE);
+            event.setUseItem(TriState.FALSE);
+            event.setCancellationResult(InteractionResult.CONSUME);
+            return;
+        }
+
         SlagSkimming rules = SlagSkimming.of(level.getRecipeManager());
         MeltComposition container = (MeltComposition) (Object) crucible.getAlloy();
         Object2DoubleMap<Fluid> contents = crucible.getAlloy().getContent();
         double slag = contents.getDouble(IMFluids.SLAG.fluid());
-        if (rules == null || slag < 1 || !isMolten(crucible)) {
+        if (rules == null || slag < 1) {
+            ImmersiveMetallurgy.LOGGER.debug("Skim refused at {}: rules={}, slag={}, contents={}", event.getPos(),
+                    rules == null ? "missing recipe" : "loaded", slag, crucible.getAlloy().getContent());
             return;
         }
 
@@ -62,6 +84,7 @@ public final class IMSlagSkim {
         int removed = container.immersiveMetallurgyTake(IMFluids.SLAG.fluid(),
                 (int) Math.floor(fluxed ? slag : slag * rules.slagShare()));
         if (removed <= 0) {
+            ImmersiveMetallurgy.LOGGER.debug("Skim took nothing at {}: slag was {} mB", event.getPos(), slag);
             return;
         }
         if (!fluxed) {
