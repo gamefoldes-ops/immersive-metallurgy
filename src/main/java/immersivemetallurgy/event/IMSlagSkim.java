@@ -23,9 +23,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.items.IItemHandler;
 
 /**
  * Skimming slag off a hot crucible with a ceramic bowl. The dirt floats, so it can be pushed aside by hand,
@@ -80,9 +78,12 @@ public final class IMSlagSkim {
             return;
         }
 
-        boolean fluxed = consumeFlux(level, event.getPos(), rules);
-        int removed = container.immersiveMetallurgyTake(IMFluids.SLAG.fluid(),
-                (int) Math.floor(fluxed ? slag : slag * rules.slagShare()));
+        // A skim always lifts something, however little dirt is left: a percentage of a thin layer rounds to
+        // zero and the player is left clicking a crucible that refuses to get any cleaner.
+        boolean fluxed = container.immersiveMetallurgyFluxed();
+        int wanted = fluxed ? (int) Math.ceil(slag)
+                : Math.max(1, (int) Math.floor(slag * rules.slagShare()));
+        int removed = container.immersiveMetallurgyTake(IMFluids.SLAG.fluid(), wanted);
         if (removed <= 0) {
             ImmersiveMetallurgy.LOGGER.debug("Skim took nothing at {}: slag was {} mB", event.getPos(), slag);
             return;
@@ -94,9 +95,16 @@ public final class IMSlagSkim {
             breakBowl(player, bowl);
         }
 
-        int dust = (int) Math.floor(removed * rules.dustPerMilliBucket());
+        double expected = removed * rules.dustPerMilliBucket();
+        int dust = (int) Math.floor(expected);
+        if (level.random.nextFloat() < expected - dust) {
+            dust++;
+        }
         if (dust > 0) {
             give(level, player, new ItemStack(IMItems.SLAG_DUST.get(), dust));
+        }
+        if (slag - removed < 1) {
+            container.immersiveMetallurgySetFluxed(false);
         }
         level.playSound(null, event.getPos(), SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.7F, 0.9F);
 
@@ -137,21 +145,6 @@ public final class IMSlagSkim {
             }
             container.immersiveMetallurgyTake(fluid, (int) Math.floor(budget * content.getDouble(fluid) / metal));
         }
-    }
-
-    private static boolean consumeFlux(Level level, BlockPos pos, SlagSkimming rules) {
-        IItemHandler contents = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, null);
-        if (contents == null) {
-            return false;
-        }
-        for (int slot = 0; slot < contents.getSlots(); slot++) {
-            ItemStack stack = contents.getStackInSlot(slot);
-            if (!stack.isEmpty() && rules.flux().test(stack)) {
-                contents.extractItem(slot, 1, false);
-                return true;
-            }
-        }
-        return false;
     }
 
     private static void breakBowl(Player player, ItemStack bowl) {

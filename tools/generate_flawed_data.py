@@ -167,6 +167,7 @@ def make_ingot(color, double):
 lang = {
     "itemGroup.immersive_metallurgy": "Immersive Metallurgy",
     "immersive_metallurgy.screen.metal_totals": "Total metals",
+    "immersive_metallurgy.screen.skim_ready": "[skim ready]",
     "immersive_metallurgy.tooltip.defects": "Defects: %s",
     "immersive_metallurgy.name.flawed": "Flawed %s",
     "immersive_metallurgy.tooltip.sharpness": "Edge: %s",

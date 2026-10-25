@@ -29,4 +29,13 @@ public interface MeltComposition {
      * container does that: its own drain is proportional, so it would take metal at the same time.
      */
     int immersiveMetallurgyTake(Fluid fluid, int mB);
+
+    /**
+     * Whether a flux is working on this bath right now, which is what makes the next skim take slag without
+     * dragging metal after it. It is set when flux meets slag that is molten enough to float, and it dies
+     * with the slag, so a fresh batch of dirt needs fresh flux.
+     */
+    boolean immersiveMetallurgyFluxed();
+
+    void immersiveMetallurgySetFluxed(boolean fluxed);
 }

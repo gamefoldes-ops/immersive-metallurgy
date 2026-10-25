@@ -43,6 +43,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class FluidAlloyRecordMixin implements MeltComposition {
     @Unique
     private static final String COMPOSITIONS_KEY = "immersive_metallurgy:compositions";
+    private static final String FLUXED_KEY = "immersive_metallurgy:fluxed";
 
     @Shadow
     private Object2DoubleMap<Fluid> content;
@@ -62,6 +63,9 @@ public class FluidAlloyRecordMixin implements MeltComposition {
 
     @Unique
     private DefectProfile immersiveMetallurgy$defect;
+
+    @Unique
+    private boolean immersiveMetallurgy$fluxed;
 
     @Override
     public DefectProfile immersiveMetallurgyDefect() {
@@ -102,6 +106,16 @@ public class FluidAlloyRecordMixin implements MeltComposition {
             this.immersiveMetallurgy$compositions = new Object2ObjectOpenHashMap<>();
         }
         return this.immersiveMetallurgy$compositions;
+    }
+
+    @Override
+    public boolean immersiveMetallurgyFluxed() {
+        return this.immersiveMetallurgy$fluxed;
+    }
+
+    @Override
+    public void immersiveMetallurgySetFluxed(boolean fluxed) {
+        this.immersiveMetallurgy$fluxed = fluxed;
     }
 
     @Override
@@ -181,19 +195,28 @@ public class FluidAlloyRecordMixin implements MeltComposition {
 
     @Inject(method = "copy()Lnet/dries007/tfc/util/FluidAlloy;", at = @At("TAIL"))
     private void immersiveMetallurgy$carryCompositions(CallbackInfoReturnable<FluidAlloy> cir) {
-        ((MeltComposition) (Object) cir.getReturnValue()).immersiveMetallurgyCompositions().putAll(immersiveMetallurgyCompositions());
+        MeltComposition copy = (MeltComposition) (Object) cir.getReturnValue();
+        copy.immersiveMetallurgyCompositions().putAll(immersiveMetallurgyCompositions());
+        copy.immersiveMetallurgySetFluxed(immersiveMetallurgyFluxed());
     }
 
     @Inject(method = "copyFrom(Lnet/dries007/tfc/util/FluidAlloy;)V", at = @At("TAIL"))
     private void immersiveMetallurgy$adoptCompositions(FluidAlloy other, CallbackInfo ci) {
-        immersiveMetallurgyCompositions().putAll(((MeltComposition) (Object) other).immersiveMetallurgyCompositions());
+        MeltComposition source = (MeltComposition) (Object) other;
+        immersiveMetallurgyCompositions().putAll(source.immersiveMetallurgyCompositions());
+        this.immersiveMetallurgy$fluxed = source.immersiveMetallurgyFluxed();
         this.immersiveMetallurgy$leafRecord = null;
     }
 
     @Inject(method = "serializeNBT()Lnet/minecraft/nbt/Tag;", at = @At("TAIL"))
     private void immersiveMetallurgy$writeCompositions(CallbackInfoReturnable<Tag> cir) {
-        if (this.immersiveMetallurgy$compositions == null || this.immersiveMetallurgy$compositions.isEmpty()
-                || !(cir.getReturnValue() instanceof CompoundTag tag)) {
+        if (!(cir.getReturnValue() instanceof CompoundTag tag)) {
+            return;
+        }
+        if (this.immersiveMetallurgy$fluxed) {
+            tag.putBoolean(FLUXED_KEY, true);
+        }
+        if (this.immersiveMetallurgy$compositions == null || this.immersiveMetallurgy$compositions.isEmpty()) {
             return;
         }
         ListTag list = new ListTag();
@@ -211,6 +234,7 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     @Inject(method = "deserializeNBT(Lnet/minecraft/nbt/CompoundTag;)V", at = @At("TAIL"))
     private void immersiveMetallurgy$readCompositions(CompoundTag tag, CallbackInfo ci) {
         this.immersiveMetallurgy$leafRecord = null;
+        this.immersiveMetallurgy$fluxed = tag.getBoolean(FLUXED_KEY);
         if (!tag.contains(COMPOSITIONS_KEY, Tag.TAG_LIST)) {
             return;
         }

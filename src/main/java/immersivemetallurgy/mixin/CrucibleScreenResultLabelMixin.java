@@ -123,8 +123,12 @@ public class CrucibleScreenResultLabelMixin {
         // refining is left to do, so it is spelled out rather than left as the gap between the rows.
         double slag = alloy.getContent().getOrDefault(IMFluids.SLAG.fluid(), 0D);
         if (slag > 0) {
-            graphics.drawString(font, immersiveMetallurgy$line(IMFluids.SLAG.fluid(), 100F * slag / alloy.getAmount()),
-                    left + 6, top, PART_COLOUR);
+            MutableComponent line = immersiveMetallurgy$line(IMFluids.SLAG.fluid(), 100F * slag / alloy.getAmount());
+            if (((MeltComposition) (Object) alloy).immersiveMetallurgyFluxed()) {
+                line.append(Component.literal(" ")).append(Component.translatable("immersive_metallurgy.screen.skim_ready")
+                        .withStyle(ChatFormatting.GOLD));
+            }
+            graphics.drawString(font, line, left + 6, top, PART_COLOUR);
         }
     }
 
