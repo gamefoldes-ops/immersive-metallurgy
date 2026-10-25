@@ -9,6 +9,9 @@
     "FluidAlloyRecordMixin",
     "HeatingRecipeRecordMixin"
   ],
+  "client": [
+    "CrucibleScreenResultLabelMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
