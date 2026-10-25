@@ -144,35 +144,39 @@ public record FlawProfiles(List<Defect> defects, float durabilityFloor, Wear wea
 
     /**
      * The numbers that are not about the melt but about use: how fast an edge goes blunt, how much a blunt
-     * edge costs, and what a whetstone gives back and takes away.
+     * edge costs, and what honing gives back and takes away. The station and the portable stone share these,
+     * so the two routes differ only in price: one costs time, the other costs the stone.
      *
      * @param sharpnessPerBlock     sharpness lost per block mined
      * @param sharpnessPerHit       sharpness lost per hit landed
      * @param dullDamageFloor       damage multiplier of an edge at zero sharpness
      * @param dullSpeedFloor        mining speed multiplier of an edge at zero sharpness
-     * @param whetstoneRestore      sharpness one whetstone stroke adds
-     * @param whetstoneCeiling      the best a whetstone can leave an edge at
-     * @param whetstoneStructureCost share of the tool's max durability one stroke eats
+     * @param honingTicks           how long a session at a honing station takes
+     * @param honingRestore         sharpness one honing session adds
+     * @param honingCeiling         the best an edge can be brought back to by honing alone
+     * @param honingStructureCost   share of the tool's max durability one session eats
      */
     public record Wear(float sharpnessPerBlock,
                        float sharpnessPerHit,
                        float dullDamageFloor,
                        float dullSpeedFloor,
-                       float whetstoneRestore,
-                       float whetstoneCeiling,
-                       float whetstoneStructureCost) {
+                       int honingTicks,
+                       float honingRestore,
+                       float honingCeiling,
+                       float honingStructureCost) {
 
         public static final Codec<Wear> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.FLOAT.fieldOf("sharpness_per_block").forGetter(Wear::sharpnessPerBlock),
                 Codec.FLOAT.fieldOf("sharpness_per_hit").forGetter(Wear::sharpnessPerHit),
                 Codec.FLOAT.fieldOf("dull_damage_floor").forGetter(Wear::dullDamageFloor),
                 Codec.FLOAT.fieldOf("dull_speed_floor").forGetter(Wear::dullSpeedFloor),
-                Codec.FLOAT.fieldOf("whetstone_restore").forGetter(Wear::whetstoneRestore),
-                Codec.FLOAT.fieldOf("whetstone_ceiling").forGetter(Wear::whetstoneCeiling),
-                Codec.FLOAT.fieldOf("whetstone_structure_cost").forGetter(Wear::whetstoneStructureCost)
+                Codec.intRange(1, 20 * 60).fieldOf("honing_ticks").forGetter(Wear::honingTicks),
+                Codec.FLOAT.fieldOf("honing_restore").forGetter(Wear::honingRestore),
+                Codec.FLOAT.fieldOf("honing_ceiling").forGetter(Wear::honingCeiling),
+                Codec.FLOAT.fieldOf("honing_structure_cost").forGetter(Wear::honingStructureCost)
         ).apply(instance, Wear::new));
 
-        // Seven fields is one more than StreamCodec.composite reaches.
+        // Eight fields, and StreamCodec.composite reaches six anyway, so the codec carries it.
         public static final StreamCodec<ByteBuf, Wear> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
     }
 
