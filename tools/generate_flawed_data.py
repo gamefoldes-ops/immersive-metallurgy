@@ -68,6 +68,15 @@ for key, display, melt, forging, welding, has_double in ALLOYS:
         "specific_heat_capacity": SPECIFIC_HEAT,
     })
 
+    # TFC renders molten metal from its own fluid type, but a fluid block still needs a state and model,
+    # or the client fills the log with missing-model warnings for every new metal.
+    write("assets", MOD, "blockstates", "fluid", "metal", f"{flawed}.json", value={
+        "variants": {"": {"model": f"{MOD}:block/fluid/metal/{flawed}"}},
+    })
+    write("assets", MOD, "models", "block", "fluid", "metal", f"{flawed}.json", value={
+        "textures": {"particle": "tfc:block/molten_still"},
+    })
+
     write("data", MOD, "recipe", "casting", f"{flawed}_ingot.json", value={
         "type": "tfc:casting",
         "break_chance": CAST_BREAK_CHANCE,
