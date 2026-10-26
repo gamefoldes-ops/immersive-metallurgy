@@ -31,6 +31,11 @@ RATIOS = {
 # out under 20% slag in the melt.
 SPREAD = 0.3
 
+# The share of slag a ceramic melting pot is held to. A pot has no skim and no flux and no lid, so a pour from
+# one is never purer than 1 - this: 0.2 is an 80% ceiling, above every rule's slag_tolerance so a pot can never
+# pour clean metal, and below every rule's max_slag so it never pours junk by itself either.
+VESSEL_SLAG_FLOOR = 0.2
+
 
 def default_jar():
     base = os.environ.get("APPDATA", "")
@@ -63,7 +68,8 @@ def main():
     full = os.path.join(RES, "data", MOD, "recipe", "ore_fouling", "ores.json")
     os.makedirs(os.path.dirname(full), exist_ok=True)
     with open(full, "w", encoding="utf-8", newline="\n") as handle:
-        json.dump({"type": f"{MOD}:ore_fouling", "entries": entries}, handle, separators=(",", ":"))
+        json.dump({"type": f"{MOD}:ore_fouling", "vessel_slag_floor": VESSEL_SLAG_FLOOR, "entries": entries},
+                  handle, separators=(",", ":"))
         handle.write("\n")
 
     print(f"ore fouling written for {len(entries)} ores" + (f", unmatched variants: {unknown}" if unknown else ""))

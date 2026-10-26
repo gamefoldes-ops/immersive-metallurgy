@@ -12,6 +12,7 @@
     "HeatingRecipeRecordMixin",
     "ItemStackFlawedNameMixin",
     "ItemStackMeltStackingMixin",
+    "VesselGangueMixin",
     "WeldingRecipeRecordMixin"
   ],
   "client": [
