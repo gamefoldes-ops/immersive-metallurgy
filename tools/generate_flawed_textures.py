@@ -18,7 +18,7 @@ import zipfile
 
 import png
 
-from generate_ore_dressing import REPRESENTATIVE, metals_in_code
+from tfc_ore_data import REPRESENTATIVE, metals_in_code
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(HERE, os.pardir, "src", "main", "resources", "assets", "immersive_metallurgy")
@@ -156,20 +156,15 @@ def main():
                            [[tint_grey(pixel, colour) for pixel in row] for row in rows])
             written += 1
 
-    # The dressed states of the rock are borrowed the same way, from the ore art of the mineral each one is
-    # named for. Crushing only liberates, so the crushed picture is the ore made dull and gritty; the
-    # concentrate is the same shape pulled toward the metal, because that is what a washed pile of it is.
+    # A concentrate keeps the shape of the powder it was washed out of, because by then the rock is gone and
+    # what is left is the same pile of ground mineral with the silica out of it: only the colour moves toward
+    # the metal, and the pile catches a little more light.
     for metal in metals_in_code():
         variety = REPRESENTATIVE[metal]
-        source = f"assets/tfc/textures/item/ore/normal_{variety}.png"
+        source = f"assets/tfc/textures/item/powder/{variety}.png"
         if source not in archive.namelist():
             continue
-        art = archive.read(source)
-        crushed = dict(config["default"])
-        crushed.update(config["dressing"]["crushed"])
-        convert(art, os.path.join(ASSETS, "textures", "item", "crushed_ore", f"{metal}.png"), crushed, False)
-
-        width, height, pixels = png.read_rgba(art)
+        _, _, pixels = png.read_rgba(archive.read(source))
         colour = tint_from_hex(dict(ALLOY_TINTS)[metal])
         share = config["dressing"]["concentrate"]["share"]
         lift = config["dressing"]["concentrate"]["lift"]
@@ -178,7 +173,7 @@ def main():
         target = os.path.join(ASSETS, "textures", "item", "ore_concentrate", f"{metal}.png")
         os.makedirs(os.path.dirname(target), exist_ok=True)
         png.write_rgba(target, drawn)
-        written += 2
+        written += 1
 
     print(f"flawed textures written: {written}")
 

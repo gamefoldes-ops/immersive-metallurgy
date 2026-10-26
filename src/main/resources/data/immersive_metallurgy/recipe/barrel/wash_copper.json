@@ -1,1 +1,0 @@
-{"type":"tfc:barrel_instant","input_fluid":{"amount":100,"fluid":"minecraft:water"},"input_item":{"count":5,"item":"immersive_metallurgy:crushed_ore/copper"},"output_item":{"count":2,"id":"immersive_metallurgy:ore_concentrate/copper"}}

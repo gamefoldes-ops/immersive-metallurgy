@@ -14,6 +14,8 @@ import os
 import re
 import zipfile
 
+import tfc_ore_data as ores
+
 MOD = "immersive_metallurgy"
 HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(HERE, os.pardir, "src", "main", "resources")
@@ -47,19 +49,11 @@ VESSEL_SLAG_FLOOR = 0.1
 # what it brings, which is what makes recovery a consolation instead of a source of metal.
 DUST_SLAG_RATIO = 0.6
 
-# Crushing frees the mineral from the rock and takes nothing out of it, so a crushed piece is as dirty as the
-# lump it came from - but the grade is no longer visible anywhere on it, so the whole band collapses to its
-# middle. Washing is the step that actually parts them: a hand jig leaves a concentrate behind at about 1.5%
-# of the bath, which is under bronze's 2% tolerance so washed copper and washed tin can pour clean metal with no
-# skimming at all. Steel tolerates half of one percent, so iron still has to be fluxed and skimmed after it is
-# washed - the dressing makes it reachable, not free.
-CRUSHED_SLAG_RATIO = 0.12
-CONCENTRATE_SLAG_RATIO = 0.015
-
-# The dressed metals, read back from IMItems so the fouling table cannot list an item that was never registered.
-DRESSABLE = re.findall(r'"(\w+)"', re.search(r"DRESSABLE_METALS = List\.of\(([^)]*)\)",
-                        open(os.path.join(HERE, os.pardir, "src", "main", "java", "immersivemetallurgy",
-                                          "registry", "IMItems.java"), encoding="utf-8").read()).group(1))
+# Crushing frees the mineral from the rock and takes nothing out of it, so a powder is as dirty as the lump it
+# came from - but the grade is no longer written anywhere on it, so the whole band collapses to its middle.
+# The washed concentrate deliberately has no row at all: no row means no gangue, which is the whole payoff of
+# building a quern and a barrel.
+POWDER_SLAG_RATIO = 0.12
 
 
 def default_jar():
@@ -97,12 +91,12 @@ def main():
                         "slag_ratio": DUST_SLAG_RATIO,
                         "slag_spread": round(DUST_SLAG_RATIO * SPREAD, 3)})
 
-    # The two dressed states of the rock are raw material too, and one of them is the point of the barrel.
-    for metal in DRESSABLE:
-        for folder, ratio in (("crushed_ore", CRUSHED_SLAG_RATIO), ("ore_concentrate", CONCENTRATE_SLAG_RATIO)):
-            entries.append({"ingredient": {"item": f"{MOD}:{folder}/{metal}"},
-                            "slag_ratio": ratio,
-                            "slag_spread": round(ratio * SPREAD, 3)})
+    # Whatever the quern grinds out of a metal-bearing ore is meltable now, and it is the middle of the band:
+    # nothing on a handful of powder says which vein it came from.
+    for powder in sorted(ores.metal_powders(archive)):
+        entries.append({"ingredient": {"item": powder},
+                        "slag_ratio": POWDER_SLAG_RATIO,
+                        "slag_spread": round(POWDER_SLAG_RATIO * SPREAD, 3)})
 
     full = os.path.join(RES, "data", MOD, "recipe", "ore_fouling", "ores.json")
     os.makedirs(os.path.dirname(full), exist_ok=True)

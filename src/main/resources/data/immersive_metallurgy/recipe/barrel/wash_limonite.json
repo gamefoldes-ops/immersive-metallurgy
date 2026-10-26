@@ -1,0 +1,1 @@
+{"type":"tfc:barrel_instant","input_fluid":{"amount":100,"fluid":"minecraft:water"},"input_item":{"count":5,"item":"tfc:powder/limonite"},"output_item":{"count":1,"id":"immersive_metallurgy:ore_concentrate/cast_iron"}}

@@ -35,13 +35,19 @@ public final class IMItems {
      * hand dressing; sphalerite, bismuthinite, tetrahedrite and garnierite are not, and no amount of washing
      * makes their concentrate clean. The list is what {@code tools/generate_ore_dressing.py} reads, so the
      * items and their recipes cannot drift apart.
+     *
+     * The crushed half of the chain is deliberately not here: TFC's own quern already grinds every one of
+     * those ores into {@code tfc:powder/<ore>}, seven from a rich lump down to two from the small fragments,
+     * and adding a rival recipe only made the game choose the one it already had.
      */
     public static final List<String> DRESSABLE_METALS = List.of("cast_iron", "copper", "gold", "silver", "tin");
 
-    /** Ground liberation only: crushing sets the mineral free from the rock without taking the rock out. */
-    public static final Map<String, DeferredHolder<Item, Item>> CRUSHED_ORES = new LinkedHashMap<>();
-
-    /** The washed part of a crushed charge, which is the step that actually pays for the barrel. */
+    /**
+     * What five scoops of TFC's ore powder become in a barrel of water. The powder itself has no use in TFC at
+     * all - no item_heat, no heating recipe - so this is the reason to grind anything, and it is also the only
+     * route to metal with no slag in it: five scoops wash into one concentrate carrying the same twenty-five
+     * millibuckets they held between them, which is what one normal lump was worth.
+     */
     public static final Map<String, DeferredHolder<Item, Item>> ORE_CONCENTRATES = new LinkedHashMap<>();
 
     /**
@@ -59,7 +65,6 @@ public final class IMItems {
             SLAG_DUSTS.put(alloy.key(), ITEMS.registerItem(alloy.slagDustPath(), properties -> new Item(properties.stacksTo(16))));
         }
         for (String metal : DRESSABLE_METALS) {
-            CRUSHED_ORES.put(metal, ITEMS.registerItem("crushed_ore/" + metal, properties -> new Item(properties.stacksTo(64))));
             ORE_CONCENTRATES.put(metal, ITEMS.registerItem("ore_concentrate/" + metal, properties -> new Item(properties.stacksTo(64))));
         }
     }

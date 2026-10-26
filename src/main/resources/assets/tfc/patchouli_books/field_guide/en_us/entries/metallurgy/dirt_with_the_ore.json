@@ -22,19 +22,19 @@
     },
     {
       "type": "patchouli:text",
-      "title": "Crushing Liberates Nothing",
-      "text": "The quern breaks a lump into grit: seven handfuls from a rich one, five from a normal, three from a poor, two out of the small fragments.$p$pEach handful melts to 5 mB of metal and carries the same share of stone as the lump it came from, so crushing on its own buys you **nothing** but the next step. It is the grinding that frees the grains of mineral from the rock so water can tell them apart."
+      "title": "The Quern Grounds It, the Water Cleans It",
+      "text": "TFC's quern already breaks a lump into **ore powder**: seven scoops from a rich lump, five from a normal, three from a poor, two from the small fragments, and every scoop is worth five mB of metal.$p$pGround on its own buys nothing. Melt the powder and it gives up the same five mB with all of the stone still in it - about **12% of the bath** - and it has lost the one thing that made it worth picking, its grade: nothing on a scoop says which vein it came from.$p$pSo a scoop of ground ore is only ever worth smelting when you have no barrel to wash it in."
     },
     {
       "type": "patchouli:spotlight",
       "item": {"item": "immersive_metallurgy:ore_concentrate/copper"},
       "title": "Washing Is the Paying Step",
-      "text": "Five handfuls of crushed ore pushed into a barrel of water come out as two of **concentrate**, worth 10 mB each - so four fifths of the metal survives and a fifth goes off in the tailings, which is what a hand jig actually does.$p$pWhat you lose in metal you buy back in dirt: a concentrate brings about **1.5%** of the bath as slag instead of the 7 to 19% the raw grades carry, which is inside what bronze will tolerate. Washed copper and washed tin can pour clean bronze with no skim at all.$p$pSteel is the exception, as always: it tolerates half of one percent, so even washed iron still wants flux and a bowl."
+      "text": "Five scoops of powder and a drink of water in a barrel come out as one **concentrate**, worth the whole twenty-five mB they carried between them: the wash spends no metal at all, it only spends the quern stroke and the water.$p$pAnd it takes the dirt with it. A concentrate brings **no slag into the bath whatsoever**, so a crucible filled from washed copper and washed tin pours clean bronze, clean brass, clean silver - with no skimming, no flux and no second pass.$p$pThat is the reward for building the barrel and the grinding stone. Everything the flaw system can still reach you, it reaches through the metal you already melted: re-smelted scrap keeps its defects, and a pot never pours cleaner than ten percent."
     },
     {
       "type": "patchouli:text",
       "title": "Only the Heavy Minerals Wash",
-      "text": "Water sorts by weight, so it takes the ores whose mineral is far heavier than quartz: hematite, limonite and magnetite, cassiterite, malachite, and native copper, gold and silver.$p$pSphalerite, bismuthinite, tetrahedrite and garnierite are not much heavier than the rock they sit in, and no amount of washing will clean them - those you have to skim in the bath, or flux."
+      "text": "Water sorts by weight, so it takes the ores whose mineral is far heavier than quartz: hematite, limonite and magnetite, cassiterite, malachite, and native copper, gold and silver.$p$pSphalerite, bismuthinite, tetrahedrite and garnierite are not much heavier than the rock they sit in. Their powder can be smelted, and it cannot be cleaned - those you have to skim in the bath, or flux, the way everybody did before a barrel was worth building."
     }
   ]
 }
