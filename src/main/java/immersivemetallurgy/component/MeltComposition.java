@@ -15,6 +15,15 @@ public interface MeltComposition {
     Object2ObjectMap<Fluid, AlloyRecord> immersiveMetallurgyCompositions();
 
     /**
+     * The ratio the first pour out of this bath was made of. It is remembered instead of recomputed because
+     * a container that copies its alloy on every operation would otherwise derive it from millilitres that
+     * drift by rounding, and a mold refuses a second drip whose record differs from the first one it took.
+     */
+    AlloyRecord immersiveMetallurgyRecord();
+
+    void immersiveMetallurgySetRecord(AlloyRecord record);
+
+    /**
      * The defect the tolerant matcher worked out for this container's current result. The matcher runs
      * inside TFC's own alloy lookup, which has nowhere to return it, so it leaves it here and the stamping
      * of the result fluid picks it up in the same call.

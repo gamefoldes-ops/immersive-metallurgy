@@ -96,6 +96,9 @@ public class FluidAlloyRecordMixin implements MeltComposition {
             this.content.put(fluid, left);
         }
         this.amount -= taken;
+        // A skim is the one change that has to forget the ratio: a pour needs it to hold still only while that
+        // pour is in flight, and the dirt lifted off the top is no longer in anything poured after it.
+        this.immersiveMetallurgy$leafRecord = null;
         clearCaches();
         return taken;
     }
@@ -106,6 +109,16 @@ public class FluidAlloyRecordMixin implements MeltComposition {
             this.immersiveMetallurgy$compositions = new Object2ObjectOpenHashMap<>();
         }
         return this.immersiveMetallurgy$compositions;
+    }
+
+    @Override
+    public AlloyRecord immersiveMetallurgyRecord() {
+        return this.immersiveMetallurgy$leafRecord;
+    }
+
+    @Override
+    public void immersiveMetallurgySetRecord(AlloyRecord record) {
+        this.immersiveMetallurgy$leafRecord = record;
     }
 
     @Override
@@ -198,6 +211,7 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         MeltComposition copy = (MeltComposition) (Object) cir.getReturnValue();
         copy.immersiveMetallurgyCompositions().putAll(immersiveMetallurgyCompositions());
         copy.immersiveMetallurgySetFluxed(immersiveMetallurgyFluxed());
+        copy.immersiveMetallurgySetRecord(immersiveMetallurgyRecord());
     }
 
     @Inject(method = "copyFrom(Lnet/dries007/tfc/util/FluidAlloy;)V", at = @At("TAIL"))
@@ -205,7 +219,7 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         MeltComposition source = (MeltComposition) (Object) other;
         immersiveMetallurgyCompositions().putAll(source.immersiveMetallurgyCompositions());
         this.immersiveMetallurgy$fluxed = source.immersiveMetallurgyFluxed();
-        this.immersiveMetallurgy$leafRecord = null;
+        this.immersiveMetallurgy$leafRecord = source.immersiveMetallurgyRecord();
     }
 
     @Inject(method = "serializeNBT()Lnet/minecraft/nbt/Tag;", at = @At("TAIL"))
