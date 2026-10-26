@@ -1,7 +1,7 @@
 {
   "name": "Dirt Comes With the Ore",
   "icon": "tfc:ore/small_malachite",
-  "category": "immersive_metallurgy:metallurgy",
+  "category": "tfc:metallurgy",
   "read_by_default": true,
   "pages": [
     {

@@ -1,7 +1,7 @@
 {
   "name": "The Edge and the Body",
   "icon": "tfc:metal/pickaxe/bronze",
-  "category": "immersive_metallurgy:metallurgy",
+  "category": "tfc:metallurgy",
   "read_by_default": true,
   "pages": [
     {

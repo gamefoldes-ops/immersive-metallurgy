@@ -1,7 +1,7 @@
 {
   "name": "Lifting the Layer",
   "icon": "tfc:ceramic/bowl",
-  "category": "immersive_metallurgy:metallurgy",
+  "category": "tfc:metallurgy",
   "read_by_default": true,
   "pages": [
     {
@@ -19,7 +19,7 @@
       "type": "patchouli:spotlight",
       "item": {"item": "immersive_metallurgy:slag_dust/steel"},
       "title": "Used Slag as a Second-Best Flux",
-      "text": "Slag from the iron and steel family is basic and still wants sulfur and phosphorus, so its dust thrown on the bath lifts about **60% of the layer** without touching metal. Copper and tin slag is acidic and does nothing of the kind - which is why the dust is separated by metal in the first place."
+      "text": "Slag from the iron and steel family is basic and still wants sulfur and phosphorus, so its dust thrown on the bath lifts about **80% of the layer** without touching metal. Copper and tin slag is acidic and does nothing of the kind - which is why the dust is separated by metal in the first place."
     },
     {
       "type": "patchouli:text",

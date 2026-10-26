@@ -1,7 +1,7 @@
 {
   "name": "Pot and Crucible",
   "icon": "tfc:ceramic/vessel",
-  "category": "immersive_metallurgy:metallurgy",
+  "category": "tfc:metallurgy",
   "read_by_default": true,
   "pages": [
     {

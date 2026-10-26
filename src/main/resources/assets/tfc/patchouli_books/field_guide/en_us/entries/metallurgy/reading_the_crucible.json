@@ -1,7 +1,7 @@
 {
   "name": "Reading a Crucible",
   "icon": "tfc:crucible",
-  "category": "immersive_metallurgy:metallurgy",
+  "category": "tfc:metallurgy",
   "read_by_default": true,
   "pages": [
     {
