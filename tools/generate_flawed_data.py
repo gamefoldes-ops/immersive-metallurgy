@@ -251,7 +251,7 @@ for key, display, melt, forging, welding, has_double, tint, specific_heat in ALL
         "parent": "item/generated",
         "textures": {"layer0": f"{MOD}:item/slag_dust/{key}"},
     })
-    lang[f"item.{MOD}.slag_dust/{key}"] = f"{display} Slag Dust"
+    lang[f"item.{MOD}.slag_dust.{key}"] = f"{display} Slag Dust"
 
     ingot_tag_values.append(f"#c:ingots/{flawed}")
     mold_fluids.append(fluid)
