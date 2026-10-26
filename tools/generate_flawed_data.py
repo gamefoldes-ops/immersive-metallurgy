@@ -245,6 +245,14 @@ for key, display, melt, forging, welding, has_double, tint, specific_heat in ALL
         "textures": {"layer0": f"{MOD}:item/metal/ingot/{flawed}"},
     })
 
+    # Skimmed slag is named for the bath it was lifted off, because what it is good for depends on the metal
+    # still hanging in it. The plain dust stays for a bath that is not a metal we can name.
+    write("assets", MOD, "models", "item", "slag_dust", f"{key}.json", value={
+        "parent": "item/generated",
+        "textures": {"layer0": f"{MOD}:item/slag_dust/{key}"},
+    })
+    lang[f"item.{MOD}.slag_dust/{key}"] = f"{display} Slag Dust"
+
     ingot_tag_values.append(f"#c:ingots/{flawed}")
     mold_fluids.append(fluid)
 

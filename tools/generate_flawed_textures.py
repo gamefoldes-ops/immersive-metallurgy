@@ -24,9 +24,10 @@ OUT = os.path.join(HERE, os.pardir, "src", "main", "resources", "assets", "immer
 # The metals are IMAlloys' business, not this script's: reading them back keeps the art from lagging the list.
 SLAG_SOURCE = "assets/tfc/textures/item/powder/graphite.png"
 
-ALLOY_KEYS = re.findall(r'new IMAlloys\("(\w+)"',
-                        open(os.path.join(HERE, os.pardir, "src", "main", "java", "immersivemetallurgy",
-                                          "registry", "IMAlloys.java"), encoding="utf-8").read())
+ALLOY_TINTS = re.findall(r'new IMAlloys\("(\w+)", ".+?", 0x([0-9A-Fa-f]{6,8})',
+                         open(os.path.join(HERE, os.pardir, "src", "main", "java", "immersivemetallurgy",
+                                           "registry", "IMAlloys.java"), encoding="utf-8").read())
+ALLOY_KEYS = [key for key, _ in ALLOY_TINTS]
 
 
 def default_jar():
@@ -39,14 +40,29 @@ def default_jar():
 # Multiplying grey by the slag colour gives a dust that reads as the stuff it came off, and nothing else.
 SLAG_TINT = (0x5C, 0x54, 0x49)
 
+# How much of a dust's colour is the metal it was skimmed off. Real slag takes its colour from the metal's
+# oxides, but it is still mostly slag, so the bath only leans the grey rather than replacing it.
+DUST_METAL_SHARE = 0.35
 
-def tint_grey(pixel):
+
+def tint_from_hex(digits):
+    value = int(digits, 16)
+    if len(digits) == 8:
+        value &= 0xFFFFFF
+    return (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF
+
+
+def mix(left, right, share):
+    return tuple(int(l * (1 - share) + r * share) for l, r in zip(left, right))
+
+
+def tint_grey(pixel, colour=SLAG_TINT):
     red, green, blue, alpha = pixel
     if alpha == 0:
         return pixel
     grey = 0.299 * red + 0.587 * green + 0.114 * blue
-    peak = max(SLAG_TINT)
-    return tuple(min(255, int(grey * channel / peak * 1.55)) for channel in SLAG_TINT) + (alpha,)
+    peak = max(colour)
+    return tuple(min(255, int(grey * channel / peak * 1.55)) for channel in colour) + (alpha,)
 
 
 def degrade(pixel, knobs, rng, pitted):
@@ -108,14 +124,22 @@ def main():
             convert(archive.read(source), target, knobs, suffix == "_double")
             written += 1
 
-    # The one non-metal item of ours borrows TFC's powder art the same way, so that slag dust looks like it
-    # belongs in the same game as the metal it came off.
+    # The non-metal items of ours borrow TFC's powder art the same way, so that slag dust looks like it
+    # belongs in the same game as the metal it came off - and like the particular metal it came off.
     dust = SLAG_SOURCE
     if dust in archive.namelist():
         _, _, rows = png.read_rgba(archive.read(dust))
-        png.write_rgba(os.path.join(OUT, os.pardir, "slag_dust.png"),
+        item_dir = os.path.join(OUT, os.pardir)
+        png.write_rgba(os.path.join(item_dir, "slag_dust.png"),
                        [[tint_grey(pixel) for pixel in row] for row in rows])
         written += 1
+        per_metal = os.path.join(item_dir, "slag_dust")
+        os.makedirs(per_metal, exist_ok=True)
+        for key, digits in ALLOY_TINTS:
+            colour = mix(SLAG_TINT, tint_from_hex(digits), DUST_METAL_SHARE)
+            png.write_rgba(os.path.join(per_metal, f"{key}.png"),
+                           [[tint_grey(pixel, colour) for pixel in row] for row in rows])
+            written += 1
 
     print(f"flawed textures written: {written}")
 

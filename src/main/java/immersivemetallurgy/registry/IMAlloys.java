@@ -56,4 +56,18 @@ public record IMAlloys(String key, String display, int tint, boolean doubleIngot
     public String flawedDoubleIngotPath() {
         return "metal/double_ingot/flawed_" + key;
     }
+
+    public String slagDustPath() {
+        return "slag_dust/" + key;
+    }
+
+    /** The metal a name refers to, or null when it is not one of the metals this mod carries. */
+    public static IMAlloys byKey(String key) {
+        for (IMAlloys alloy : ALL) {
+            if (alloy.key().equals(key)) {
+                return alloy;
+            }
+        }
+        return null;
+    }
 }

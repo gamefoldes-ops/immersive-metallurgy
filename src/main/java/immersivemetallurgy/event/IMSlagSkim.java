@@ -3,6 +3,7 @@ package immersivemetallurgy.event;
 import immersivemetallurgy.ImmersiveMetallurgy;
 import immersivemetallurgy.component.MeltComposition;
 import immersivemetallurgy.recipe.SlagSkimming;
+import immersivemetallurgy.registry.IMAlloys;
 import immersivemetallurgy.registry.IMFluids;
 import immersivemetallurgy.registry.IMItems;
 import immersivemetallurgy.registry.IMTags;
@@ -101,7 +102,9 @@ public final class IMSlagSkim {
             dust++;
         }
         if (dust > 0) {
-            give(level, player, new ItemStack(IMItems.SLAG_DUST.get(), dust));
+            // The dust is named for the metal it was dirty in, which is also what it can be worked for later.
+            IMAlloys bath = IMFluids.alloyOf(crucible.getAlloyResult().getFluid());
+            give(level, player, new ItemStack(bath == null ? IMItems.SLAG_DUST.get() : IMItems.slagDust(bath), dust));
         }
         if (slag - removed < 1) {
             container.immersiveMetallurgySetFluxed(false);

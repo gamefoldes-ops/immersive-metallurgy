@@ -3,7 +3,10 @@ package immersivemetallurgy.registry;
 import immersivemetallurgy.ImmersiveMetallurgy;
 
 import net.dries007.tfc.common.blocks.MoltenFluidBlock;
+import net.dries007.tfc.common.fluids.FluidHolder;
 import net.dries007.tfc.common.fluids.MoltenFluid;
+import net.dries007.tfc.common.fluids.TFCFluids;
+import net.dries007.tfc.util.Metal;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
@@ -36,8 +39,28 @@ public final class IMFluids {
 
     static {
         for (IMAlloys alloy : IMAlloys.ALL) {
-            register(alloy.flawedFluidPath(), "flawed_" + alloy.key(), alloy.tint());
+            register(alloy.flawedFluidPath(), "flawed_" + alloy.key(), alloy.tint()).alloy = alloy;
         }
+    }
+
+    /**
+     * Which metal a molten fluid is, ours or TFC's, or null for a fluid that is not metal at all — slag is the
+     * one in the crucible that names nothing. Skimming needs this to hand back dirt that says what it was dirt
+     * in, and the bath keeps its own identity, so the fluid is the only place the answer is written.
+     */
+    public static IMAlloys alloyOf(Fluid fluid) {
+        for (Molten molten : ALL) {
+            if (molten.fluid() == fluid) {
+                return molten.alloy;
+            }
+        }
+        for (Metal metal : Metal.values()) {
+            FluidHolder<?> holder = TFCFluids.METALS.get(metal);
+            if (holder != null && holder.getSource() == fluid) {
+                return IMAlloys.byKey(metal.getSerializedName());
+            }
+        }
+        return null;
     }
 
     private IMFluids() {
@@ -87,6 +110,8 @@ public final class IMFluids {
         private final String path;
         private final String langName;
         private final int tint;
+        /** The metal this fluid is a dirty pour of, null for slag, which is not a metal. */
+        private IMAlloys alloy;
         private DeferredHolder<FluidType, FluidType> type;
         private DeferredHolder<Fluid, MoltenFluid.Source> source;
         private DeferredHolder<Fluid, MoltenFluid.Flowing> flowing;

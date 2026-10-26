@@ -8,7 +8,9 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Ingots that TFC cannot have, because its ingot items are keyed one-to-one on a metal fluid and a flawed
@@ -21,17 +23,30 @@ public final class IMItems {
     /** Kept so the creative tab can hold something of ours up as its icon. */
     public static final List<DeferredHolder<Item, Item>> FLAWED_INGOTS = new ArrayList<>();
 
+    /** What comes off a skim: dirt with a use, rather than nothing to show for the work. */
+    public static final DeferredHolder<Item, Item> SLAG_DUST =
+            ITEMS.registerItem("slag_dust", properties -> new Item(properties.stacksTo(16)));
+
+    /**
+     * One dust per metal, named for the bath it was lifted off, because what slag is good for depends on what
+     * is still hanging in it. The plain dust above stays for a bath that is not any metal we can name.
+     */
+    public static final Map<String, DeferredHolder<Item, Item>> SLAG_DUSTS = new LinkedHashMap<>();
+
     static {
         for (IMAlloys alloy : IMAlloys.ALL) {
             FLAWED_INGOTS.add(ITEMS.registerItem(alloy.flawedIngotPath(), Item::new));
             if (alloy.doubleIngot()) {
                 ITEMS.registerItem(alloy.flawedDoubleIngotPath(), Item::new);
             }
+            SLAG_DUSTS.put(alloy.key(), ITEMS.registerItem(alloy.slagDustPath(), properties -> new Item(properties.stacksTo(16))));
         }
     }
 
-    /** What comes off a skim: dirt with a use, rather than nothing to show for the work. */
-    public static final DeferredHolder<Item, Item> SLAG_DUST = ITEMS.registerItem("slag_dust", properties -> new Item(properties.stacksTo(16)));
+    public static Item slagDust(IMAlloys alloy) {
+        DeferredHolder<Item, Item> dust = SLAG_DUSTS.get(alloy.key());
+        return dust == null ? SLAG_DUST.get() : dust.get();
+    }
 
     private IMItems() {
     }
