@@ -8,6 +8,8 @@
     "AnvilRecipeRecordMixin",
     "CastingRecipeRecordMixin",
     "CrucibleFluxIntakeMixin",
+    "CrucibleLedgerCaptureMixin",
+    "CrucibleLedgerRestoreMixin",
     "FluidAlloyRecordMixin",
     "HeatingRecipeRecordMixin",
     "ItemStackFlawedNameMixin",

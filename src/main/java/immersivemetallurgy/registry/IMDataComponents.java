@@ -3,6 +3,7 @@ package immersivemetallurgy.registry;
 import immersivemetallurgy.ImmersiveMetallurgy;
 import immersivemetallurgy.component.AlloyRecord;
 import immersivemetallurgy.component.DefectProfile;
+import immersivemetallurgy.component.MeltLedger;
 
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
@@ -45,6 +46,16 @@ public final class IMDataComponents {
             DATA_COMPONENTS.register("slag_ratio", () -> DataComponentType.<Float>builder()
                     .persistent(Codec.FLOAT)
                     .networkSynchronized(ByteBufCodecs.FLOAT)
+                    .build());
+
+    /**
+     * What a carried crucible's melt was made of, because the block item writes the alloy through
+     * {@code FluidAlloy}'s own codec and that codec has no room for the composition table.
+     */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<MeltLedger>> MELT_LEDGER =
+            DATA_COMPONENTS.register("melt_ledger", () -> DataComponentType.<MeltLedger>builder()
+                    .persistent(MeltLedger.CODEC)
+                    .networkSynchronized(MeltLedger.STREAM_CODEC)
                     .build());
 
     private IMDataComponents() {
