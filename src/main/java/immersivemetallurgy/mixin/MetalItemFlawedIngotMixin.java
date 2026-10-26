@@ -66,9 +66,15 @@ public class MetalItemFlawedIngotMixin {
                 }
                 Item flawed = BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID,
                         type == Metal.ItemType.INGOT ? alloy.flawedIngotPath() : alloy.flawedDoubleIngotPath()));
-                if (flawed != Items.AIR) {
-                    byItem.put(flawed, MetalItem.getOrUnknown(new ItemStack(clean)));
+                if (flawed == Items.AIR) {
+                    continue;
                 }
+                // Same metal, our own surface: the pile model draws entries by softTextureId, so this is what
+                // makes a pile of cast-badly bronze look like the art the ingot itself has.
+                ResourceLocation art = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID,
+                        "item/" + (type == Metal.ItemType.INGOT ? alloy.flawedIngotPath() : alloy.flawedDoubleIngotPath()));
+                MetalItem answer = new MetalItem(MetalItem.getOrUnknown(new ItemStack(clean)).name(), art, art);
+                byItem.put(flawed, answer);
             }
         }
         return byItem;

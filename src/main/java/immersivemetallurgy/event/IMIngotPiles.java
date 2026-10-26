@@ -57,11 +57,15 @@ public final class IMIngotPiles {
         return Ingredient.of(items.toArray(new Item[0]));
     }
 
-    /** Sneaking at a pile with an ingot in hand, exactly the way TFC's own ingots are stored. */
+    /**
+     * Sneaking at a pile with an ingot in hand, exactly the way TFC's own ingots are stored. Like TFC, the
+     * client runs it too: without that local copy the pile is redrawn before the block entity has arrived from
+     * the server, and every ingot in it renders black for a frame.
+     */
     private static InteractionResult pileOnto(ItemStack stack, UseOnContext context, Block pile) {
         Level level = context.getLevel();
         Player player = context.getPlayer();
-        if (level.isClientSide || player == null || !player.mayBuild() || !player.isShiftKeyDown()) {
+        if (player == null || !player.mayBuild() || !player.isShiftKeyDown()) {
             return InteractionResult.PASS;
         }
         IntegerProperty count = ((IngotPileBlock) pile).getCountProperty();
