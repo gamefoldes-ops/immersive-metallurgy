@@ -24,6 +24,11 @@ INGOT_HEAT_CAPACITY = 2.857143
 DOUBLE_INGOT_HEAT_CAPACITY = 5.714286
 MILLIBUCKETS = 100
 CAST_BREAK_CHANCE = 0.1
+# One dust of skimmed slag is worth this much of the metal it was lifted off, and it returns with its own
+# dirt attached (see the slag dust rows in tools/generate_ore_fouling.py), so the loop is a consolation,
+# not a way to get something for nothing.
+DUST_RECOVERY_MILLIBUCKETS = 4
+POWDER_HEAT_CAPACITY = 0.7
 
 
 
@@ -192,11 +197,13 @@ lang = {
 mold_fluids = []
 ingot_tag_values = []
 double_ingot_tag_values = []
+dust_tag_values = []
 
 for key, display, melt, forging, welding, has_double, tint, specific_heat in ALLOYS:
     flawed = f"flawed_{key}"
     fluid = f"{MOD}:metal/{flawed}"
     ingot = f"{MOD}:metal/ingot/{flawed}"
+    dust_item = f"{MOD}:slag_dust/{key}"
     double_ingot = f"{MOD}:metal/double_ingot/{flawed}"
 
     write("data", MOD, "tfc", "fluid_heat", f"{flawed}.json", value={
@@ -232,6 +239,21 @@ for key, display, melt, forging, welding, has_double, tint, specific_heat in ALL
         "temperature": melt,
     })
 
+    # Skimmed slag goes back into the bath for the metal still hanging in it. Real slag holds 1-5% metal and
+    # is reprocessed industrially; here one dust is worth four millilitres of the metal it was skimmed off,
+    # which is richer than a plant because you are picking visible prills out by hand, and it comes back
+    # dirtier than it went in (the fouling table gives slag dust a high slag_ratio), so recovery costs.
+    write("data", MOD, "recipe", "heating", "powder", f"slag_dust_{key}.json", value={
+        "type": "tfc:heating",
+        "ingredient": {"item": dust_item},
+        "result_fluid": {"amount": DUST_RECOVERY_MILLIBUCKETS, "id": f"tfc:metal/{key}"},
+        "temperature": melt,
+    })
+    write("data", MOD, "tfc", "item_heat", f"slag_dust_{key}.json", value={
+        "ingredient": {"item": dust_item},
+        "heat_capacity": POWDER_HEAT_CAPACITY,
+    })
+
     write("data", MOD, "tfc", "item_heat", f"{flawed}_ingot.json", value={
         "ingredient": {"tag": f"c:ingots/{flawed}"},
         "forging_temperature": forging,
@@ -252,6 +274,9 @@ for key, display, melt, forging, welding, has_double, tint, specific_heat in ALL
         "textures": {"layer0": f"{MOD}:item/slag_dust/{key}"},
     })
     lang[f"item.{MOD}.slag_dust.{key}"] = f"{display} Slag Dust"
+    write("data", "c", "tags", "item", "slag_dust", f"{key}.json", value={"values": [dust_item]})
+    lang["tag.item.c.slag_dust." + key] = f"{display} Slag Dust"
+    dust_tag_values.append(f"#c:slag_dust/{key}")
 
     ingot_tag_values.append(f"#c:ingots/{flawed}")
     mold_fluids.append(fluid)
@@ -305,6 +330,8 @@ write("data", "c", "tags", "item", "ingots", "flawed.json", value={"values": ing
 write("data", "c", "tags", "item", "double_ingots", "flawed.json", value={"values": double_ingot_tag_values})
 lang["tag.item.c.ingots.flawed"] = "Flawed Ingots"
 lang["tag.item.c.double_ingots.flawed"] = "Flawed Double Ingots"
+write("data", "c", "tags", "item", "slag_dust.json", value={"values": dust_tag_values + [f"{MOD}:slag_dust"]})
+lang["tag.item.c.slag_dust"] = "Slag Dust"
 
 # Wood would not survive touching a bath of molten metal, so the plain bowl is not a skimmer.
 write("data", MOD, "tags", "item", "slag_skimmers.json", value={"values": ["tfc:ceramic/bowl"]})

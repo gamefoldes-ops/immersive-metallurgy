@@ -11,11 +11,17 @@ Run `python tools/generate_ore_fouling.py` after changing the ratios or updating
 import argparse
 import json
 import os
+import re
 import zipfile
 
 MOD = "immersive_metallurgy"
 HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(HERE, os.pardir, "src", "main", "resources")
+
+# The metals are IMAlloys' business, not this script's.
+ALLOY_KEYS = re.findall(r'new IMAlloys\("(\w+)"',
+                        open(os.path.join(HERE, os.pardir, "src", "main", "java", "immersivemetallurgy",
+                                          "registry", "IMAlloys.java"), encoding="utf-8").read())
 
 # Slag added per unit of metal the ore yields, by TFC's grade. The worst grade tops out just under 20% of the
 # melt (share = ratio / (1 + ratio)), which stays comfortably under the 0.25 max_slag of the tolerance rules so
@@ -36,6 +42,10 @@ SPREAD = 0.3
 # pour clean metal, and low enough that the worst a clean-proportioned pot pour can be is the light grade -
 # the slag band that stays under grades.medium (0.4) is about 15%, because edge_wear weights slag at 0.7.
 VESSEL_SLAG_FLOOR = 0.1
+
+# Skimmed slag re-melted is still mostly the dirt it was skimmed off: it fouls the bath by more than half of
+# what it brings, which is what makes recovery a consolation instead of a source of metal.
+DUST_SLAG_RATIO = 0.6
 
 
 def default_jar():
@@ -65,6 +75,13 @@ def main():
             continue
         entries.append({"ingredient": {"item": item}, "slag_ratio": RATIOS[variant],
                         "slag_spread": round(RATIOS[variant] * SPREAD, 3)})
+
+    # Every slag dust we make is a raw thing too: melting it back is the recovery route, and it brings its
+    # own dirt along, so the metal it returns has to be skimmed again.
+    for key in ALLOY_KEYS:
+        entries.append({"ingredient": {"item": f"{MOD}:slag_dust/{key}"},
+                        "slag_ratio": DUST_SLAG_RATIO,
+                        "slag_spread": round(DUST_SLAG_RATIO * SPREAD, 3)})
 
     full = os.path.join(RES, "data", MOD, "recipe", "ore_fouling", "ores.json")
     os.makedirs(os.path.dirname(full), exist_ok=True)
