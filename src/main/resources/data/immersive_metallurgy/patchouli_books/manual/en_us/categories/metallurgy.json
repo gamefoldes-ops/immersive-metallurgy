@@ -1,0 +1,6 @@
+{
+  "name": "Metallurgy",
+  "description": "Dirt in the ore, the layer on top of the bath, and the edge that wears down.",
+  "icon": "immersive_metallurgy:slag_dust/bronze",
+  "priority": 0
+}

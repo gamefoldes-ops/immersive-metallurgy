@@ -1,0 +1,24 @@
+{
+  "name": "Pot and Crucible",
+  "icon": "tfc:ceramic/vessel",
+  "category": "immersive_metallurgy:metallurgy",
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "The Pot Is a Black Box",
+      "text": "A ceramic melting pot melts without a skim, without flux and open to the fire, so it holds its melt down to **10% slag** no matter how clean the charge was: nothing poured out of a pot is ever pure metal, and it costs you a tenth of the charge as fire loss.$p$pIt is still forgiving: the ratio bands are wide, so a pot pour becomes Flawed metal rather than junk."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Pouring Out of a Pot",
+      "text": "Right-click the pot while its contents are molten to open it, and put a mold into the slots there. While the bath holds liquid the pot is not an inventory any more, so the same gesture does not show you the four item slots.$p$pMelted parts and ingots keep their dirt when you re-melt them, so a pot's output stays dirty through the loop until it is skimmed in a crucible."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": {"item": "tfc:crucible"},
+      "title": "The Crucible Is the Refinery",
+      "text": "Only a crucible can be skimmed and fluxed, so it is the one object that turns ore or pot metal into clean metal. Everything else in this book happens there.$p$pPicked up, a crucible keeps what its melt was made of, so a flawed pour in a chest does not forget its own composition."
+    }
+  ]
+}

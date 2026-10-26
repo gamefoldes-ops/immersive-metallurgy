@@ -1,0 +1,24 @@
+{
+  "name": "The Edge and the Body",
+  "icon": "tfc:metal/pickaxe/bronze",
+  "category": "immersive_metallurgy:metallurgy",
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "Two Things Wear Out",
+      "text": "**Sharpness** is the edge, 0-100, and it drops about 0.6 per block mined and 0.9 per hit landed. A dull edge digs at up to 65% of its speed and hits at up to 60% of its force; below 40 the Edge line turns red.$p$p**Structure** is the body of the tool: the vanilla durability bar, shortened for good by flaws and by honing, never restored."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "What Flawed Metal Costs",
+      "text": "A flawed pour starts with a shorter body (its structure is a share of the clean metal's), and it dulls faster - edge wear is the defect slag feeds most. It also chips: each strike risks 1-2 extra durability, more the blunter the edge is, and clean metal never chips at all.$p$pThe anvil work is a separate account: TFC's own forging bonus stays TFC's, and the melt quality stays in this mod's numbers."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": {"item": "minecraft:grindstone"},
+      "title": "Honing",
+      "text": "Take the tool in hand and hold right-click on a grindstone for five whole seconds - sparks, grinding noise, and you must keep the button down to the end, or the stroke comes for nothing.$p$pIt returns 30 of edge but never above **88**: honing recovers a used edge, it does not give back metal ground away. Every session spends about 1.5% of the tool's structure. TFC's anvils do the same job when used sneaking, so their menu stays reachable."
+    }
+  ]
+}

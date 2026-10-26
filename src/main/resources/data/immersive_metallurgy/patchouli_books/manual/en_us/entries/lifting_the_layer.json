@@ -1,0 +1,30 @@
+{
+  "name": "Lifting the Layer",
+  "icon": "tfc:ceramic/bowl",
+  "category": "immersive_metallurgy:metallurgy",
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "Sneak and Right-Click With a Bowl",
+      "text": "A fired ceramic bowl, held in the main hand, taken sneaking to a **molten** crucible that holds slag, skims the layer off the top. A cold bath has nothing floating to lift, and a wooden bowl only burns up.$p$pBy hand you take about **30% of the layer**, and a viscous slag drags droplets of metal with it: roughly **1.5% of the metal** in the bath goes too. Repeat as long as you like - each pass takes a share of what is left."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": {"item": "tfc:powder/flux"},
+      "title": "Flux",
+      "text": "Throw a flux (or the lime it burns to) into a hot, dirty bath and it is spent at once: the Slag line gains a **[skim ready]** mark. From then on one skim lifts the **whole layer and takes no metal**.$p$pThe flux works on the layer that is in there now. Skim it off and a fresh batch of dirt needs fresh flux."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": {"item": "immersive_metallurgy:slag_dust/steel"},
+      "title": "Used Slag as a Second-Best Flux",
+      "text": "Slag from the iron and steel family is basic and still wants sulfur and phosphorus, so its dust thrown on the bath lifts about **60% of the layer** without touching metal. Copper and tin slag is acidic and does nothing of the kind - which is why the dust is separated by metal in the first place."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "What You Hold After",
+      "text": "Every 25 mB of slag lifted leaves one Slag Dust item, named for the metal it came off. A ceramic bowl survives all but about one skim in a hundred.$p$pThat dust is not waste: melt it back and it gives up the metal still hanging in it - about 4 mB per item - but it brings its own dirt with it, so the bath gets muddier than it gets richer."
+    }
+  ]
+}

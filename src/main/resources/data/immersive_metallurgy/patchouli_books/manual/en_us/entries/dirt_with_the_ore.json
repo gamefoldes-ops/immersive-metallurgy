@@ -1,0 +1,24 @@
+{
+  "name": "Dirt Comes With the Ore",
+  "icon": "tfc:ore/small_malachite",
+  "category": "immersive_metallurgy:metallurgy",
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "Gangue",
+      "text": "Rock is not metal. What a lump of ore yields comes with the stony part that was never metal, and that part becomes slag sitting in your bath.$p$pRich ore is the cleanest at roughly 5-8% of the bath, normal 8-13%, poor 10-17%, and the small fragments you sweep off the ground 12-20%."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": {"item": "tfc:ore/poor_native_copper"},
+      "title": "You Cannot See It",
+      "text": "Nothing on the item tells you how dirty this particular lump is, and two lumps of the same grade differ a little from each other. The only honest reading is the Slag line in the crucible after they are in there.$p$pMelting refined metal instead brings its own history: flawed scrap keeps the slag it was cast with."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "So What",
+      "text": "Smelting straight from rock always gives Flawed metal, because the slag is over the 2% line before you have done anything wrong with the ratio.$p$pThat is the trade: ore is plentiful and cheap, and the refining work happens in the crucible with a bowl and a flux, not in the firepit."
+    }
+  ]
+}
