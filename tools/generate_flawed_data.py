@@ -335,6 +335,12 @@ lang["tag.item.c.slag_dust"] = "Slag Dust"
 
 # Wood would not survive touching a bath of molten metal, so the plain bowl is not a skimmer.
 write("data", MOD, "tags", "item", "slag_skimmers.json", value={"values": ["tfc:ceramic/bowl"]})
+# Basic slag is the lime-rich kind that comes off iron and steel, and it is the only slag that can stand in
+# for flux a second time: it still wants sulfur and phosphorus. Copper-tin slag is an acidic silicate, so its
+# dust is not in here at all.
+basic_dust = [f"#c:slag_dust/{alloy[0]}" for alloy in ALLOYS if "steel" in alloy[0] or "iron" in alloy[0]]
+write("data", MOD, "tags", "item", "basic_slag_dust.json", value={"values": basic_dust})
+lang["tag." + MOD + ".basic_slag_dust"] = "Basic Slag Dust"
 write("data", MOD, "tags", "item", "burns_in_the_crucible.json", value={"values": ["minecraft:bowl"]})
 
 # The one item that is not a metal, but exists because skimmed slag has to go somewhere.
