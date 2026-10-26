@@ -341,6 +341,12 @@ write("data", MOD, "tags", "item", "slag_skimmers.json", value={"values": ["tfc:
 basic_dust = [f"#c:slag_dust/{alloy[0]}" for alloy in ALLOYS if "steel" in alloy[0] or "iron" in alloy[0]]
 write("data", MOD, "tags", "item", "basic_slag_dust.json", value={"values": basic_dust})
 lang["tag." + MOD + ".basic_slag_dust"] = "Basic Slag Dust"
+# Ground-up basic slag was farmland fertiliser across Europe from the 1880s (Thomas slag): it is the
+# phosphate in the lime. TFC reads fertilisers as data, so this is one file rather than a hook.
+write("data", MOD, "tfc", "fertilizer", "basic_slag_dust.json", value={
+    "ingredient": {"tag": f"{MOD}:basic_slag_dust"},
+    "phosphorus": 0.25,
+})
 write("data", MOD, "tags", "item", "burns_in_the_crucible.json", value={"values": ["minecraft:bowl"]})
 
 # The one item that is not a metal, but exists because skimmed slag has to go somewhere.
