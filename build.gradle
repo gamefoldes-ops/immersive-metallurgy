@@ -45,6 +45,12 @@ base {
     archivesName = mod_id
 }
 
+// Whoever ends up holding only the jar should still be able to read what they may do with it.
+tasks.named('jar', Jar).configure {
+    from rootProject.file('LICENSE')
+    from rootProject.file('README.md')
+}
+
 // Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 

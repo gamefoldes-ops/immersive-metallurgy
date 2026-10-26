@@ -41,3 +41,24 @@ repo/
 
 ### Python generators ###
 __pycache__/
+*.py[cod]
+
+### Logs and crash dumps ###
+*.log
+hs_err_pid*.log
+replay_pid*.log
+*.hprof
+
+### Windows ###
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+### Editor and tooling leftovers ###
+*.orig
+*.rej
+*.swp
+*~
+.qoder/
+.idea/
+*.launch
