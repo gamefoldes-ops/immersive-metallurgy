@@ -36,7 +36,7 @@ public class VesselGangueMixin {
 
     /** Only a melt fouls the pot: this call is reached exactly when a slot turned from item to fluid. */
     @Redirect(method = "updateInventoryOnMelt()V",
-            at = @At(value = "INVOKE", target = "Lnet/dries007/tfc/common/component/mold/Vessel.updateWith(Lnet/dries007/tfc/common/component/mold/VesselComponent;)V"))
+            at = @At(value = "INVOKE", target = "Lnet/dries007/tfc/common/component/mold/Vessel;updateWith(Lnet/dries007/tfc/common/component/mold/VesselComponent;)V"))
     private void immersiveMetallurgy$foulTheMelt(Vessel self, VesselComponent melted) {
         immersiveMetallurgy$holdToFloor(melted.fluidContent());
         updateWith(melted);
