@@ -101,16 +101,19 @@ def assemble_recipes(archive):
         if not metals:
             continue
         result = recipe.get("result")
-        if not isinstance(result, dict):
-            continue
-        modifiers = list(result.get("modifiers", []))
-        if not any(modifier.get("type") == "tfc:copy_forging_bonus" for modifier in modifiers):
-            continue
-        modifiers.append({"type": f"{MOD}:copy_melt"})
+        # TFC's own shaped type is the only one with an output modifier system; vanilla crafting carries the
+        # melt through a mixin instead, so writing "modifiers" into a vanilla recipe would be dead data.
+        passes_melt = recipe.get("type") == "tfc:advanced_shaped_crafting" and isinstance(result, dict)
         twin = json.loads(json.dumps(recipe))
         widen_handles(twin)
-        twin["result"] = dict(result)
-        twin["result"]["modifiers"] = modifiers
+        handles = json.dumps([recipe.get("key"), recipe.get("ingredients")]) != json.dumps([twin.get("key"), twin.get("ingredients")])
+        if passes_melt:
+            modifiers = list(result.get("modifiers", []))
+            modifiers.append({"type": f"{MOD}:copy_melt"})
+            twin["result"] = dict(result)
+            twin["result"]["modifiers"] = modifiers
+        if not (passes_melt or handles):
+            continue
         write("data", *os.path.relpath(name, "data").split(os.sep), value=twin)
         count += 1
 
@@ -163,6 +166,11 @@ def main():
         folder = os.path.join(out_root, sub)
         if os.path.isdir(folder):
             shutil.rmtree(folder)
+    # TFC's own crafting folder is rewritten by this script alone, so overrides that are no longer needed
+    # (vanilla recipes, which now carry the melt through a mixin) have to disappear rather than linger.
+    overridden = os.path.join(RES, "data", "tfc", "recipe", "crafting")
+    if os.path.isdir(overridden):
+        shutil.rmtree(overridden)
 
     anvil_count = 0
     casting_count = 0
