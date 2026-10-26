@@ -50,7 +50,7 @@ public record FlawProfiles(List<Defect> defects, List<Role> roles, float durabil
             Palette.CODEC.fieldOf("palette").forGetter(FlawProfiles::palette),
             Grades.CODEC.fieldOf("grades").forGetter(FlawProfiles::grades),
             Codec.FLOAT.optionalFieldOf("unmeasured_flaw", 0.2F).forGetter(FlawProfiles::unmeasuredFlaw),
-            Codec.FLOAT.optionalFieldOf("weld_merge_divisor", 1.5F).forGetter(FlawProfiles::weldMergeDivisor)
+            Codec.FLOAT.optionalFieldOf("weld_merge_divisor", 2F).forGetter(FlawProfiles::weldMergeDivisor)
     ).apply(instance, FlawProfiles::new));
 
     // Past six fields StreamCodec.composite does not reach, so the whole table travels as its own codec.

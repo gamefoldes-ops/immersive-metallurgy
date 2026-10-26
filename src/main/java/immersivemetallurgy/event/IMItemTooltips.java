@@ -29,11 +29,10 @@ public final class IMItemTooltips {
 
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
-        // The item name already says what the object is; what it costs belongs at the bottom, under the
-        // same F3+H advanced tooltip the rest of the game uses for numbers.
-        if (!event.getFlags().isAdvanced()) {
-            return;
-        }
+        // What is wrong with the piece and how sound it came out are worth a keybind-free look, because they
+        // are the reason a player is holding this casting instead of the clean one. Only the numbers that
+        // translate the flaw into game stats stay under F3+H, where the rest of the game hides its detail.
+        boolean advanced = event.getFlags().isAdvanced();
         ItemStack stack = event.getItemStack();
         List<Component> lines = new ArrayList<>();
 
@@ -41,11 +40,11 @@ public final class IMItemTooltips {
         FlawProfiles profiles = player == null ? null : FlawProfiles.of(player.level().getRecipeManager());
         DefectProfile profile = stack.get(IMDataComponents.DEFECT_PROFILE.get());
         if (profile != null && !profile.isClean()) {
-            lines.addAll(defectLines(profile, profiles));
+            lines.addAll(defectLines(profile, profiles, advanced));
         }
 
         Float sharpness = stack.get(IMDataComponents.SHARPNESS.get());
-        if (sharpness != null) {
+        if (advanced && sharpness != null) {
             // Tracked in points out of a hundred, not a fraction, so it is not put through percent().
             lines.add(translated("tooltip.sharpness", Math.round(sharpness) + "%")
                     .withStyle(sharpness < 40 ? ChatFormatting.RED : ChatFormatting.GRAY));
@@ -54,7 +53,7 @@ public final class IMItemTooltips {
         event.getToolTip().addAll(lines);
     }
 
-    private static List<Component> defectLines(DefectProfile profile, FlawProfiles profiles) {
+    private static List<Component> defectLines(DefectProfile profile, FlawProfiles profiles, boolean advanced) {
         List<Component> lines = new ArrayList<>();
 
         MutableComponent names = Component.empty();
@@ -78,7 +77,7 @@ public final class IMItemTooltips {
         lines.add(translated("tooltip.defects", names).withStyle(colour));
         lines.add(translated("tooltip.structure", percent(profile.durabilityFactor())).withStyle(ChatFormatting.GRAY));
 
-        if (profiles != null) {
+        if (advanced && profiles != null) {
             addIfChanged(lines, "tooltip.damage", profiles.damageFactor(profile));
             addIfChanged(lines, "tooltip.mining", profiles.speedFactor(profile));
             addIfChanged(lines, "tooltip.blunting", profiles.dullFactor(profile));

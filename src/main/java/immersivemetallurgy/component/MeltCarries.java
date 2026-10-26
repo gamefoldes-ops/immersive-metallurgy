@@ -50,9 +50,11 @@ public final class MeltCarries {
     }
 
     /**
-     * Assembling a tool joins several pieces, and a welded joint is only as good as its worst part, so each
-     * archetype is taken at its worst across the pieces. The composition comes from whichever piece was the
-     * most wrong, because that is the melt a re-smelter would have to fix.
+     * Assembling a tool joins several pieces, and a welded joint is weak wherever either half was, so each
+     * archetype adds up across the pieces. The total is then shared out, because two identical halves should
+     * cost exactly what one of them did and a doubled severity would price a careful smith out of steel.
+     * The composition comes from whichever piece was the most wrong, because that is the melt a re-smelter
+     * would have to fix.
      */
     public static void mergeWorstInto(Iterable<ItemStack> pieces, MutableDataComponentHolder to) {
         float brittle = 0;
@@ -89,10 +91,10 @@ public final class MeltCarries {
         }
         if (!to.has(IMDataComponents.DEFECT_PROFILE.get())) {
             // Welding two flawed halves does not average them out: a joint is weak wherever either half was,
-            // and now and then the two faults feed each other. The sum is shared out rather than stacked,
-            // because a doubled severity would price a merely careful smith out of steel entirely.
+            // and now and then the two faults feed each other. Sharing the sum by two keeps a weld of two
+            // equal halves at exactly the severity of either one.
             FlawProfiles profiles = FlawProfiles.of(Helpers.getUnsafeRecipeManager());
-            float divisor = profiles == null ? 1.5F : profiles.weldMergeDivisor();
+            float divisor = profiles == null ? 2F : profiles.weldMergeDivisor();
             brittle = Math.min(1F, brittle / divisor);
             soft = Math.min(1F, soft / divisor);
             edgeWear = Math.min(1F, edgeWear / divisor);

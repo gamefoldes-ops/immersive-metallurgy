@@ -3,7 +3,7 @@
   "durability_floor": 0.25,
   "grades": { "medium": 0.25, "heavy": 0.5 },
   "unmeasured_flaw": 0.2,
-  "weld_merge_divisor": 1.5,
+  "weld_merge_divisor": 2.0,
   "wear": {
     "sharpness_per_block": 0.6,
     "sharpness_per_hit": 0.9,
