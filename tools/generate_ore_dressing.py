@@ -19,8 +19,8 @@ glass colour it always was, and nothing else. It is deliberately not meltable: m
 keeping as washed ore, and a powder that also smelted would make the wash a detour rather than a step.
 
 Run `python tools/generate_ore_dressing.py` after changing the numbers below or updating TFC, then
-`python tools/generate_flawed_textures.py` for the art and `python tools/generate_ore_fouling.py` for the dirt
-the crushed state still carries into a bath.
+`python tools/generate_ore_textures.py` for the art and `python tools/generate_ore_fouling.py` for the dirt the
+crushed state still carries into a bath.
 """
 
 import argparse

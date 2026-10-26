@@ -18,13 +18,12 @@ import zipfile
 
 import png
 
-import tfc_ore_data as ores
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(HERE, os.pardir, "src", "main", "resources", "assets", "immersive_metallurgy")
 OUT = os.path.join(ASSETS, "textures", "item", "metal")
 # An ingot pile is drawn from the metal's smooth block surface, not from the item art, so the pile needs its
 # own degraded copy of that sheet. It lands under textures/block/ so the block atlas picks it up by directory.
+# The dressed ore states are not drawn here: generate_ore_textures.py breaks the lump into pieces instead.
 OUT_SMOOTH = os.path.join(ASSETS, "textures", "block", "metal", "smooth")
 
 # The metals are IMAlloys' business, not this script's: reading them back keeps the art from lagging the list.
@@ -64,21 +63,6 @@ def mix(left, right, share):
 
 def brighten(pixel, lift):
     return tuple(min(255, int(channel * lift)) for channel in pixel)
-
-
-def cleanse(pixel, knobs, colour):
-    """The opposite of degrade: the mineral's own colour pushed harder instead of greyer, and the whole piece
-    lifted, so washed ore reads as the same rock with the stone off rather than as a different rock."""
-    red, green, blue, alpha = pixel
-    if alpha == 0:
-        return pixel
-    red, green, blue = mix((red, green, blue), colour, knobs["share"])
-    luminance = 0.299 * red + 0.587 * green + 0.114 * blue
-    saturation = knobs["saturation"]
-    red = luminance + (red - luminance) * saturation
-    green = luminance + (green - luminance) * saturation
-    blue = luminance + (blue - luminance) * saturation
-    return tuple(max(0, min(255, int(value))) for value in brighten((red, green, blue), knobs["lift"])) + (alpha,)
 
 
 def tint_grey(pixel, colour=SLAG_TINT):
@@ -170,31 +154,6 @@ def main():
             png.write_rgba(os.path.join(per_metal, f"{key}.png"),
                            [[tint_grey(pixel, colour) for pixel in row] for row in rows])
             written += 1
-
-    # The two dressed states of a lump are both drawn from the art of that same lump, and they are the same
-    # drawing pulled in opposite directions: crushed ore is the ore made dull, gritty and pitted, and washed ore
-    # is the ore with the stone off it - brighter than it came out of the ground and leaning to the colour of the
-    # metal inside, which is what a handful of pure mineral looks like.
-    yields = ores.ore_yields(archive)
-    tints = dict(ALLOY_TINTS)
-    for variety in ores.varieties_in_code():
-        metal = yields[variety][0]
-        art = f"assets/tfc/textures/item/ore/normal_{variety}.png"
-        if art not in archive.namelist():
-            continue
-        source = archive.read(art)
-        knobs = dict(config["default"])
-        knobs.update(config["dressing"]["crushed"])
-        convert(source, os.path.join(ASSETS, "textures", "item", "crushed_ore", f"{variety}.png"), knobs, False)
-
-        _, _, pixels = png.read_rgba(source)
-        colour = tint_from_hex(tints[metal])
-        washed = config["dressing"]["washed"]
-        drawn = [[cleanse(pixel, washed, colour) for pixel in row] for row in pixels]
-        target = os.path.join(ASSETS, "textures", "item", "washed_ore", f"{variety}.png")
-        os.makedirs(os.path.dirname(target), exist_ok=True)
-        png.write_rgba(target, drawn)
-        written += 2
 
     print(f"flawed textures written: {written}")
 

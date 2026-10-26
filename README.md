@@ -19,11 +19,12 @@ Everything that decides those numbers ships as data, not as code:
     ./gradlew build      # compile and jar
     ./gradlew deploy     # build and copy the jar into the dev instance's mods folder
 
-The generated content is not hand-written: `tools/generate_flawed_data.py`, `tools/generate_flawed_textures.py`,
-`tools/generate_flawed_part_recipes.py`, `tools/generate_ore_fouling.py` and `tools/generate_ore_dressing.py`
-rebuild the flawed metals, their art and recipes, the ore-dressing chain and the fouling table from
-`src/main/java/immersivemetallurgy/registry/IMAlloys.java`, `IMItems.java` and the TFC jar itself, so the data
-cannot drift from the metals the mod registers. Run them after changing those lists or updating TFC.
+The generated content is not hand-written. `generate_flawed_data.py`, `generate_flawed_textures.py`,
+`generate_flawed_part_recipes.py`, `generate_ore_fouling.py`, `generate_ore_dressing.py` and
+`generate_ore_textures.py` (all in `tools/`) rebuild the flawed metals, their art and recipes, the ore-dressing
+chain and the fouling table from `src/main/java/immersivemetallurgy/registry/IMAlloys.java`, `IMItems.java` and
+the TFC jar itself, so the data cannot drift from the metals the mod registers. Run them after changing those
+lists or updating TFC.
 
 ## Licence
 
