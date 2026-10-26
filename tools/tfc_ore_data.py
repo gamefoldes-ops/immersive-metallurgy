@@ -1,31 +1,19 @@
 """Shared TFC ore facts for the dressing chain, read out of the TFC jar so nothing here can drift from the game:
-which metal an ore variety melts to and at what temperature, which powder the quern grinds it into, and which
-of those varieties water can wash.
+the metal and melt temperature an ore variety gives, how many scoops its quern recipe yields, and what the
+player calls the mineral.
 
 Used by `generate_ore_dressing.py` (recipes, heat data, models, language), `generate_ore_fouling.py` (how much
-gangue each of them brings into a bath) and `generate_flawed_textures.py` (the art).
+gangue each state of the rock brings into a bath) and `generate_flawed_textures.py` (the art).
 """
 
+import json
 import os
 import re
-import json
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-ITEMS = os.path.join(HERE, os.pardir, "src", "main", "java", "immersivemetallurgy", "registry", "IMItems.java")
+ITEMS = os.path.join(HERE := os.path.dirname(os.path.abspath(__file__)), os.pardir, "src", "main", "java",
+                     "immersivemetallurgy", "registry", "IMItems.java")
 
 GRADES = ("rich", "normal", "poor", "small")
-
-# The ore varieties gravity separation actually takes, by their name without TFC's grade prefix. Hematite,
-# limonite, magnetite, cassiterite, malachite and the three native metals are far heavier than quartz;
-# sphalerite, bismuthinite, tetrahedrite and garnierite are not, and no amount of washing cleans them.
-DRESSABLE_VARIETIES = ["hematite", "limonite", "magnetite", "cassiterite", "malachite",
-                       "native_copper", "native_gold", "native_silver"]
-
-# The variety whose art and melt temperature each dressed metal borrows, and what the player calls it: nobody
-# holds a handful of rock and calls it cast iron.
-REPRESENTATIVE = {"cast_iron": "hematite", "copper": "malachite", "gold": "native_gold",
-                  "silver": "native_silver", "tin": "cassiterite"}
-DISPLAY = {"cast_iron": "Iron", "copper": "Copper", "gold": "Gold", "silver": "Silver", "tin": "Tin"}
 
 
 def default_jar():
@@ -34,17 +22,17 @@ def default_jar():
                         "TerraFirmaCraft-NeoForge-1.21.1-4.2.12.jar")
 
 
-def metals_in_code():
-    """The dressed metals, read back from the item registrations so the two cannot drift apart."""
+def varieties_in_code():
+    """The dressed ore varieties, read back from the item registrations so the two cannot drift apart."""
     source = open(ITEMS, encoding="utf-8").read()
-    row = re.search(r"DRESSABLE_METALS = List\.of\(([^)]*)\)", source)
+    row = re.search(r"ORE_VARIETIES = List\.of\(([^)]*)\)", source, re.S)
     if row is None:
-        raise SystemExit("IMItems.DRESSABLE_METALS not found")
-    return re.findall(r'"(\w+)"', row.group(1))
+        raise SystemExit("IMItems.ORE_VARIETIES not found")
+    return re.findall(r'"([\w]+)"', row.group(1))
 
 
 def ore_yields(archive):
-    """metal and melt temperature per ore variety, out of TFC's own heating recipes for the lump."""
+    """variety -> (metal, melt temperature), out of TFC's own heating recipes for the lump."""
     yields = {}
     for name in archive.namelist():
         if not name.startswith("data/tfc/recipe/heating/ore/") or not name.endswith(".json"):
@@ -54,32 +42,45 @@ def ore_yields(archive):
         fluid = recipe.get("result_fluid", {}).get("id", "")
         if not item.startswith("tfc:ore/") or not fluid.startswith("tfc:metal/"):
             continue
-        variety = re.sub(rf"^({'|'.join(GRADES)})_", "", item[len("tfc:ore/"):])
+        variety = re.sub(rf"^({'|'.join(GRADES)}_)", "", item[len("tfc:ore/"):])
         yields[variety] = (fluid[len("tfc:metal/"):], recipe.get("temperature", 0.0))
     return yields
 
 
-def metal_powders(archive):
-    """Every powder the quern grinds out of a metal-bearing ore, as powder id -> (metal, variety).
+def quern_counts(archive):
+    """variety -> how many scoops of powder TFC's quern recipe gives per grade.
 
-    TFC grinds twelve ores this way and then gives the powder no use at all: it has no item_heat and no heating
-    recipe, so a ground lump is normally a dead end. Gems and the non-metal powders are not in here, because
-    their ore does not melt to anything.
+    The dressing chain borrows these numbers rather than inventing its own: a crushed scoop is worth exactly
+    what a TFC powder scoop was, so one normal lump still carries twenty-five millibuckets of metal whichever
+    way the player grinds it.
     """
-    yields = ore_yields(archive)
-    powders = {}
+    counts = {}
     for name in archive.namelist():
-        if not name.startswith("data/tfc/recipe/quern/powder/") or not name.endswith(".json"):
+        if not name.startswith("data/tfc/recipe/quern/") or not name.endswith(".json"):
             continue
         recipe = json.loads(archive.read(name))
         ingredient = recipe.get("ingredient")
-        if not isinstance(ingredient, dict):
+        if not isinstance(ingredient, dict) or not ingredient.get("item", "").startswith("tfc:ore/"):
             continue
-        item = ingredient.get("item", "")
+        item = ingredient["item"][len("tfc:ore/"):]
+        grade = next((g for g in GRADES if item.startswith(g + "_")), None)
         powder = (recipe.get("result") or {}).get("id", "")
-        grade_variety = re.sub(rf"^tfc:ore/({'|'.join(GRADES)}_)", "", item)
-        if not powder.startswith("tfc:powder/") or grade_variety == item:
+        if grade and powder.startswith("tfc:powder/"):
+            counts.setdefault(powder[len("tfc:powder/"):], {})[grade] = (recipe["result"].get("count", 1), name)
+    return counts
+
+
+def variety_names(archive):
+    """variety -> the mineral's own name, from TFC's language file with the grade word taken off it."""
+    lang = json.loads(archive.read("assets/tfc/lang/en_us.json"))
+    names = {}
+    for name in lang:
+        match = re.fullmatch(r"item\.tfc\.ore\.(?:rich|normal|poor|small)_(\w+)", name)
+        if not match:
             continue
-        if grade_variety in yields:
-            powders[powder] = (yields[grade_variety][0], grade_variety)
-    return powders
+        label = lang[name]
+        for grade in ("Rich", "Normal", "Poor", "Small"):
+            if label.startswith(grade + " "):
+                label = label[len(grade) + 1:]
+        names[match.group(1)] = label
+    return names

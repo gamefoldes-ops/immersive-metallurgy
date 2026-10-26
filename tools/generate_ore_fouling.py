@@ -49,11 +49,10 @@ VESSEL_SLAG_FLOOR = 0.1
 # what it brings, which is what makes recovery a consolation instead of a source of metal.
 DUST_SLAG_RATIO = 0.6
 
-# Crushing frees the mineral from the rock and takes nothing out of it, so a powder is as dirty as the lump it
-# came from - but the grade is no longer written anywhere on it, so the whole band collapses to its middle.
-# The washed concentrate deliberately has no row at all: no row means no gangue, which is the whole payoff of
-# building a quern and a barrel.
-POWDER_SLAG_RATIO = 0.12
+# Crushing frees the mineral from the rock and takes nothing out of it, so a scoop of crushed ore is as dirty as
+# the lump it came from - and the grade is no longer written anywhere on it, so the whole band collapses to its
+# middle. The concentrate has no row at all: no row means no gangue, and that is the payoff of the barrel.
+CRUSHED_SLAG_RATIO = 0.12
 
 
 def default_jar():
@@ -91,12 +90,12 @@ def main():
                         "slag_ratio": DUST_SLAG_RATIO,
                         "slag_spread": round(DUST_SLAG_RATIO * SPREAD, 3)})
 
-    # Whatever the quern grinds out of a metal-bearing ore is meltable now, and it is the middle of the band:
-    # nothing on a handful of powder says which vein it came from.
-    for powder in sorted(ores.metal_powders(archive)):
-        entries.append({"ingredient": {"item": powder},
-                        "slag_ratio": POWDER_SLAG_RATIO,
-                        "slag_spread": round(POWDER_SLAG_RATIO * SPREAD, 3)})
+    # Whatever the quern grinds out of a lump is raw material too, and it sits in the middle of the band:
+    # nothing on a scoop of crushed ore says which vein it came from.
+    for variety in ores.varieties_in_code():
+        entries.append({"ingredient": {"item": f"{MOD}:crushed_ore/{variety}"},
+                        "slag_ratio": CRUSHED_SLAG_RATIO,
+                        "slag_spread": round(CRUSHED_SLAG_RATIO * SPREAD, 3)})
 
     full = os.path.join(RES, "data", MOD, "recipe", "ore_fouling", "ores.json")
     os.makedirs(os.path.dirname(full), exist_ok=True)

@@ -18,7 +18,7 @@ import zipfile
 
 import png
 
-from tfc_ore_data import REPRESENTATIVE, metals_in_code
+import tfc_ore_data as ores
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(HERE, os.pardir, "src", "main", "resources", "assets", "immersive_metallurgy")
@@ -156,24 +156,33 @@ def main():
                            [[tint_grey(pixel, colour) for pixel in row] for row in rows])
             written += 1
 
-    # A concentrate keeps the shape of the powder it was washed out of, because by then the rock is gone and
-    # what is left is the same pile of ground mineral with the silica out of it: only the colour moves toward
-    # the metal, and the pile catches a little more light.
-    for metal in metals_in_code():
-        variety = REPRESENTATIVE[metal]
-        source = f"assets/tfc/textures/item/powder/{variety}.png"
-        if source not in archive.namelist():
-            continue
-        _, _, pixels = png.read_rgba(archive.read(source))
-        colour = tint_from_hex(dict(ALLOY_TINTS)[metal])
-        share = config["dressing"]["concentrate"]["share"]
-        lift = config["dressing"]["concentrate"]["lift"]
-        drawn = [[brighten(mix(pixel[:3], colour, share), lift) + (pixel[3],) if pixel[3] else pixel
-                  for pixel in row] for row in pixels]
-        target = os.path.join(ASSETS, "textures", "item", "ore_concentrate", f"{metal}.png")
-        os.makedirs(os.path.dirname(target), exist_ok=True)
-        png.write_rgba(target, drawn)
-        written += 1
+    # The two dressed states of a lump are drawn from the art of that same lump: crushed ore is its own ore made
+    # dull and gritty, and a concentrate keeps the shape of TFC's powder - which is what grinding one gives back -
+    # with the colour pulled toward the metal that is left in it.
+    yields = ores.ore_yields(archive)
+    tints = dict(ALLOY_TINTS)
+    for variety in ores.varieties_in_code():
+        metal = yields[variety][0]
+        art = f"assets/tfc/textures/item/ore/normal_{variety}.png"
+        if art in archive.namelist():
+            knobs = dict(config["default"])
+            knobs.update(config["dressing"]["crushed"])
+            convert(archive.read(art), os.path.join(ASSETS, "textures", "item", "crushed_ore", f"{variety}.png"),
+                    knobs, False)
+            written += 1
+
+        powder = f"assets/tfc/textures/item/powder/{variety}.png"
+        if powder in archive.namelist():
+            _, _, pixels = png.read_rgba(archive.read(powder))
+            colour = tint_from_hex(tints[metal])
+            share = config["dressing"]["concentrate"]["share"]
+            lift = config["dressing"]["concentrate"]["lift"]
+            drawn = [[brighten(mix(pixel[:3], colour, share), lift) + (pixel[3],) if pixel[3] else pixel
+                      for pixel in row] for row in pixels]
+            target = os.path.join(ASSETS, "textures", "item", "ore_concentrate", f"{variety}.png")
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            png.write_rgba(target, drawn)
+            written += 1
 
     print(f"flawed textures written: {written}")
 

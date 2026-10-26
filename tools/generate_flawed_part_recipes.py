@@ -204,11 +204,13 @@ def main():
         folder = os.path.join(out_root, sub)
         if os.path.isdir(folder):
             shutil.rmtree(folder)
-    # TFC's own recipe folder under our resources is written by this script alone (assembly overrides and the
-    # widened steel transitions), so overrides that are no longer needed disappear rather than linger.
-    overridden = os.path.join(RES, "data", "tfc", "recipe")
-    if os.path.isdir(overridden):
-        shutil.rmtree(overridden)
+    # The overrides this script writes into TFC's own namespace, so that ones no longer needed disappear rather
+    # than linger: anvil and welding transitions, and the assembly recipes that carry a melt through. The quern
+    # overrides next door belong to generate_ore_dressing.py, which would otherwise lose them on every run.
+    for sub in ("anvil", "welding", "crafting"):
+        folder = os.path.join(RES, "data", "tfc", "recipe", sub)
+        if os.path.isdir(folder):
+            shutil.rmtree(folder)
 
     anvil_count = 0
     casting_count = 0

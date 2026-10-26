@@ -9,6 +9,7 @@
     "seed": 20261025
   },
   "dressing": {
+    "crushed": { "desaturate": 0.5, "darken": 0.26, "pits": 8, "pit_darken": 0.4, "roughness": 0.3 },
     "concentrate": { "share": 0.45, "lift": 1.1 }
   },
   "alloys": {

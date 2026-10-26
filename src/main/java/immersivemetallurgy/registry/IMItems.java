@@ -30,24 +30,24 @@ public final class IMItems {
             ITEMS.registerItem("slag_dust", properties -> new Item(properties.stacksTo(16)));
 
     /**
-     * The metals whose ore answers to gravity. Hematite, limonite, magnetite, cassiterite, malachite and the
-     * three native metals are heavy enough that water can part them from quartz, which is the whole basis of
-     * hand dressing; sphalerite, bismuthinite, tetrahedrite and garnierite are not, and no amount of washing
-     * makes their concentrate clean. The list is what {@code tools/generate_ore_dressing.py} reads, so the
-     * items and their recipes cannot drift apart.
+     * Every ore variety TFC lets a quern grind, named without its grade prefix. Dressing is one chain for all
+     * of them: the quern breaks a lump into crushed ore, the barrel washes five scoops of that into a
+     * concentrate, and the quern grinds a concentrate into TFC's own ore powder, which stays the pigment and
+     * the glass colour it already was.
      *
-     * The crushed half of the chain is deliberately not here: TFC's own quern already grinds every one of
-     * those ores into {@code tfc:powder/<ore>}, seven from a rich lump down to two from the small fragments,
-     * and adding a rival recipe only made the game choose the one it already had.
+     * The list is what {@code tools/generate_ore_dressing.py} reads back, so an item and its recipes cannot
+     * drift apart. Gravity separation is the honest reason for the oxide and native ones; for the sulfides the
+     * barrel stands in for the hand-picking and roasting a real plant would have used, which is the one place
+     * this chain is a game rather than a furnace.
      */
-    public static final List<String> DRESSABLE_METALS = List.of("cast_iron", "copper", "gold", "silver", "tin");
+    public static final List<String> ORE_VARIETIES = List.of("bismuthinite", "cassiterite", "garnierite", "hematite",
+            "limonite", "magnetite", "malachite", "native_copper", "native_gold", "native_silver", "sphalerite",
+            "tetrahedrite");
 
-    /**
-     * What five scoops of TFC's ore powder become in a barrel of water. The powder itself has no use in TFC at
-     * all - no item_heat, no heating recipe - so this is the reason to grind anything, and it is also the only
-     * route to metal with no slag in it: five scoops wash into one concentrate carrying the same twenty-five
-     * millibuckets they held between them, which is what one normal lump was worth.
-     */
+    /** What the quern makes of a lump: the mineral freed from the rock, and every bit of the rock still in it. */
+    public static final Map<String, DeferredHolder<Item, Item>> CRUSHED_ORES = new LinkedHashMap<>();
+
+    /** What the barrel makes of five scoops: the metal worth twenty-five millibuckets, with no stone left. */
     public static final Map<String, DeferredHolder<Item, Item>> ORE_CONCENTRATES = new LinkedHashMap<>();
 
     /**
@@ -64,8 +64,9 @@ public final class IMItems {
             }
             SLAG_DUSTS.put(alloy.key(), ITEMS.registerItem(alloy.slagDustPath(), properties -> new Item(properties.stacksTo(16))));
         }
-        for (String metal : DRESSABLE_METALS) {
-            ORE_CONCENTRATES.put(metal, ITEMS.registerItem("ore_concentrate/" + metal, properties -> new Item(properties.stacksTo(64))));
+        for (String variety : ORE_VARIETIES) {
+            CRUSHED_ORES.put(variety, ITEMS.registerItem("crushed_ore/" + variety, properties -> new Item(properties.stacksTo(64))));
+            ORE_CONCENTRATES.put(variety, ITEMS.registerItem("ore_concentrate/" + variety, properties -> new Item(properties.stacksTo(64))));
         }
     }
 

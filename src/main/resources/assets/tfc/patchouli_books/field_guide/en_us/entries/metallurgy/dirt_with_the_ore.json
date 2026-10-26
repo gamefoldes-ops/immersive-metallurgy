@@ -22,19 +22,25 @@
     },
     {
       "type": "patchouli:text",
-      "title": "The Quern Grounds It, the Water Cleans It",
-      "text": "TFC's quern already breaks a lump into **ore powder**: seven scoops from a rich lump, five from a normal, three from a poor, two from the small fragments, and every scoop is worth five mB of metal.$p$pGround on its own buys nothing. Melt the powder and it gives up the same five mB with all of the stone still in it - about **12% of the bath** - and it has lost the one thing that made it worth picking, its grade: nothing on a scoop says which vein it came from.$p$pSo a scoop of ground ore is only ever worth smelting when you have no barrel to wash it in."
+      "title": "Crush, Wash, Grind",
+      "text": "The quern breaks a lump into **crushed ore**: seven scoops from a rich one, five from a normal, three from a poor, two from the small fragments, and every scoop is worth five mB of metal.$p$pMelt a scoop as it is and you get those five mB with all of the stone still in it - about **12% of the bath** - and the lump has lost the one thing that made it worth picking, its grade. Nothing on a scoop says which vein it came from.$p$pSo crushing is only ever the first step of three."
     },
     {
       "type": "patchouli:spotlight",
-      "item": {"item": "immersive_metallurgy:ore_concentrate/copper"},
+      "item": {"item": "immersive_metallurgy:ore_concentrate/malachite"},
       "title": "Washing Is the Paying Step",
-      "text": "Five scoops of powder and a drink of water in a barrel come out as one **concentrate**, worth the whole twenty-five mB they carried between them: the wash spends no metal at all, it only spends the quern stroke and the water.$p$pAnd it takes the dirt with it. A concentrate brings **no slag into the bath whatsoever**, so a crucible filled from washed copper and washed tin pours clean bronze, clean brass, clean silver - with no skimming, no flux and no second pass.$p$pThat is the reward for building the barrel and the grinding stone. Everything the flaw system can still reach you, it reaches through the metal you already melted: re-smelted scrap keeps its defects, and a pot never pours cleaner than ten percent."
+      "text": "Five scoops of crushed ore and a drink of water in a barrel come out as one **concentrate**, worth the whole twenty-five mB they carried between them: the wash spends no metal at all, it only spends the quern stroke and the water.$p$pAnd it takes the dirt with it. A concentrate brings **no slag into the bath whatsoever**, so a crucible filled from washed ore pours clean bronze, clean brass, clean silver - no skimming, no flux, no second pass.$p$pThat is the reward for building the barrel and the grinding stone. What the flaw system can still reach you, it reaches through metal you already melted: re-smelted scrap keeps its defects, and a pot never pours cleaner than ten percent."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": {"item": "tfc:powder/malachite"},
+      "title": "The Powder Comes Out of the Concentrate",
+      "text": "Put a concentrate back on the quern and it grinds into **ore powder** - the same powder TFC has always used for dyes, for kaolin and for the colour of glass, and it comes out in the same five scoops a lump once gave.$p$pWhat it does not do is melt. Metal worth keeping is worth keeping as a concentrate, and a powder that also smelted would make the wash a detour instead of a step: grind for paint, and smelt the rest."
     },
     {
       "type": "patchouli:text",
-      "title": "Only the Heavy Minerals Wash",
-      "text": "Water sorts by weight, so it takes the ores whose mineral is far heavier than quartz: hematite, limonite and magnetite, cassiterite, malachite, and native copper, gold and silver.$p$pSphalerite, bismuthinite, tetrahedrite and garnierite are not much heavier than the rock they sit in. Their powder can be smelted, and it cannot be cleaned - those you have to skim in the bath, or flux, the way everybody did before a barrel was worth building."
+      "title": "What Water Really Sorts",
+      "text": "Weight is what water can tell apart, so the honest version of this chain is the oxide and native ores: hematite, limonite and magnetite, cassiterite, malachite, and native copper, gold and silver are far heavier than the quartz they sit in.$p$pSphalerite, bismuthinite, tetrahedrite and garnierite are barely heavier at all - a real plant roasted and floated those, and here the barrel simply stands in for that work, because this is a game and one barrel is easier to explain than a furnace full of acid."
     }
   ]
 }
