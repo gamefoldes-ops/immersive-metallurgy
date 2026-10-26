@@ -6,6 +6,7 @@ import immersivemetallurgy.recipe.FlawProfiles;
 import immersivemetallurgy.registry.IMDataComponents;
 import immersivemetallurgy.registry.IMTags;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -36,12 +37,28 @@ import java.util.UUID;
  */
 @EventBusSubscriber(modid = ImmersiveMetallurgy.MODID)
 public final class IMHoning {
-    private record Session(int slot, Item tool, long endsAt) {
+    /** How long a session survives without a ping, so a released button or a laggy client ends the stroke. */
+    private static final long HOLD_GRACE_TICKS = 3;
+
+    private record Session(int slot, Item tool, long endsAt, long lastPingAt) {
     }
 
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
 
     private IMHoning() {
+    }
+
+    /** Fed by the client every tick the right button stays down at a stone; a session nobody feeds dies. */
+    public static void keepHoning(Player player) {
+        Level level = player.level();
+        if (level.isClientSide) {
+            return;
+        }
+        Session session = SESSIONS.get(player.getUUID());
+        if (session != null) {
+            SESSIONS.put(player.getUUID(), new Session(session.slot(), session.tool(), session.endsAt(),
+                    level.getGameTime()));
+        }
     }
 
     @SubscribeEvent
@@ -51,7 +68,7 @@ public final class IMHoning {
         ItemStack tool = event.getItemStack();
         if (level.isClientSide || event.getHand() != InteractionHand.MAIN_HAND
                 || !tool.has(IMDataComponents.SHARPNESS.get())
-                || !isStation(level, event, player)) {
+                || !isStation(level, event.getPos(), player)) {
             return;
         }
         FlawProfiles profiles = FlawProfiles.of(level.getRecipeManager());
@@ -61,7 +78,7 @@ public final class IMHoning {
         }
 
         SESSIONS.put(player.getUUID(), new Session(player.getInventory().selected, tool.getItem(),
-                level.getGameTime() + profiles.wear().honingTicks()));
+                level.getGameTime() + profiles.wear().honingTicks(), level.getGameTime()));
         event.setUseBlock(TriState.FALSE);
         event.setUseItem(TriState.FALSE);
         event.setCancellationResult(InteractionResult.CONSUME);
@@ -69,8 +86,8 @@ public final class IMHoning {
     }
 
     /** An anvil has to be asked sneaking, so that its own menu stays reachable the normal way. */
-    private static boolean isStation(Level level, PlayerInteractEvent.RightClickBlock event, Player player) {
-        var state = level.getBlockState(event.getPos());
+    public static boolean isStation(Level level, BlockPos pos, Player player) {
+        var state = level.getBlockState(pos);
         return state.is(IMTags.HONING_STATION)
                 || (player.isShiftKeyDown() && state.is(IMTags.HONING_STATION_SNEAK));
     }
@@ -83,6 +100,10 @@ public final class IMHoning {
             return;
         }
         Level level = player.level();
+        if (level.getGameTime() > session.lastPingAt() + HOLD_GRACE_TICKS) {
+            SESSIONS.remove(player.getUUID());
+            return;
+        }
         if (level.getGameTime() < session.endsAt()) {
             if ((level.getGameTime() - session.endsAt()) % 12 == 0) {
                 grind(level, player);

@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * Ingots that TFC cannot have, because its ingot items are keyed one-to-one on a metal fluid and a flawed
  * pour has no metal. One pair of items per flawed metal, never one per defect: the defect profile travels
- * as a data component, and the metal identity is what TFC recipes and Millenaire need to see.
+ * as a data component, and the metal identity is what TFC's own recipes need to see.
  */
 public final class IMItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(ImmersiveMetallurgy.MODID);

@@ -46,7 +46,8 @@ public final class IMItemTooltips {
 
         Float sharpness = stack.get(IMDataComponents.SHARPNESS.get());
         if (sharpness != null) {
-            lines.add(translated("tooltip.sharpness", percent(sharpness))
+            // Tracked in points out of a hundred, not a fraction, so it is not put through percent().
+            lines.add(translated("tooltip.sharpness", Math.round(sharpness) + "%")
                     .withStyle(sharpness < 40 ? ChatFormatting.RED : ChatFormatting.GRAY));
         }
 
