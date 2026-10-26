@@ -39,7 +39,8 @@ import java.util.function.ToDoubleFunction;
  * because the profile is computed on the client too and only recipes are both synced and reloadable.
  */
 public record FlawProfiles(List<Defect> defects, List<Role> roles, float durabilityFloor, Wear wear,
-                           Palette palette, Grades grades) implements Recipe<NoopInput> {
+                           Palette palette, Grades grades, float unmeasuredFlaw, float weldMergeDivisor)
+        implements Recipe<NoopInput> {
 
     public static final MapCodec<FlawProfiles> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Defect.CODEC.listOf().fieldOf("defects").forGetter(FlawProfiles::defects),
@@ -47,17 +48,29 @@ public record FlawProfiles(List<Defect> defects, List<Role> roles, float durabil
             Codec.FLOAT.fieldOf("durability_floor").forGetter(FlawProfiles::durabilityFloor),
             Wear.CODEC.fieldOf("wear").forGetter(FlawProfiles::wear),
             Palette.CODEC.fieldOf("palette").forGetter(FlawProfiles::palette),
-            Grades.CODEC.fieldOf("grades").forGetter(FlawProfiles::grades)
+            Grades.CODEC.fieldOf("grades").forGetter(FlawProfiles::grades),
+            Codec.FLOAT.optionalFieldOf("unmeasured_flaw", 0.2F).forGetter(FlawProfiles::unmeasuredFlaw),
+            Codec.FLOAT.optionalFieldOf("weld_merge_divisor", 1.5F).forGetter(FlawProfiles::weldMergeDivisor)
     ).apply(instance, FlawProfiles::new));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, FlawProfiles> STREAM_CODEC = StreamCodec.composite(
-            Defect.STREAM_CODEC.apply(ByteBufCodecs.list()), FlawProfiles::defects,
-            Role.STREAM_CODEC.apply(ByteBufCodecs.list()), FlawProfiles::roles,
-            ByteBufCodecs.FLOAT, FlawProfiles::durabilityFloor,
-            Wear.STREAM_CODEC, FlawProfiles::wear,
-            Palette.STREAM_CODEC, FlawProfiles::palette,
-            Grades.STREAM_CODEC, FlawProfiles::grades,
-            FlawProfiles::new);
+    // Past six fields StreamCodec.composite does not reach, so the whole table travels as its own codec.
+    public static final StreamCodec<RegistryFriendlyByteBuf, FlawProfiles> STREAM_CODEC =
+            ByteBufCodecs.fromCodecWithRegistries(CODEC.codec());
+
+    /**
+     * What a part forged out of metal we know to be flawed but cannot measure starts with: the mild band. An
+     * inclusion nobody weighed is not the same finding as one measured at three parts in ten, so it is not
+     * allowed to cost as much either.
+     */
+    public DefectProfile baselineFlaw() {
+        float severity = Mth.clamp(unmeasuredFlaw, 0F, 1F);
+        float durability = 1F;
+        for (Map.Entry<Archetype, Defect> entry : byArchetype().entrySet()) {
+            durability *= Mth.lerp(severity, 1F, entry.getValue().maxDamage());
+        }
+        return new DefectProfile(severity, severity, severity, severity, 0F,
+                Mth.clamp(durability, durabilityFloor, 1F), grade(severity));
+    }
 
     /**
      * The coarse band a whole pile of metal is graded by, so that a slightly wrong casting and a badly wrong

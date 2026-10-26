@@ -149,6 +149,44 @@ def add_bone(entry):
     return entry
 
 
+def transitions(archive):
+    """Let the steel chain forge and weld from flawed stock too, by widening TFC's own recipes.
+
+    These are the steps that change which metal an object *is*: pig iron hammered into high-carbon steel,
+    high-carbon steel quenched down to steel, weak steel welded up to high-carbon. They are not part recipes,
+    so there is nothing to twin: the result is a different metal either way, and the defect rides on the
+    result stack from the ingredient. Writing the flawed tag next to the clean one in TFC's own file keeps
+    that one recipe per transition instead of a shadow copy nobody can tell apart in a book.
+    """
+    count = 0
+    for folder in ("anvil/metal/ingot", "welding/metal/ingot"):
+        for name in archive.namelist():
+            if not name.startswith(f"data/tfc/recipe/{folder}/") or not name.endswith(".json"):
+                continue
+            recipe = read_json(archive, name)
+            if recipe is None:
+                continue
+            changed = False
+            for field in ("ingredient", "first_input", "second_input"):
+                entry = recipe.get(field)
+                if isinstance(entry, dict) and entry.get("tag", "").startswith("c:") and add_flawed(recipe, field, entry["tag"]):
+                    changed = True
+            if not changed:
+                continue
+            write("data", *os.path.relpath(name, "data").split(os.sep), value=recipe)
+            count += 1
+    return count
+
+
+def add_flawed(recipe, field, tag):
+    """Replace one clean metal tag with the pair of alternatives: that tag, or its flawed sibling."""
+    family, _, metal = tag[2:].partition("/")
+    if family not in ("ingots", "double_ingots") or metal not in ALLOY_KEYS:
+        return False
+    recipe[field] = [{"tag": tag}, {"tag": f"c:{family}/flawed_{metal}"}]
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--jar", default=default_jar())
@@ -166,9 +204,9 @@ def main():
         folder = os.path.join(out_root, sub)
         if os.path.isdir(folder):
             shutil.rmtree(folder)
-    # TFC's own crafting folder is rewritten by this script alone, so overrides that are no longer needed
-    # (vanilla recipes, which now carry the melt through a mixin) have to disappear rather than linger.
-    overridden = os.path.join(RES, "data", "tfc", "recipe", "crafting")
+    # TFC's own recipe folder under our resources is written by this script alone (assembly overrides and the
+    # widened steel transitions), so overrides that are no longer needed disappear rather than linger.
+    overridden = os.path.join(RES, "data", "tfc", "recipe")
     if os.path.isdir(overridden):
         shutil.rmtree(overridden)
 
@@ -228,10 +266,12 @@ def main():
         write("data", "tfc", "tags", "fluid", f"{tag}.json", value={"values": values})
 
     assembled = assemble_recipes(archive)
+    widened = transitions(archive)
 
     print(f"anvil twins: {anvil_count}, casting twins: {casting_count}, mold tags extended: {len(by_tag)}")
     print("tags:", ", ".join(sorted(by_tag)))
     print(f"assembly recipes rewritten to pass the melt on and take a bone shaft: {assembled}")
+    print(f"steel-chain forge and weld steps widened to take flawed stock: {widened}")
 
 
 if __name__ == "__main__":

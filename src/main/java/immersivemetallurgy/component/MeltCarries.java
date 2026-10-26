@@ -1,9 +1,14 @@
 package immersivemetallurgy.component;
 
+import immersivemetallurgy.ImmersiveMetallurgy;
+import immersivemetallurgy.recipe.FlawProfiles;
 import immersivemetallurgy.registry.IMDataComponents;
 
+import net.dries007.tfc.util.Helpers;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
 
@@ -31,7 +36,7 @@ public final class MeltCarries {
             to.set(IMDataComponents.ALLOY_RECORD.get(), record);
         }
 
-        DefectProfile defect = from.get(IMDataComponents.DEFECT_PROFILE.get());
+        DefectProfile defect = measuredOrImplied(from);
         if (defect != null && !defect.isClean() && !to.has(IMDataComponents.DEFECT_PROFILE.get())) {
             to.set(IMDataComponents.DEFECT_PROFILE.get(), defect);
         }
@@ -61,12 +66,12 @@ public final class MeltCarries {
         float worstTotal = -1;
 
         for (ItemStack piece : pieces) {
-            DefectProfile defect = piece.get(IMDataComponents.DEFECT_PROFILE.get());
+            DefectProfile defect = measuredOrImplied(piece);
             if (defect != null) {
-                brittle = Math.max(brittle, defect.brittle());
-                soft = Math.max(soft, defect.soft());
-                edgeWear = Math.max(edgeWear, defect.edgeWear());
-                flowy = Math.max(flowy, defect.flowy());
+                brittle += defect.brittle();
+                soft += defect.soft();
+                edgeWear += defect.edgeWear();
+                flowy += defect.flowy();
                 slagShare = Math.max(slagShare, defect.slagShare());
                 durability = Math.min(durability, defect.durabilityFactor());
                 grade = Math.max(grade, defect.grade());
@@ -83,12 +88,47 @@ public final class MeltCarries {
             to.set(IMDataComponents.ALLOY_RECORD.get(), worstRecord);
         }
         if (!to.has(IMDataComponents.DEFECT_PROFILE.get())) {
+            // Welding two flawed halves does not average them out: a joint is weak wherever either half was,
+            // and now and then the two faults feed each other. The sum is shared out rather than stacked,
+            // because a doubled severity would price a merely careful smith out of steel entirely.
+            FlawProfiles profiles = FlawProfiles.of(Helpers.getUnsafeRecipeManager());
+            float divisor = profiles == null ? 1.5F : profiles.weldMergeDivisor();
+            brittle = Math.min(1F, brittle / divisor);
+            soft = Math.min(1F, soft / divisor);
+            edgeWear = Math.min(1F, edgeWear / divisor);
+            flowy = Math.min(1F, flowy / divisor);
+            if (profiles != null) {
+                grade = profiles.grade(Math.max(brittle, Math.max(soft, Math.max(edgeWear, flowy))));
+            }
             DefectProfile merged = new DefectProfile(brittle, soft, edgeWear, flowy, slagShare, durability, grade);
             if (!merged.isClean()) {
                 to.set(IMDataComponents.DEFECT_PROFILE.get(), merged);
             }
         }
         priceTheDefect(to);
+    }
+
+    /**
+     * The flaw a piece carries because of what it is, when nothing was ever measured on it. A flawed ingot
+     * lifted out of a chest or a creative tab has no profile attached, but it is still flawed metal, and metal
+     * does not become clean by being hammered: without this, a part forged from it read as better than the
+     * ingot it was beaten out of.
+     */
+    private static DefectProfile measuredOrImplied(DataComponentHolder holder) {
+        DefectProfile measured = holder.get(IMDataComponents.DEFECT_PROFILE.get());
+        if (measured != null && !measured.isClean()) {
+            return measured;
+        }
+        if (!(holder instanceof ItemStack stack) || !isFlawedIdentity(stack)) {
+            return measured;
+        }
+        FlawProfiles profiles = FlawProfiles.of(Helpers.getUnsafeRecipeManager());
+        return profiles == null ? measured : profiles.baselineFlaw();
+    }
+
+    private static boolean isFlawedIdentity(ItemStack stack) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return ImmersiveMetallurgy.MODID.equals(id.getNamespace()) && id.getPath().contains("/flawed_");
     }
 
     /**

@@ -106,7 +106,9 @@ public final class IMSlagSkim {
             IMAlloys bath = IMFluids.alloyOf(crucible.getAlloyResult().getFluid());
             give(level, player, new ItemStack(bath == null ? IMItems.SLAG_DUST.get() : IMItems.slagDust(bath), dust));
         }
-        if (slag - removed < 1) {
+        // A flux is spent on the layer it was thrown onto: whatever slag survives the lift needs new flux,
+        // otherwise the [skim ready] mark promises a clean skim that can no longer happen.
+        if (fluxPower > 0F || slag - removed < 1) {
             container.immersiveMetallurgySetFluxPower(0F);
         }
         level.playSound(null, event.getPos(), SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.7F, 0.9F);

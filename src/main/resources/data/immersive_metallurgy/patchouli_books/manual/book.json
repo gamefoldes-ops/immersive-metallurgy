@@ -6,5 +6,6 @@
   "creative_tab": "immersive_metallurgy:main",
   "landing_text": "Metal is not one thing. What comes out of a bath depends on what went in, on how the ratio fell out, and on whether anyone took the dirt off the top. This book is about the three: the gangue that rides with ore, the tools that let you lift it out, and what a used edge costs you.",
   "show_progress": false,
-  "model": "patchouli:book_brown"
+  "model": "patchouli:book_brown",
+  "use_resource_pack": true
 }
