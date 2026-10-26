@@ -69,11 +69,15 @@ public class MetalItemFlawedIngotMixin {
                 if (flawed == Items.AIR) {
                     continue;
                 }
-                // Same metal, our own surface: the pile model draws entries by softTextureId, so this is what
-                // makes a pile of cast-badly bronze look like the art the ingot itself has.
+                // Same metal, our own surfaces. TFC draws an ingot pile from the metal's smooth block sheet
+                // rather than from the item art, so the two ids are different pictures and both have to be
+                // ours: the item's own texture for hands and inventories, the degraded sheet for the pile.
+                MetalItem identity = MetalItem.getOrUnknown(new ItemStack(clean));
                 ResourceLocation art = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID,
                         "item/" + (type == Metal.ItemType.INGOT ? alloy.flawedIngotPath() : alloy.flawedDoubleIngotPath()));
-                MetalItem answer = new MetalItem(MetalItem.getOrUnknown(new ItemStack(clean)).name(), art, art);
+                ResourceLocation sheet = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID,
+                        "block/metal/smooth/flawed_" + alloy.key());
+                MetalItem answer = new MetalItem(identity.name(), art, sheet);
                 byItem.put(flawed, answer);
             }
         }

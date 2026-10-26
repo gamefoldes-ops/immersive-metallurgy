@@ -19,7 +19,11 @@ import zipfile
 import png
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, os.pardir, "src", "main", "resources", "assets", "immersive_metallurgy", "textures", "item", "metal")
+ASSETS = os.path.join(HERE, os.pardir, "src", "main", "resources", "assets", "immersive_metallurgy")
+OUT = os.path.join(ASSETS, "textures", "item", "metal")
+# An ingot pile is drawn from the metal's smooth block surface, not from the item art, so the pile needs its
+# own degraded copy of that sheet. It lands under textures/block/ so the block atlas picks it up by directory.
+OUT_SMOOTH = os.path.join(ASSETS, "textures", "block", "metal", "smooth")
 
 # The metals are IMAlloys' business, not this script's: reading them back keeps the art from lagging the list.
 SLAG_SOURCE = "assets/tfc/textures/item/powder/graphite.png"
@@ -122,6 +126,11 @@ def main():
                 continue
             target = os.path.join(OUT, family, f"flawed_{alloy}.png")
             convert(archive.read(source), target, knobs, suffix == "_double")
+            written += 1
+
+        sheet = f"assets/tfc/textures/block/metal/smooth/{alloy}.png"
+        if sheet in archive.namelist():
+            convert(archive.read(sheet), os.path.join(OUT_SMOOTH, f"flawed_{alloy}.png"), knobs, False)
             written += 1
 
     # The non-metal items of ours borrow TFC's powder art the same way, so that slag dust looks like it
