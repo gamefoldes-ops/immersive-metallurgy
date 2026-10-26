@@ -92,7 +92,7 @@ public final class IMItemTooltips {
 
     /** Only the stats a defect actually moves, so a purely brittle tool does not claim to be soft. */
     private static void addIfChanged(List<Component> lines, String key, float factor) {
-        if (Math.abs(factor - 1F) < 0.005F) {
+        if (Math.abs(factor - 1F) < 0.001F) {
             return;
         }
         boolean harmful = factor < 1F;

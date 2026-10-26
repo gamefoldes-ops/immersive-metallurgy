@@ -32,7 +32,10 @@ public class ItemStackMeltStackingMixin {
             return;
         }
         Set<DataComponentType<?>> perCasting = Set.of(IMDataComponents.ALLOY_RECORD.get(),
-                IMDataComponents.DEFECT_PROFILE.get(), IMDataComponents.SHARPNESS.get());
+                IMDataComponents.DEFECT_PROFILE.get(), IMDataComponents.SHARPNESS.get(),
+                // The ratio rides on the item so scrap gives its dirt back when re-melted, and it is derived
+                // from the defect: two castings of one bath can differ in its last digits and are the same pile.
+                IMDataComponents.SLAG_RATIO.get());
         if (immersiveMetallurgy$equalIgnoring(one, two, perCasting) && gradeOf(one) == gradeOf(two)) {
             cir.setReturnValue(true);
         }
