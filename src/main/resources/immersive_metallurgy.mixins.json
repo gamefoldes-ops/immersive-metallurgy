@@ -13,6 +13,7 @@
     "FluidAlloyRecordMixin",
     "HeatingRecipeRecordMixin",
     "ItemStackFlawedNameMixin",
+    "MetalItemFlawedIngotMixin",
     "ItemStackMeltStackingMixin",
     "VanillaCraftingMeltMixin",
     "VesselGangueMixin",
