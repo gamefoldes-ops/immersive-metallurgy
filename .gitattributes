@@ -3,3 +3,18 @@
 # are changed when only line endings change.
 src/generated/**/.cache/* text eol=lf
 src/generated/**/*.json text eol=lf
+
+# The repo holds text as LF and lets each checkout decide, which is what stops every
+# `git add` printing "LF will be replaced by CRLF" for the sources and the generated data.
+* text=auto
+
+# Batch scripts are read by cmd.exe, which wants its own line endings, and these are not text:
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.jar binary
+*.png binary
+*.gif binary
+*.zip binary
+*.ttf binary
+*.ogg binary
+*.wol binary
