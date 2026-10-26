@@ -31,12 +31,20 @@ import java.util.Map;
 public class MetalItemFlawedIngotMixin {
     @Unique
     private static Map<Item, MetalItem> immersiveMetallurgy$asClean = Map.of();
+    /** The table is built by asking TFC about the clean item, so the lookup has to know not to rebuild itself. */
+    @Unique
+    private static boolean immersiveMetallurgy$building;
 
     @Inject(method = "getOrUnknown(Lnet/minecraft/world/item/ItemStack;)Lnet/dries007/tfc/util/MetalItem;",
             at = @At("HEAD"), cancellable = true)
     private static void immersiveMetallurgy$answerAsTheirMetal(ItemStack stack, CallbackInfoReturnable<MetalItem> cir) {
-        if (immersiveMetallurgy$asClean.isEmpty()) {
-            immersiveMetallurgy$asClean = immersiveMetallurgy$build();
+        if (immersiveMetallurgy$asClean.isEmpty() && !immersiveMetallurgy$building) {
+            immersiveMetallurgy$building = true;
+            try {
+                immersiveMetallurgy$asClean = immersiveMetallurgy$build();
+            } finally {
+                immersiveMetallurgy$building = false;
+            }
         }
         MetalItem metalItem = immersiveMetallurgy$asClean.get(stack.getItem());
         if (metalItem != null) {
