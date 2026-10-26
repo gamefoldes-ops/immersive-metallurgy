@@ -32,9 +32,10 @@ RATIOS = {
 SPREAD = 0.3
 
 # The share of slag a ceramic melting pot is held to. A pot has no skim and no flux and no lid, so a pour from
-# one is never purer than 1 - this: 0.2 is an 80% ceiling, above every rule's slag_tolerance so a pot can never
-# pour clean metal, and below every rule's max_slag so it never pours junk by itself either.
-VESSEL_SLAG_FLOOR = 0.2
+# one is never purer than 1 - this: 0.1 is a 90% ceiling, above every rule's slag_tolerance so a pot can never
+# pour clean metal, and low enough that the worst a clean-proportioned pot pour can be is the light grade -
+# the slag band that stays under grades.medium (0.4) is about 15%, because edge_wear weights slag at 0.7.
+VESSEL_SLAG_FLOOR = 0.1
 
 
 def default_jar():
