@@ -1,5 +1,5 @@
 {
-  "_comment": "Knobs for tools/generate_flawed_textures.py. Rerun the script after changing them. Values are per alloy, and anything a alloy does not override falls back to default.",
+  "_comment": "Knobs for tools/generate_flawed_textures.py. Rerun the script after changing them. Values are per alloy, and anything an alloy does not override falls back to default.",
   "default": {
     "desaturate": 0.35,
     "darken": 0.22,
@@ -7,6 +7,10 @@
     "pit_darken": 0.45,
     "roughness": 0.1,
     "seed": 20261025
+  },
+  "dressing": {
+    "crushed": { "desaturate": 0.55, "darken": 0.3, "pits": 9, "pit_darken": 0.4, "roughness": 0.3 },
+    "concentrate": { "share": 0.45, "lift": 1.1 }
   },
   "alloys": {
     "bismuth_bronze": { "desaturate": 0.45 },

@@ -354,6 +354,11 @@ write("assets", MOD, "models", "item", "slag_dust.json", value={
     "parent": "item/generated",
     "textures": {"layer0": f"{MOD}:item/slag_dust"},
 })
+# Several tools add rows to the one language file, so each of them merges rather than replaces: whichever ran
+# last must not be the only one whose names survive.
+language_path = os.path.join(RES, "assets", MOD, "lang", "en_us.json")
+if os.path.exists(language_path):
+    lang = {**json.load(open(language_path, encoding="utf-8")), **lang}
 write("assets", MOD, "lang", "en_us.json", value=dict(sorted(lang.items())))
 
 doubles = sum(1 for alloy in ALLOYS if alloy[5])

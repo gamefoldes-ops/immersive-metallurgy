@@ -18,6 +18,8 @@ import zipfile
 
 import png
 
+from generate_ore_dressing import REPRESENTATIVE, metals_in_code
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(HERE, os.pardir, "src", "main", "resources", "assets", "immersive_metallurgy")
 OUT = os.path.join(ASSETS, "textures", "item", "metal")
@@ -58,6 +60,10 @@ def tint_from_hex(digits):
 
 def mix(left, right, share):
     return tuple(int(l * (1 - share) + r * share) for l, r in zip(left, right))
+
+
+def brighten(pixel, lift):
+    return tuple(min(255, int(channel * lift)) for channel in pixel)
 
 
 def tint_grey(pixel, colour=SLAG_TINT):
@@ -149,6 +155,30 @@ def main():
             png.write_rgba(os.path.join(per_metal, f"{key}.png"),
                            [[tint_grey(pixel, colour) for pixel in row] for row in rows])
             written += 1
+
+    # The dressed states of the rock are borrowed the same way, from the ore art of the mineral each one is
+    # named for. Crushing only liberates, so the crushed picture is the ore made dull and gritty; the
+    # concentrate is the same shape pulled toward the metal, because that is what a washed pile of it is.
+    for metal in metals_in_code():
+        variety = REPRESENTATIVE[metal]
+        source = f"assets/tfc/textures/item/ore/normal_{variety}.png"
+        if source not in archive.namelist():
+            continue
+        art = archive.read(source)
+        crushed = dict(config["default"])
+        crushed.update(config["dressing"]["crushed"])
+        convert(art, os.path.join(ASSETS, "textures", "item", "crushed_ore", f"{metal}.png"), crushed, False)
+
+        width, height, pixels = png.read_rgba(art)
+        colour = tint_from_hex(dict(ALLOY_TINTS)[metal])
+        share = config["dressing"]["concentrate"]["share"]
+        lift = config["dressing"]["concentrate"]["lift"]
+        drawn = [[brighten(mix(pixel[:3], colour, share), lift) + (pixel[3],) if pixel[3] else pixel
+                  for pixel in row] for row in pixels]
+        target = os.path.join(ASSETS, "textures", "item", "ore_concentrate", f"{metal}.png")
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        png.write_rgba(target, drawn)
+        written += 2
 
     print(f"flawed textures written: {written}")
 

@@ -18,7 +18,23 @@
     {
       "type": "patchouli:text",
       "title": "So What",
-      "text": "Smelting straight from rock always gives Flawed metal, because the slag is over the 2% line before you have done anything wrong with the ratio.$p$pThat is the trade: ore is plentiful and cheap, and the refining work happens in the crucible with a bowl and a flux, not in the firepit."
+      "text": "Smelting straight from rock always gives Flawed metal, because the slag is over the 2% line before you have done anything wrong with the ratio.$p$pThere are two ways out of that. Lift the slag back out of the bath with a bowl and a flux, or take the dirt out of the rock before it ever goes near a fire.$p$pWashing is the cheaper habit once you have a barrel, and the only way to fill a crucible from a heap of poor ore without drowning it."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Crushing Liberates Nothing",
+      "text": "The quern breaks a lump into grit: seven handfuls from a rich one, five from a normal, three from a poor, two out of the small fragments.$p$pEach handful melts to 5 mB of metal and carries the same share of stone as the lump it came from, so crushing on its own buys you **nothing** but the next step. It is the grinding that frees the grains of mineral from the rock so water can tell them apart."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": {"item": "immersive_metallurgy:ore_concentrate/copper"},
+      "title": "Washing Is the Paying Step",
+      "text": "Five handfuls of crushed ore pushed into a barrel of water come out as two of **concentrate**, worth 10 mB each - so four fifths of the metal survives and a fifth goes off in the tailings, which is what a hand jig actually does.$p$pWhat you lose in metal you buy back in dirt: a concentrate brings about **1.5%** of the bath as slag instead of the 7 to 19% the raw grades carry, which is inside what bronze will tolerate. Washed copper and washed tin can pour clean bronze with no skim at all.$p$pSteel is the exception, as always: it tolerates half of one percent, so even washed iron still wants flux and a bowl."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Only the Heavy Minerals Wash",
+      "text": "Water sorts by weight, so it takes the ores whose mineral is far heavier than quartz: hematite, limonite and magnetite, cassiterite, malachite, and native copper, gold and silver.$p$pSphalerite, bismuthinite, tetrahedrite and garnierite are not much heavier than the rock they sit in, and no amount of washing will clean them - those you have to skim in the bath, or flux."
     }
   ]
 }
