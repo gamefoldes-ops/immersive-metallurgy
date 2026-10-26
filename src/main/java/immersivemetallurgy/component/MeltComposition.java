@@ -49,4 +49,13 @@ public interface MeltComposition {
     float immersiveMetallurgyFluxPower();
 
     void immersiveMetallurgySetFluxPower(float power);
+
+    /**
+     * The gangue a melt promised but could not yet hand over, in fractions of a millibucket. Slag is a whole
+     * unit and a scoop of crushed ore is five, so twelve percent of one melt is not even one - the debt has to
+     * survive from one fill to the next or the small change is rounded away and crushed ore looks clean.
+     */
+    double immersiveMetallurgySlagOwed();
+
+    void immersiveMetallurgySetSlagOwed(double mB);
 }

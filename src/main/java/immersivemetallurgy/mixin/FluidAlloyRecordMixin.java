@@ -18,7 +18,6 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
@@ -44,6 +43,7 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     @Unique
     private static final String COMPOSITIONS_KEY = "immersive_metallurgy:compositions";
     private static final String FLUX_POWER_KEY = "immersive_metallurgy:flux_power";
+    private static final String SLAG_OWED_KEY = "immersive_metallurgy:slag_owed";
 
     @Shadow
     private Object2DoubleMap<Fluid> content;
@@ -66,6 +66,9 @@ public class FluidAlloyRecordMixin implements MeltComposition {
 
     @Unique
     private float immersiveMetallurgy$fluxPower;
+
+    @Unique
+    private double immersiveMetallurgy$slagOwed;
 
     @Override
     public DefectProfile immersiveMetallurgyDefect() {
@@ -132,6 +135,16 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     }
 
     @Override
+    public double immersiveMetallurgySlagOwed() {
+        return this.immersiveMetallurgy$slagOwed;
+    }
+
+    @Override
+    public void immersiveMetallurgySetSlagOwed(double mB) {
+        this.immersiveMetallurgy$slagOwed = mB;
+    }
+
+    @Override
     public Object2DoubleMap<Fluid> immersiveMetallurgyLeafContent() {
         Object2DoubleMap<Fluid> leaves = new Object2DoubleOpenHashMap<>();
         for (Object2DoubleMap.Entry<Fluid> entry : this.content.object2DoubleEntrySet()) {
@@ -169,7 +182,16 @@ public class FluidAlloyRecordMixin implements MeltComposition {
                 ? stack.get(IMDataComponents.SLAG_RATIO.get())
                 : null;
         if (ratio != null && ratio > 0) {
-            ((FluidAlloy) (Object) this).fill(new FluidStack(IMFluids.SLAG.fluid(), Mth.floor(filled * ratio)), action, capacity);
+            // Slag only comes in whole millibuckets and a scoop of crushed ore is five of metal, so one melt
+            // often owes less than it can pay. The change is kept rather than dropped, or the small melts that
+            // dressing makes cheap would arrive in the bath cleaner than the rock they came out of.
+            this.immersiveMetallurgy$slagOwed += filled * ratio;
+            int owed = (int) this.immersiveMetallurgy$slagOwed;
+            if (owed > 0) {
+                this.immersiveMetallurgy$slagOwed -= owed;
+                int paid = ((FluidAlloy) (Object) this).fill(new FluidStack(IMFluids.SLAG.fluid(), owed), action, capacity);
+                this.immersiveMetallurgy$slagOwed += owed - paid;
+            }
         }
     }
 
@@ -206,12 +228,19 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         }
     }
 
+    @Inject(method = "clear()V", at = @At("TAIL"))
+    private void immersiveMetallurgy$forgetTheChange(CallbackInfo ci) {
+        // Nothing is owed to an empty container, and the fraction it was owed by does not survive it.
+        this.immersiveMetallurgy$slagOwed = 0;
+    }
+
     @Inject(method = "copy()Lnet/dries007/tfc/util/FluidAlloy;", at = @At("TAIL"))
     private void immersiveMetallurgy$carryCompositions(CallbackInfoReturnable<FluidAlloy> cir) {
         MeltComposition copy = (MeltComposition) (Object) cir.getReturnValue();
         copy.immersiveMetallurgyCompositions().putAll(immersiveMetallurgyCompositions());
         copy.immersiveMetallurgySetFluxPower(immersiveMetallurgyFluxPower());
         copy.immersiveMetallurgySetRecord(immersiveMetallurgyRecord());
+        copy.immersiveMetallurgySetSlagOwed(immersiveMetallurgySlagOwed());
     }
 
     @Inject(method = "copyFrom(Lnet/dries007/tfc/util/FluidAlloy;)V", at = @At("TAIL"))
@@ -220,6 +249,7 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         immersiveMetallurgyCompositions().putAll(source.immersiveMetallurgyCompositions());
         this.immersiveMetallurgy$fluxPower = source.immersiveMetallurgyFluxPower();
         this.immersiveMetallurgy$leafRecord = source.immersiveMetallurgyRecord();
+        this.immersiveMetallurgy$slagOwed = source.immersiveMetallurgySlagOwed();
     }
 
     @Inject(method = "serializeNBT()Lnet/minecraft/nbt/Tag;", at = @At("TAIL"))
@@ -229,6 +259,9 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         }
         if (this.immersiveMetallurgy$fluxPower > 0F) {
             tag.putFloat(FLUX_POWER_KEY, this.immersiveMetallurgy$fluxPower);
+        }
+        if (this.immersiveMetallurgy$slagOwed > 0) {
+            tag.putDouble(SLAG_OWED_KEY, this.immersiveMetallurgy$slagOwed);
         }
         if (this.immersiveMetallurgy$compositions == null || this.immersiveMetallurgy$compositions.isEmpty()) {
             return;
@@ -248,6 +281,7 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     @Inject(method = "deserializeNBT(Lnet/minecraft/nbt/CompoundTag;)V", at = @At("TAIL"))
     private void immersiveMetallurgy$readCompositions(CompoundTag tag, CallbackInfo ci) {
         this.immersiveMetallurgy$leafRecord = null;
+        this.immersiveMetallurgy$slagOwed = tag.getDouble(SLAG_OWED_KEY);
         this.immersiveMetallurgy$fluxPower = tag.getFloat(FLUX_POWER_KEY);
         if (!tag.contains(COMPOSITIONS_KEY, Tag.TAG_LIST)) {
             return;
