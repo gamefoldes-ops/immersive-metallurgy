@@ -31,9 +31,9 @@ public final class IMItems {
 
     /**
      * Every ore variety TFC lets a quern grind, named without its grade prefix. Dressing is one chain for all
-     * of them: the quern breaks a lump into crushed ore, the barrel washes five scoops of that into a
-     * concentrate, and the quern grinds a concentrate into TFC's own ore powder, which stays the pigment and
-     * the glass colour it already was.
+     * of them: the quern breaks a lump into crushed ore, the barrel washes four scoops of that into washed ore,
+     * and the quern grinds washed ore back into TFC's own ore powder, which stays the pigment and the glass
+     * colour it already was.
      *
      * The list is what {@code tools/generate_ore_dressing.py} reads back, so an item and its recipes cannot
      * drift apart. Gravity separation is the honest reason for the oxide and native ones; for the sulfides the
@@ -47,8 +47,8 @@ public final class IMItems {
     /** What the quern makes of a lump: the mineral freed from the rock, and every bit of the rock still in it. */
     public static final Map<String, DeferredHolder<Item, Item>> CRUSHED_ORES = new LinkedHashMap<>();
 
-    /** What the barrel makes of five scoops: the metal worth twenty-five millibuckets, with no stone left. */
-    public static final Map<String, DeferredHolder<Item, Item>> ORE_CONCENTRATES = new LinkedHashMap<>();
+    /** What the barrel makes of four scoops: twenty millibuckets of metal with the stone off it, and no slag. */
+    public static final Map<String, DeferredHolder<Item, Item>> WASHED_ORES = new LinkedHashMap<>();
 
     /**
      * One dust per metal, named for the bath it was lifted off, because what slag is good for depends on what
@@ -66,7 +66,7 @@ public final class IMItems {
         }
         for (String variety : ORE_VARIETIES) {
             CRUSHED_ORES.put(variety, ITEMS.registerItem("crushed_ore/" + variety, properties -> new Item(properties.stacksTo(64))));
-            ORE_CONCENTRATES.put(variety, ITEMS.registerItem("ore_concentrate/" + variety, properties -> new Item(properties.stacksTo(64))));
+            WASHED_ORES.put(variety, ITEMS.registerItem("washed_ore/" + variety, properties -> new Item(properties.stacksTo(64))));
         }
     }
 

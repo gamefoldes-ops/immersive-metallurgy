@@ -66,6 +66,21 @@ def brighten(pixel, lift):
     return tuple(min(255, int(channel * lift)) for channel in pixel)
 
 
+def cleanse(pixel, knobs, colour):
+    """The opposite of degrade: the mineral's own colour pushed harder instead of greyer, and the whole piece
+    lifted, so washed ore reads as the same rock with the stone off rather than as a different rock."""
+    red, green, blue, alpha = pixel
+    if alpha == 0:
+        return pixel
+    red, green, blue = mix((red, green, blue), colour, knobs["share"])
+    luminance = 0.299 * red + 0.587 * green + 0.114 * blue
+    saturation = knobs["saturation"]
+    red = luminance + (red - luminance) * saturation
+    green = luminance + (green - luminance) * saturation
+    blue = luminance + (blue - luminance) * saturation
+    return tuple(max(0, min(255, int(value))) for value in brighten((red, green, blue), knobs["lift"])) + (alpha,)
+
+
 def tint_grey(pixel, colour=SLAG_TINT):
     red, green, blue, alpha = pixel
     if alpha == 0:
@@ -156,33 +171,30 @@ def main():
                            [[tint_grey(pixel, colour) for pixel in row] for row in rows])
             written += 1
 
-    # The two dressed states of a lump are drawn from the art of that same lump: crushed ore is its own ore made
-    # dull and gritty, and a concentrate keeps the shape of TFC's powder - which is what grinding one gives back -
-    # with the colour pulled toward the metal that is left in it.
+    # The two dressed states of a lump are both drawn from the art of that same lump, and they are the same
+    # drawing pulled in opposite directions: crushed ore is the ore made dull, gritty and pitted, and washed ore
+    # is the ore with the stone off it - brighter than it came out of the ground and leaning to the colour of the
+    # metal inside, which is what a handful of pure mineral looks like.
     yields = ores.ore_yields(archive)
     tints = dict(ALLOY_TINTS)
     for variety in ores.varieties_in_code():
         metal = yields[variety][0]
         art = f"assets/tfc/textures/item/ore/normal_{variety}.png"
-        if art in archive.namelist():
-            knobs = dict(config["default"])
-            knobs.update(config["dressing"]["crushed"])
-            convert(archive.read(art), os.path.join(ASSETS, "textures", "item", "crushed_ore", f"{variety}.png"),
-                    knobs, False)
-            written += 1
+        if art not in archive.namelist():
+            continue
+        source = archive.read(art)
+        knobs = dict(config["default"])
+        knobs.update(config["dressing"]["crushed"])
+        convert(source, os.path.join(ASSETS, "textures", "item", "crushed_ore", f"{variety}.png"), knobs, False)
 
-        powder = f"assets/tfc/textures/item/powder/{variety}.png"
-        if powder in archive.namelist():
-            _, _, pixels = png.read_rgba(archive.read(powder))
-            colour = tint_from_hex(tints[metal])
-            share = config["dressing"]["concentrate"]["share"]
-            lift = config["dressing"]["concentrate"]["lift"]
-            drawn = [[brighten(mix(pixel[:3], colour, share), lift) + (pixel[3],) if pixel[3] else pixel
-                      for pixel in row] for row in pixels]
-            target = os.path.join(ASSETS, "textures", "item", "ore_concentrate", f"{variety}.png")
-            os.makedirs(os.path.dirname(target), exist_ok=True)
-            png.write_rgba(target, drawn)
-            written += 1
+        _, _, pixels = png.read_rgba(source)
+        colour = tint_from_hex(tints[metal])
+        washed = config["dressing"]["washed"]
+        drawn = [[cleanse(pixel, washed, colour) for pixel in row] for row in pixels]
+        target = os.path.join(ASSETS, "textures", "item", "washed_ore", f"{variety}.png")
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        png.write_rgba(target, drawn)
+        written += 2
 
     print(f"flawed textures written: {written}")
 

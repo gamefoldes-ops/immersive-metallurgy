@@ -1,1 +1,1 @@
-{"type":"tfc:barrel_instant","input_fluid":{"amount":100,"fluid":"minecraft:water"},"input_item":{"count":5,"item":"immersive_metallurgy:crushed_ore/limonite"},"output_item":{"count":1,"id":"immersive_metallurgy:ore_concentrate/limonite"}}
+{"type":"tfc:barrel_instant","input_fluid":{"amount":100,"fluid":"minecraft:water"},"input_item":{"count":4,"item":"immersive_metallurgy:crushed_ore/limonite"},"output_item":{"count":1,"id":"immersive_metallurgy:washed_ore/limonite"}}

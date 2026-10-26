@@ -27,15 +27,15 @@
     },
     {
       "type": "patchouli:spotlight",
-      "item": {"item": "immersive_metallurgy:ore_concentrate/malachite"},
+      "item": {"item": "immersive_metallurgy:washed_ore/malachite"},
       "title": "Washing Is the Paying Step",
-      "text": "Five scoops of crushed ore and a drink of water in a barrel come out as one **concentrate**, worth the whole twenty-five mB they carried between them: the wash spends no metal at all, it only spends the quern stroke and the water.$p$pAnd it takes the dirt with it. A concentrate brings **no slag into the bath whatsoever**, so a crucible filled from washed ore pours clean bronze, clean brass, clean silver - no skimming, no flux, no second pass.$p$pThat is the reward for building the barrel and the grinding stone. What the flaw system can still reach you, it reaches through metal you already melted: re-smelted scrap keeps its defects, and a pot never pours cleaner than ten percent."
+      "text": "Four scoops of crushed ore and a drink of water in a barrel come out as one piece of **washed ore**, worth the twenty mB they carried between them: the wash spends no metal at all, it only spends the quern stroke and the water. Four rather than five, so a stack of scoops divides without a remainder sitting in the barrel, and five pieces of washed ore fill one mold to the hundredth millibucket.$p$pAnd it takes the dirt with it. Washed ore brings **no slag into the bath whatsoever**, so a crucible filled from it pours clean bronze, clean brass, clean silver - no skimming, no flux, no second pass.$p$pThat is the reward for building the barrel and the grinding stone. What the flaw system can still reach you, it reaches through metal you already melted: re-smelted scrap keeps its defects, and a pot never pours cleaner than ten percent."
     },
     {
       "type": "patchouli:spotlight",
       "item": {"item": "tfc:powder/malachite"},
-      "title": "The Powder Comes Out of the Concentrate",
-      "text": "Put a concentrate back on the quern and it grinds into **ore powder** - the same powder TFC has always used for dyes, for kaolin and for the colour of glass, and it comes out in the same five scoops a lump once gave.$p$pWhat it does not do is melt. Metal worth keeping is worth keeping as a concentrate, and a powder that also smelted would make the wash a detour instead of a step: grind for paint, and smelt the rest."
+      "title": "The Powder Comes Out of the Washed Ore",
+      "text": "Put washed ore back on the quern and it grinds into **ore powder** - the same powder TFC has always used for dyes, for kaolin and for the colour of glass, four scoops of it for the twenty millibuckets that went in.$p$pWhat it does not do is melt. Metal worth keeping is worth keeping as washed ore, and a powder that also smelted would make the wash a detour instead of a step: grind for paint, and smelt the rest."
     },
     {
       "type": "patchouli:text",
