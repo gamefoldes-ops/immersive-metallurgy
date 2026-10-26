@@ -81,15 +81,15 @@ public final class IMSlagSkim {
 
         // A skim always lifts something, however little dirt is left: a percentage of a thin layer rounds to
         // zero and the player is left clicking a crucible that refuses to get any cleaner.
-        boolean fluxed = container.immersiveMetallurgyFluxed();
-        int wanted = fluxed ? (int) Math.ceil(slag)
+        float fluxPower = container.immersiveMetallurgyFluxPower();
+        int wanted = fluxPower > 0F ? Math.max(1, (int) Math.ceil(slag * fluxPower))
                 : Math.max(1, (int) Math.floor(slag * rules.slagShare()));
         int removed = container.immersiveMetallurgyTake(IMFluids.SLAG.fluid(), wanted);
         if (removed <= 0) {
             ImmersiveMetallurgy.LOGGER.debug("Skim took nothing at {}: slag was {} mB", event.getPos(), slag);
             return;
         }
-        if (!fluxed) {
+        if (fluxPower <= 0F) {
             takeMetal(crucible, container, rules);
         }
         if (level.random.nextFloat() < rules.bowlBreakChance()) {
@@ -107,7 +107,7 @@ public final class IMSlagSkim {
             give(level, player, new ItemStack(bath == null ? IMItems.SLAG_DUST.get() : IMItems.slagDust(bath), dust));
         }
         if (slag - removed < 1) {
-            container.immersiveMetallurgySetFluxed(false);
+            container.immersiveMetallurgySetFluxPower(0F);
         }
         level.playSound(null, event.getPos(), SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.7F, 0.9F);
 

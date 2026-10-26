@@ -56,7 +56,7 @@ public class CrucibleScreenResultLabelMixin {
         MutableComponent name = (fluid == IMFluids.SLAG.fluid()
                 ? IMMetalNames.name(fluid)
                 : immersiveMetallurgy$stateAwareName(fluid, type.getDescription())).copy();
-        if (fluid == IMFluids.SLAG.fluid() && ((MeltComposition) (Object) immersiveMetallurgy$crucible().getAlloy()).immersiveMetallurgyFluxed()) {
+        if (fluid == IMFluids.SLAG.fluid() && ((MeltComposition) (Object) immersiveMetallurgy$crucible().getAlloy()).immersiveMetallurgyFluxPower() > 0F) {
             name.append(Component.literal(" ")).append(Component.translatable("immersive_metallurgy.screen.skim_ready").withStyle(ChatFormatting.GOLD));
         }
         return name;

@@ -7,5 +7,7 @@
   "flux": [
     { "item": "tfc:powder/flux" },
     { "item": "tfc:powder/lime" }
-  ]
+  ],
+  "weak_flux": { "tag": "immersive_metallurgy:basic_slag_dust" },
+  "weak_flux_share": 0.6
 }

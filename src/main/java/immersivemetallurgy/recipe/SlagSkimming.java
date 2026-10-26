@@ -30,16 +30,21 @@ import net.minecraft.world.level.Level;
  * @param dustPerMilliBucket slag millilitres per Slag Dust item handed over
  * @param bowlBreakChance  chance a ceramic bowl does not survive one skim
  * @param flux             what has to be in the crucible for the clean version of the skim
+ * @param weakFlux         slag dust of the iron and steel family, which is itself a basic slag and can take
+ *                         over a flux's job partly; acidic copper-tin slag cannot, so it is not in here
+ * @param weakFluxShare    how much of the layer that a re-used basic slag lifts, where real flux lifts all of it
  */
 public record SlagSkimming(float slagShare, float metalLoss, float dustPerMilliBucket, float bowlBreakChance,
-                           Ingredient flux) implements Recipe<NoopInput> {
+                           Ingredient flux, Ingredient weakFlux, float weakFluxShare) implements Recipe<NoopInput> {
 
     public static final MapCodec<SlagSkimming> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.FLOAT.fieldOf("slag_share").forGetter(SlagSkimming::slagShare),
             Codec.FLOAT.fieldOf("metal_loss").forGetter(SlagSkimming::metalLoss),
             Codec.FLOAT.fieldOf("dust_per_milli_bucket").forGetter(SlagSkimming::dustPerMilliBucket),
             Codec.FLOAT.fieldOf("bowl_break_chance").forGetter(SlagSkimming::bowlBreakChance),
-            Ingredient.CODEC.fieldOf("flux").forGetter(SlagSkimming::flux)
+            Ingredient.CODEC.fieldOf("flux").forGetter(SlagSkimming::flux),
+            Ingredient.CODEC.optionalFieldOf("weak_flux", Ingredient.EMPTY).forGetter(SlagSkimming::weakFlux),
+            Codec.FLOAT.optionalFieldOf("weak_flux_share", 0.5F).forGetter(SlagSkimming::weakFluxShare)
     ).apply(instance, SlagSkimming::new));
 
     public static RecipeSerializer<SlagSkimming> serializer() {
@@ -56,13 +61,9 @@ public record SlagSkimming(float slagShare, float metalLoss, float dustPerMilliB
         };
     }
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, SlagSkimming> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.FLOAT, SlagSkimming::slagShare,
-            ByteBufCodecs.FLOAT, SlagSkimming::metalLoss,
-            ByteBufCodecs.FLOAT, SlagSkimming::dustPerMilliBucket,
-            ByteBufCodecs.FLOAT, SlagSkimming::bowlBreakChance,
-            Ingredient.CONTENTS_STREAM_CODEC, SlagSkimming::flux,
-            SlagSkimming::new);
+    // Seven fields is past what StreamCodec.composite reaches, and this table is read once per skim anyway.
+    public static final StreamCodec<RegistryFriendlyByteBuf, SlagSkimming> STREAM_CODEC =
+            ByteBufCodecs.fromCodecWithRegistries(CODEC.codec());
 
     public static SlagSkimming of(RecipeManager recipes) {
         for (RecipeHolder<SlagSkimming> holder : RecipeHelpers.getRecipes(recipes, IMRecipes.SLAG_SKIMMING)) {

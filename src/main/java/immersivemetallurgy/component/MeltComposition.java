@@ -40,11 +40,13 @@ public interface MeltComposition {
     int immersiveMetallurgyTake(Fluid fluid, int mB);
 
     /**
-     * Whether a flux is working on this bath right now, which is what makes the next skim take slag without
-     * dragging metal after it. It is set when flux meets slag that is molten enough to float, and it dies
-     * with the slag, so a fresh batch of dirt needs fresh flux.
+     * How much of this bath's slag the next skim can lift: 0 while nothing is working on it, 1 when real flux
+     * has made the layer thin and cohesive enough to come off whole, and between the two when a re-used basic
+     * slag is doing the same job partly. Anything above 0 also means the skim leaves the metal behind. It is
+     * set when a flux meets slag hot enough to float, and it dies with the slag, so a fresh batch of dirt
+     * needs fresh flux.
      */
-    boolean immersiveMetallurgyFluxed();
+    float immersiveMetallurgyFluxPower();
 
-    void immersiveMetallurgySetFluxed(boolean fluxed);
+    void immersiveMetallurgySetFluxPower(float power);
 }

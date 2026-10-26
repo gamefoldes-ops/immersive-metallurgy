@@ -41,9 +41,10 @@ public class CrucibleFluxIntakeMixin {
         }
         MeltComposition container = (MeltComposition) (Object) crucible.getAlloy();
         double slag = crucible.getAlloy().getContent().getDouble(IMFluids.SLAG.fluid());
-        if (container.immersiveMetallurgyFluxed()) {
+        float power = container.immersiveMetallurgyFluxPower();
+        if (power > 0F) {
             if (slag < 1) {
-                container.immersiveMetallurgySetFluxed(false);
+                container.immersiveMetallurgySetFluxPower(0F);
             }
             return;
         }
@@ -61,14 +62,23 @@ public class CrucibleFluxIntakeMixin {
         }
         for (int slot = 0; slot < contents.getSlots(); slot++) {
             ItemStack stack = contents.getStackInSlot(slot);
-            if (!stack.isEmpty() && rules.flux().test(stack)) {
-                contents.extractItem(slot, 1, false);
-                container.immersiveMetallurgySetFluxed(true);
-                level.playSound(null, pos, SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.6F, 1.3F);
-                ImmersiveMetallurgy.LOGGER.debug("Flux from slot {} joined the bath at {}: {} mB of slag is now "
-                        + "skim-cleanable", slot, pos, slag);
-                return;
+            if (stack.isEmpty()) {
+                continue;
             }
+            // Real flux makes the layer come off whole. A basic slag that has already been skimmed once can take
+            // the same job partly, which is what steel practice does with its own furnace slag; an acidic
+            // copper-tin slag cannot, and is not in the weak list at all.
+            float accepted = rules.flux().test(stack) ? 1F
+                    : rules.weakFlux().test(stack) ? rules.weakFluxShare() : 0F;
+            if (accepted <= 0F) {
+                continue;
+            }
+            contents.extractItem(slot, 1, false);
+            container.immersiveMetallurgySetFluxPower(accepted);
+            level.playSound(null, pos, SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.6F, 1.3F);
+            ImmersiveMetallurgy.LOGGER.debug("Flux from slot {} joined the bath at {}: {} mB of slag is now "
+                    + "skim-cleanable down to {}", slot, pos, slag, accepted);
+            return;
         }
     }
 }
