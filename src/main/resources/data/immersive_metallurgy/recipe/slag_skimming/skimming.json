@@ -5,9 +5,15 @@
   "dust_per_milli_bucket": 0.04,
   "bowl_break_chance": 0.01,
   "flux": [
-    { "item": "tfc:powder/flux" },
-    { "item": "tfc:powder/lime" }
+    {
+      "item": "tfc:powder/flux"
+    },
+    {
+      "item": "tfc:powder/lime"
+    }
   ],
-  "weak_flux": { "tag": "immersive_metallurgy:basic_slag_dust" },
-  "weak_flux_share": 0.6
+  "weak_flux": {
+    "tag": "immersive_metallurgy:basic_slag_dust"
+  },
+  "weak_flux_share": 0.8
 }
