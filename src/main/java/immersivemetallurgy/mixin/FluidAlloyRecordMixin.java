@@ -1,5 +1,6 @@
 package immersivemetallurgy.mixin;
 
+import immersivemetallurgy.alloy.TolerantAlloyMatcher;
 import immersivemetallurgy.component.AlloyRecord;
 import immersivemetallurgy.component.DefectProfile;
 import immersivemetallurgy.component.MeltComposition;
@@ -63,6 +64,20 @@ public class FluidAlloyRecordMixin implements MeltComposition {
 
     @Unique
     private DefectProfile immersiveMetallurgy$defect;
+
+    /** What this bath's own pour should be called, decided with the record so every drip of it agrees. */
+    @Unique
+    private TolerantAlloyMatcher.Match immersiveMetallurgy$pourAnswer;
+
+    @Override
+    public TolerantAlloyMatcher.Match immersiveMetallurgyPourAnswer() {
+        return this.immersiveMetallurgy$pourAnswer;
+    }
+
+    @Override
+    public void immersiveMetallurgySetPourAnswer(TolerantAlloyMatcher.Match answer) {
+        this.immersiveMetallurgy$pourAnswer = answer;
+    }
 
     @Unique
     private float immersiveMetallurgy$fluxPower;
@@ -176,6 +191,16 @@ public class FluidAlloyRecordMixin implements MeltComposition {
             immersiveMetallurgyCompositions().put(stack.getFluid(), record);
         }
 
+        // A melt can arrive knowing how wrong it is without the bath having asked anything yet — that is what
+        // happens when an object is melted rather than an ore smelted. Keep the worse of the two, because a
+        // bath is one piece of metal, and the pour that comes out of it has to be as bad as its worst part.
+        DefectProfile arriving = stack.get(IMDataComponents.DEFECT_PROFILE.get());
+        if (arriving != null && !arriving.isClean()) {
+            this.immersiveMetallurgy$defect = this.immersiveMetallurgy$defect == null
+                    ? arriving
+                    : this.immersiveMetallurgy$defect.worseThan(arriving);
+        }
+
         // The gangue an ore carried follows the metal into the alloy, so smelting straight from rock makes a
         // dirtier melt than smelting refined metal. Only on the real fill: a simulate must not change content.
         Float ratio = action == IFluidHandler.FluidAction.EXECUTE && stack.getFluid() != IMFluids.SLAG.fluid()
@@ -201,7 +226,7 @@ public class FluidAlloyRecordMixin implements MeltComposition {
      * second drip whose record differs from the first one it took.
      */
     @Inject(method = "getResult(Lnet/minecraft/world/item/crafting/RecipeManager;)Lnet/neoforged/neoforge/fluids/FluidStack;",
-            at = @At("TAIL"))
+            at = @At("TAIL"), cancellable = true)
     private void immersiveMetallurgy$stampComposition(RecipeManager recipes, CallbackInfoReturnable<FluidStack> cir) {
         FluidStack result = cir.getReturnValue();
         if (result.isEmpty() || this.content.isEmpty()) {
@@ -209,15 +234,42 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         }
         if (this.immersiveMetallurgy$leafRecord == null) {
             this.immersiveMetallurgy$leafRecord = AlloyRecord.fromContent(immersiveMetallurgyLeafContent());
+            this.immersiveMetallurgy$pourAnswer = whatThisBathPoursAs(recipes);
+        }
+        TolerantAlloyMatcher.Match answer = this.immersiveMetallurgy$pourAnswer;
+        if (answer != null && answer.recipe().result() != result.getFluid()) {
+            // Decided once per change and remembered, because every drip of one pour has to arrive as the same
+            // fluid with the same components or the mold refuses to merge it into what it already holds.
+            result = new FluidStack(answer.recipe().result(), result.getAmount());
+            cir.setReturnValue(result);
         }
         AlloyRecord record = this.immersiveMetallurgy$leafRecord;
         if (record != null && record.parts().size() > 1) {
             result.set(IMDataComponents.ALLOY_RECORD.get(), record);
         }
-        DefectProfile defect = this.immersiveMetallurgy$defect;
+        DefectProfile defect = this.immersiveMetallurgy$defect != null
+                ? this.immersiveMetallurgy$defect
+                : (answer == null ? null : answer.defect());
         if (defect != null && !defect.isClean()) {
             result.set(IMDataComponents.DEFECT_PROFILE.get(), defect);
         }
+    }
+
+    /**
+     * TFC only ever asks what a melt is when the container holds more than one fluid, so a bath of a single
+     * alloy that remembers its own proportions was never looked at: an off-ratio melt sat under the clean
+     * fluid's name and poured clean ingots out of it. This asks the question the alloy lookup would have asked,
+     * for the one case where nothing else did — and only when the melt really carries a recipe, because a bath
+     * of leaf metals goes through TFC's own answer as always.
+     */
+    @Unique
+    private TolerantAlloyMatcher.Match whatThisBathPoursAs(RecipeManager recipes) {
+        if (this.immersiveMetallurgy$defect != null || this.immersiveMetallurgy$leafRecord == null
+                || this.immersiveMetallurgy$leafRecord.parts().size() <= 1) {
+            return null;
+        }
+        TolerantAlloyMatcher.Match match = TolerantAlloyMatcher.match(recipes, (FluidAlloy) (Object) this);
+        return match == null || match.clean() ? null : match;
     }
 
     @Inject(method = "clearCaches()V", at = @At("TAIL"))
@@ -241,6 +293,9 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         copy.immersiveMetallurgySetFluxPower(immersiveMetallurgyFluxPower());
         copy.immersiveMetallurgySetRecord(immersiveMetallurgyRecord());
         copy.immersiveMetallurgySetSlagOwed(immersiveMetallurgySlagOwed());
+        // The vessel copies the alloy for each operation, so what the pour is called has to travel with it or
+        // the copy would fill its mold with the clean name the contents still carry.
+        copy.immersiveMetallurgySetPourAnswer(immersiveMetallurgyPourAnswer());
     }
 
     @Inject(method = "copyFrom(Lnet/dries007/tfc/util/FluidAlloy;)V", at = @At("TAIL"))

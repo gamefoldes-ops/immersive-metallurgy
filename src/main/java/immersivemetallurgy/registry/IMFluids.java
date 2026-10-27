@@ -63,6 +63,23 @@ public final class IMFluids {
         return null;
     }
 
+    /**
+     * The fluid a metal pours as when it is flawed, or null when it has no flawed form. This is the other
+     * direction from {@link #alloyOf}: TFC keys purity on the fluid, so a melt that remembers being flawed has
+     * to be handed the flawed identity rather than the clean one its recipe chose by item id.
+     */
+    public static Fluid flawedFluidOf(IMAlloys alloy) {
+        if (alloy == null) {
+            return null;
+        }
+        for (Molten molten : ALL) {
+            if (molten.alloy == alloy) {
+                return molten.fluid();
+            }
+        }
+        return null;
+    }
+
     private IMFluids() {
     }
 

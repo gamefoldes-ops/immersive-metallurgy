@@ -1,5 +1,7 @@
 package immersivemetallurgy.component;
 
+import immersivemetallurgy.alloy.TolerantAlloyMatcher;
+
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.minecraft.world.level.material.Fluid;
@@ -31,6 +33,15 @@ public interface MeltComposition {
     DefectProfile immersiveMetallurgyDefect();
 
     void immersiveMetallurgySetDefect(DefectProfile defect);
+
+    /**
+     * What the container's own pour was judged to be, when TFC never asked because the bath holds a single
+     * fluid. Kept with the record rather than recomputed, because every drip of one pour has to arrive as the
+     * same fluid with the same components or the mold refuses to merge it with what it already holds.
+     */
+    TolerantAlloyMatcher.Match immersiveMetallurgyPourAnswer();
+
+    void immersiveMetallurgySetPourAnswer(TolerantAlloyMatcher.Match answer);
 
     /**
      * Takes up to {@code mB} of one fluid out of what the container holds, and answers what really came out.

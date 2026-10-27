@@ -91,6 +91,21 @@ public record DefectProfile(float brittle, float soft, float edgeWear, float flo
         return Math.max(brittle, Math.max(soft, Math.max(edgeWear, flowy)));
     }
 
+    /**
+     * Two melts that reached the same bath are wrong together the way the worse of them was, and a joint is
+     * weak wherever either half was. The cheaper severities are thrown away rather than averaged, because
+     * averaging would let a bad pour be made look better by diluting it with a good one.
+     */
+    public DefectProfile worseThan(DefectProfile other) {
+        if (other == null) {
+            return this;
+        }
+        return new DefectProfile(Math.max(brittle, other.brittle), Math.max(soft, other.soft),
+                Math.max(edgeWear, other.edgeWear), Math.max(flowy, other.flowy),
+                Math.max(slagShare, other.slagShare), Math.min(durabilityFactor, other.durabilityFactor),
+                Math.max(grade, other.grade));
+    }
+
     public String gradeKey() {
         return GRADE_KEYS[Math.clamp(grade, 0, GRADE_COUNT - 1)];
     }

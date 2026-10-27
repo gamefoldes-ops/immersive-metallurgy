@@ -111,6 +111,15 @@ public final class MeltCarries {
     }
 
     /**
+     * The defect a piece of metal has, measured or — when nothing was ever measured on it — the one its
+     * identity implies. Melting needs the answer before it knows what fluid will come out, and a thing that
+     * was forged from flawed metal is flawed metal however its stack was made.
+     */
+    public static DefectProfile defectOf(DataComponentHolder holder) {
+        return measuredOrImplied(holder);
+    }
+
+    /**
      * The flaw a piece carries because of what it is, when nothing was ever measured on it. A flawed ingot
      * lifted out of a chest or a creative tab has no profile attached, but it is still flawed metal, and metal
      * does not become clean by being hammered: without this, a part forged from it read as better than the
