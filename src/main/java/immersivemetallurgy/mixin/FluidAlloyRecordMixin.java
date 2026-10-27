@@ -1,9 +1,11 @@
 package immersivemetallurgy.mixin;
 
+import immersivemetallurgy.alloy.AlloyMidpoints;
 import immersivemetallurgy.alloy.TolerantAlloyMatcher;
 import immersivemetallurgy.component.AlloyRecord;
 import immersivemetallurgy.component.DefectProfile;
 import immersivemetallurgy.component.MeltComposition;
+import immersivemetallurgy.registry.IMAlloys;
 import immersivemetallurgy.registry.IMDataComponents;
 import immersivemetallurgy.registry.IMFluids;
 
@@ -12,6 +14,7 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.dries007.tfc.common.component.fluid.FluidContainerInfo;
+import net.dries007.tfc.util.Helpers;
 import net.dries007.tfc.util.FluidAlloy;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -175,6 +178,19 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         AlloyRecord record = stack.get(IMDataComponents.ALLOY_RECORD.get());
         if (record != null && record.parts().size() > 1) {
             immersiveMetallurgyCompositions().put(stack.getFluid(), record);
+        } else if (record == null && IMFluids.isOurMolten(stack.getFluid())) {
+            // A flawed melt can arrive with no record at all - given by command, loaded from an older save, or
+            // carried in as a block item - and the arithmetic still has to be told what it is made of. The
+            // middle of TFC's own bands is the one answer that cannot make the bath worse than the stack
+            // already is, because the middle is inside every band: it dilutes like clean metal instead of
+            // poisoning the crucible the way an unlisted fluid does.
+            IMAlloys metal = IMFluids.alloyOf(stack.getFluid());
+            Fluid clean = metal == null ? null : IMFluids.cleanFluidOf(metal);
+            AlloyRecord guessed = clean == null ? null
+                    : AlloyMidpoints.of(Helpers.getUnsafeRecipeManager(), clean);
+            if (guessed != null && guessed.parts().size() > 1) {
+                immersiveMetallurgyCompositions().put(stack.getFluid(), guessed);
+            }
         }
 
         // A melt can arrive knowing how wrong it is without the bath having asked anything yet — that is what

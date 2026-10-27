@@ -7,11 +7,13 @@ import net.dries007.tfc.common.fluids.FluidHolder;
 import net.dries007.tfc.common.fluids.MoltenFluid;
 import net.dries007.tfc.common.fluids.TFCFluids;
 import net.dries007.tfc.util.Metal;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.fluids.BaseFlowingFluid;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -78,6 +80,27 @@ public final class IMFluids {
             }
         }
         return null;
+    }
+
+    /**
+     * Whether this fluid is one of the molten things this mod registers — a metal's flawed form, or slag,
+     * which names no metal. Only these can arrive in a bath without ever having been melted here, and so be
+     * missing the record that says what they are made of.
+     */
+    public static boolean isOurMolten(Fluid fluid) {
+        for (Molten molten : ALL) {
+            if (molten.fluid() == fluid) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The clean TFC fluid of the same metal, whose recipe carries the bands a guess has to be made from. */
+    public static Fluid cleanFluidOf(IMAlloys alloy) {
+        Fluid fluid = BuiltInRegistries.FLUID.get(
+                ResourceLocation.fromNamespaceAndPath("tfc", "metal/" + alloy.key()));
+        return fluid == Fluids.EMPTY ? null : fluid;
     }
 
     private IMFluids() {
