@@ -35,7 +35,7 @@
       "type": "patchouli:spotlight",
       "item": {"item": "tfc:powder/malachite"},
       "title": "The Powder Comes Out of the Washed Ore",
-      "text": "Put washed ore back on the quern and it grinds into **ore powder** - the same powder TFC has always used for dyes, for kaolin and for the colour of glass, four scoops of it for the twenty millibuckets that went in.$p$pWhat it does not do is melt. Metal worth keeping is worth keeping as washed ore, and a powder that also smelted would make the wash a detour instead of a step: grind for paint, and smelt the rest."
+      "text": "Put washed ore back on the quern and it grinds into **ore powder** - the same powder TFC has always used for dyes, for kaolin and for the colour of glass - five scoops, exactly what one lump of the raw ore used to give.$p$pWhat it does not do is melt. Metal worth keeping is worth keeping as washed ore, and a powder that also smelted would make the wash a detour instead of a step: grind for paint, and smelt the rest."
     },
     {
       "type": "patchouli:text",

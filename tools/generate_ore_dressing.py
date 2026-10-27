@@ -40,6 +40,11 @@ RES = os.path.join(HERE, os.pardir, "src", "main", "resources")
 MILLIBUCKETS_PER_SCOOP = 5
 WASH_SCOOPS = 4
 WASHED_MILLIBUCKETS = MILLIBUCKETS_PER_SCOOP * WASH_SCOOPS
+# Five scoops of powder, because that is what TFC's own quern used to give from one normal lump. The wash
+# bundles metal four scoops at a time, but it must not quietly make paint scarcer than it was: a pigment
+# recipe that used to want one lump now wants one washed piece, and the metal arithmetic is the mod's business
+# rather than the dyer's.
+POWDER_PER_WASHED = 5
 WASH_WATER = 100
 HEAT_CAPACITY = 0.7
 
@@ -129,7 +134,7 @@ def main():
         write("data", MOD, "recipe", "quern", f"washed_{variety}.json", value={
             "type": "tfc:quern",
             "ingredient": {"item": washed},
-            "result": {"count": WASH_SCOOPS, "id": f"tfc:powder/{variety}"},
+            "result": {"count": POWDER_PER_WASHED, "id": f"tfc:powder/{variety}"},
         })
         write("data", MOD, "recipe", "barrel", f"wash_{variety}.json", value={
             "type": "tfc:barrel_instant",
