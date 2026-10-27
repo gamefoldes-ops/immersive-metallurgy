@@ -45,21 +45,10 @@ public interface MeltComposition {
 
     /**
      * Takes up to {@code mB} of one fluid out of what the container holds, and answers what really came out.
-     * Skimming slag has to be able to remove dirt without touching the metal, and no public method of the
+     * Holding dirt back has to be able to remove it without touching the metal, and no public method of the
      * container does that: its own drain is proportional, so it would take metal at the same time.
      */
     int immersiveMetallurgyTake(Fluid fluid, int mB);
-
-    /**
-     * How much of this bath's slag the next skim can lift: 0 while nothing is working on it, 1 when real flux
-     * has made the layer thin and cohesive enough to come off whole, and between the two when a re-used basic
-     * slag is doing the same job partly. Anything above 0 also means the skim leaves the metal behind. It is
-     * set when a flux meets slag hot enough to float, and it dies with the slag, so a fresh batch of dirt
-     * needs fresh flux.
-     */
-    float immersiveMetallurgyFluxPower();
-
-    void immersiveMetallurgySetFluxPower(float power);
 
     /**
      * The gangue a melt promised but could not yet hand over, in fractions of a millibucket. Slag is a whole

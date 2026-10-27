@@ -4,7 +4,6 @@ import immersivemetallurgy.ImmersiveMetallurgy;
 import immersivemetallurgy.recipe.AlloyTolerances;
 import immersivemetallurgy.recipe.FlawProfiles;
 import immersivemetallurgy.recipe.OreFouling;
-import immersivemetallurgy.recipe.SlagSkimming;
 import immersivemetallurgy.registry.IMAlloys;
 import immersivemetallurgy.registry.IMFluids;
 import immersivemetallurgy.registry.IMRecipes;
@@ -46,7 +45,6 @@ public final class MeltRules {
         List<MeltRule> rows = new ArrayList<>();
         tolerances(rows, recipes);
         fouling(rows, recipes);
-        skimming(rows, recipes);
         defects(rows, recipes);
         wear(rows, recipes);
         return rows;
@@ -89,22 +87,6 @@ public final class MeltRules {
         rows.add(new MeltRule(List.of(item("tfc:ceramic/vessel"), item("tfc:crucible")), List.of(
                 key("jei.fouling.pot"),
                 key("jei.fouling.pot_floor", text(percent(table.vesselSlagFloor()))))));
-    }
-
-    private static void skimming(List<MeltRule> rows, RecipeManager recipes) {
-        SlagSkimming table = first(recipes, IMRecipes.SLAG_SKIMMING);
-        if (table == null) {
-            return;
-        }
-        List<ItemStack> icons = new ArrayList<>(List.of(item("tfc:ceramic/bowl")));
-        add(icons, table.flux(), MAX_ICONS - icons.size());
-        add(icons, table.weakFlux(), MAX_ICONS - icons.size());
-        rows.add(new MeltRule(icons, List.of(
-                key("jei.skim.title"),
-                key("jei.skim.hand", text(percent(table.slagShare())), text(percent(table.metalLoss()))),
-                key("jei.skim.flux", text(percent(table.weakFluxShare()))),
-                key("jei.skim.dust", text(Math.round(1F / table.dustPerMilliBucket())),
-                        text(Math.round(1F / table.bowlBreakChance()))))));
     }
 
     private static void defects(List<MeltRule> rows, RecipeManager recipes) {
@@ -157,20 +139,14 @@ public final class MeltRules {
             if (path.startsWith("crushed_ore/")) {
                 return "crushed";
             }
+            if (path.startsWith("washed_ore/")) {
+                return "washed";
+            }
             if (path.startsWith("slag_dust")) {
                 return "dust";
             }
         }
         return null;
-    }
-
-    private static void add(List<ItemStack> into, Ingredient ingredient, int room) {
-        for (ItemStack stack : ingredient.getItems()) {
-            if (room-- <= 0) {
-                return;
-            }
-            into.add(stack);
-        }
     }
 
     /** The one table of a type, which is how all four of ours are written: a file per table, not per row. */

@@ -18,7 +18,7 @@
     {
       "type": "patchouli:text",
       "title": "So What",
-      "text": "Smelting straight from rock always gives Flawed metal, because the slag is over the 2% line before you have done anything wrong with the ratio.$p$pThere are two ways out of that. Lift the slag back out of the bath with a bowl and a flux, or take the dirt out of the rock before it ever goes near a fire.$p$pWashing is the cheaper habit once you have a barrel, and the only way to fill a crucible from a heap of poor ore without drowning it."
+      "text": "Smelting straight from rock always gives Flawed metal, because the slag is over the 2% line before you have done anything wrong with the ratio.$p$pThere are exactly two places where that dirt can be dealt with. **Before the fire**: crush the lump, wash the scoops, and the rock never reaches the bath. **After the fire**: a furnace with a tap cut below the floating layer lets the slag leave while the metal stays. Nothing in between - a crucible pours from the top, so its dirt is in the pour, and no tool lifts it off.$p$pWhich is why washing is the habit that carries you from copper to steel, and why the furnace is worth building the day your steel demand stops fitting in one crucible."
     },
     {
       "type": "patchouli:text",
@@ -29,7 +29,7 @@
       "type": "patchouli:spotlight",
       "item": {"item": "immersive_metallurgy:washed_ore/malachite"},
       "title": "Washing Is the Paying Step",
-      "text": "Four scoops of crushed ore and a drink of water in a barrel come out as one piece of **washed ore**, worth the twenty mB they carried between them: the wash spends no metal at all, it only spends the quern stroke and the water. Four rather than five, so a stack of scoops divides without a remainder sitting in the barrel, and five pieces of washed ore fill one mold to the hundredth millibucket.$p$pAnd it takes the dirt with it. Washed ore brings **no slag into the bath whatsoever**, so a crucible filled from it pours clean bronze, clean brass, clean silver - no skimming, no flux, no second pass.$p$pThat is the reward for building the barrel and the grinding stone. What the flaw system can still reach you, it reaches through metal you already melted: re-smelted scrap keeps its defects, and a pot never pours cleaner than ten percent."
+      "text": "Four scoops of crushed ore and a drink of water in a barrel come out as one piece of **washed ore**, worth the twenty mB they carried between them: the wash spends no metal at all, it only spends the quern stroke and the water. Four rather than five, so a stack of scoops divides without a remainder sitting in the barrel, and five pieces of washed ore fill one mold to the hundredth millibucket.$p$pAnd it takes most of the dirt with it. Crushed ore brings about **12% slag**; washed ore brings **3%**, or **5%** when the mineral is a sulfide - bismuthinite, sphalerite, tetrahedrite. Water moves grit, and sulfur sits inside the crystal rather than between grains, so the wash cannot reach it: that is what a furnace's oxidising flux is for.$p$pSo the ladder is one step per tool. Raw ore pours **Severe**, washed ore pours **Minor**, and only a tap below the floating layer makes either of them clean. What the flaw system can still reach you through metal you already melted: re-smelting an object keeps its dirt, because metal does not become clean by being forged."
     },
     {
       "type": "patchouli:spotlight",

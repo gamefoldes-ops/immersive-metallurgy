@@ -1,0 +1,24 @@
+{
+  "name": "The Layer Stays In",
+  "icon": "immersive_metallurgy:slag_dust/bronze",
+  "category": "tfc:metallurgy",
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "Nothing Lifts It Off",
+      "text": "Slag floats, and a crucible pours from the top. That is the whole reason there is no tool for taking the layer off: whatever you pour out of a bath of dirty metal, the dirt goes into the mold with it, so a skim would clean nothing and only cost you metal.$p$pSo dirt is dealt with in two places and two only. **Before the fire**, on the grinding stone and in the barrel. **After the fire**, in a furnace whose tap is cut below the floating layer, so the metal leaves and the slag stays."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "What the Layer Is Worth",
+      "text": "Slag is not metal that went wrong in the ratio - it is the rock the ore came out of the ground with, and it never leaves the melt on its own. A bath of 100 mB of metal carrying 10 mB of slag is 90 mB of metal you can cast and a flaw you have to live with, and the flaw is what the Slag line in the crucible counts.$p$pRe-melting an object moves that dirt along with it rather than removing it, which is why a forge is not a refinery and why the wash is worth the barrel."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": {"item": "immersive_metallurgy:slag_dust/steel"},
+      "title": "Slag Dust",
+      "text": "What the dirt looks like once a tap takes it out: a dust named for the metal it came off, because real slag is never one thing. It gives back the metal still hanging in it when you melt it, it feeds phosphate into a tired field - the way ground-up furnace slag did on European farmland from the 1880s - and the basic kind from the iron and steel family wants sulfur and phosphorus, which is what makes it worth throwing back into a furnace rather than onto a heap.$p$pUntil a furnace exists there is not much of it to be had, and that is the honest cost of smelting straight from rock."
+    }
+  ]
+}

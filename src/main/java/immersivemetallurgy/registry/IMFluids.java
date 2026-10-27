@@ -45,7 +45,7 @@ public final class IMFluids {
 
     /**
      * Which metal a molten fluid is, ours or TFC's, or null for a fluid that is not metal at all — slag is the
-     * one in the crucible that names nothing. Skimming needs this to hand back dirt that says what it was dirt
+     * one in the crucible that names nothing. Turning that dirt into an item needs this to say what it was dirt
      * in, and the bath keeps its own identity, so the fluid is the only place the answer is written.
      */
     public static IMAlloys alloyOf(Fluid fluid) {

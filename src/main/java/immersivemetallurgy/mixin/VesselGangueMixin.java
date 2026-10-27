@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 /**
- * A ceramic pot melts without a skim and without flux, so the gangue the charge carried stays in the pour and
+ * A ceramic pot melts with no way to take dirt off it, so the gangue the charge carried stays in the pour and
  * the pot wall and the open fire add more to it. TFC knows no slag at all, so a pot and a crucible would pour
  * the same ingot from the same charge. This holds the pot's melt down to a slag floor as the melt is written
  * back: dirt that has no room of its own takes metal with it, which is what a fire loss is, and which keeps the

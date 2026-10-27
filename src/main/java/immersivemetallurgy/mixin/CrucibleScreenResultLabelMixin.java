@@ -1,7 +1,6 @@
 package immersivemetallurgy.mixin;
 
 import immersivemetallurgy.client.IMMetalNames;
-import immersivemetallurgy.component.MeltComposition;
 import immersivemetallurgy.registry.IMFluids;
 
 import net.dries007.tfc.client.screen.CrucibleScreen;
@@ -9,10 +8,8 @@ import net.dries007.tfc.common.blockentities.CrucibleBlockEntity;
 import net.dries007.tfc.common.container.BlockEntityContainer;
 import net.dries007.tfc.util.FluidAlloy;
 import net.dries007.tfc.util.data.FluidHeat;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.inventory.MenuAccess;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidType;
@@ -24,8 +21,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 /**
  * The crucible screen names its contents after the fluid, and TFC only ships molten names, so a cooled
  * crucible still reads "Molten Bronze" in both its headline and its content rows. This relabels both by
- * temperature, marks the slag row once flux has made it liftable so the bowl gesture has a target the
- * player can see, and puts each row's percentage over the denominator the alloy arithmetic actually uses.
+ * temperature and puts each row's percentage over the denominator the alloy arithmetic actually uses.
  */
 @Mixin(CrucibleScreen.class)
 public class CrucibleScreenResultLabelMixin {
@@ -40,11 +36,6 @@ public class CrucibleScreenResultLabelMixin {
         return result.isEmpty() ? type.getDescription() : immersiveMetallurgy$stateAwareName(result.getFluid(), type.getDescription());
     }
 
-    /**
-     * Rows are drawn as plain strings, so only the wording survives, and the name is cut off at 141 px
-     * before the colon is added — the marker stays short, and slag keeps its bare name instead of the
-     * "Molten" prefix, for that reason.
-     */
     @Redirect(method = "renderBg(Lnet/minecraft/client/gui/GuiGraphics;FII)V",
             at = @At(value = "INVOKE", target = "Lnet/neoforged/neoforge/fluids/FluidType;getDescription()Lnet/minecraft/network/chat/Component;", ordinal = 1))
     private Component immersiveMetallurgy$nameContentRow(FluidType type) {
@@ -53,13 +44,11 @@ public class CrucibleScreenResultLabelMixin {
         if (fluid == null) {
             return type.getDescription();
         }
-        MutableComponent name = (fluid == IMFluids.SLAG.fluid()
+        // Slag keeps its bare name rather than the "Molten" prefix, and rows are drawn as plain strings, so
+        // only the wording survives and the name is cut off at 141 px before the colon is added.
+        return fluid == IMFluids.SLAG.fluid()
                 ? IMMetalNames.name(fluid)
-                : immersiveMetallurgy$stateAwareName(fluid, type.getDescription())).copy();
-        if (fluid == IMFluids.SLAG.fluid() && ((MeltComposition) (Object) immersiveMetallurgy$crucible().getAlloy()).immersiveMetallurgyFluxPower() > 0F) {
-            name.append(Component.literal(" ")).append(Component.translatable("immersive_metallurgy.screen.skim_ready").withStyle(ChatFormatting.GOLD));
-        }
-        return name;
+                : immersiveMetallurgy$stateAwareName(fluid, type.getDescription());
     }
 
     /**

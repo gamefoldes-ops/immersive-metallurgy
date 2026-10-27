@@ -30,7 +30,7 @@ import java.util.List;
  *
  * @param slagRatio how much slag an ore adds per unit of metal it yields, so 0.25 means a 100 mB yield leaves
  *                  25 mB of slag riding along and the melt is 80% metal
- * @param vesselSlagFloor the slag share a ceramic melting pot always holds onto. A pot has no skim and no flux,
+ * @param vesselSlagFloor the slag share a ceramic melting pot always holds onto. A pot has no tap and no flux,
  *                  so this is its purity ceiling: nothing poured out of one is purer than 1 - this. 0 disables it.
  */
 public record OreFouling(List<Entry> entries, float vesselSlagFloor) implements Recipe<NoopInput> {

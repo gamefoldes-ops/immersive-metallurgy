@@ -24,7 +24,7 @@ public final class IMItems {
     public static final List<DeferredHolder<Item, Item>> FLAWED_INGOTS = new ArrayList<>();
 
     /**
-     * What comes off a skim: dirt with a use, rather than nothing to show for the work.
+     * What leaves a bath as dirt: slag with a use, rather than nothing to show for the work.
      */
     public static final DeferredHolder<Item, Item> SLAG_DUST =
             ITEMS.registerItem("slag_dust", properties -> new Item(properties.stacksTo(16)));

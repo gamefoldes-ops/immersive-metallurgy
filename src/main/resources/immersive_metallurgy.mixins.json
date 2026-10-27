@@ -7,7 +7,6 @@
     "AlloyRecipeGetMixin",
     "AnvilRecipeRecordMixin",
     "CastingRecipeRecordMixin",
-    "CrucibleFluxIntakeMixin",
     "CrucibleLedgerCaptureMixin",
     "CrucibleLedgerRestoreMixin",
     "FluidAlloyRecordMixin",

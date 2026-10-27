@@ -43,7 +43,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class FluidAlloyRecordMixin implements MeltComposition {
     @Unique
     private static final String COMPOSITIONS_KEY = "immersive_metallurgy:compositions";
-    private static final String FLUX_POWER_KEY = "immersive_metallurgy:flux_power";
     private static final String SLAG_OWED_KEY = "immersive_metallurgy:slag_owed";
 
     @Shadow
@@ -80,9 +79,6 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     }
 
     @Unique
-    private float immersiveMetallurgy$fluxPower;
-
-    @Unique
     private double immersiveMetallurgy$slagOwed;
 
     @Override
@@ -96,8 +92,8 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     }
 
     /**
-     * Removes one fluid without disturbing the others, which is what skimming needs: the container's own
-     * drain takes every fluid in proportion, so a skim would throw away metal with the dirt. The cached
+     * Removes one fluid without disturbing the others, which is what holding dirt back needs: the container's
+     * own drain takes every fluid in proportion, so it would throw away metal with the dirt. The cached
      * result is dropped through TFC's own path so the next lookup recomputes against the new contents.
      */
     @Override
@@ -114,8 +110,8 @@ public class FluidAlloyRecordMixin implements MeltComposition {
             this.content.put(fluid, left);
         }
         this.amount -= taken;
-        // A skim is the one change that has to forget the ratio: a pour needs it to hold still only while that
-        // pour is in flight, and the dirt lifted off the top is no longer in anything poured after it.
+        // Taking fluid out is the one change that has to forget the ratio: a pour needs it to hold still only
+        // while that pour is in flight, and the dirt lifted off the top is no longer in anything poured after it.
         this.immersiveMetallurgy$leafRecord = null;
         clearCaches();
         return taken;
@@ -137,16 +133,6 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     @Override
     public void immersiveMetallurgySetRecord(AlloyRecord record) {
         this.immersiveMetallurgy$leafRecord = record;
-    }
-
-    @Override
-    public float immersiveMetallurgyFluxPower() {
-        return this.immersiveMetallurgy$fluxPower;
-    }
-
-    @Override
-    public void immersiveMetallurgySetFluxPower(float power) {
-        this.immersiveMetallurgy$fluxPower = power;
     }
 
     @Override
@@ -290,7 +276,6 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     private void immersiveMetallurgy$carryCompositions(CallbackInfoReturnable<FluidAlloy> cir) {
         MeltComposition copy = (MeltComposition) (Object) cir.getReturnValue();
         copy.immersiveMetallurgyCompositions().putAll(immersiveMetallurgyCompositions());
-        copy.immersiveMetallurgySetFluxPower(immersiveMetallurgyFluxPower());
         copy.immersiveMetallurgySetRecord(immersiveMetallurgyRecord());
         copy.immersiveMetallurgySetSlagOwed(immersiveMetallurgySlagOwed());
         // The vessel copies the alloy for each operation, so what the pour is called has to travel with it or
@@ -302,18 +287,15 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     private void immersiveMetallurgy$adoptCompositions(FluidAlloy other, CallbackInfo ci) {
         MeltComposition source = (MeltComposition) (Object) other;
         immersiveMetallurgyCompositions().putAll(source.immersiveMetallurgyCompositions());
-        this.immersiveMetallurgy$fluxPower = source.immersiveMetallurgyFluxPower();
         this.immersiveMetallurgy$leafRecord = source.immersiveMetallurgyRecord();
         this.immersiveMetallurgy$slagOwed = source.immersiveMetallurgySlagOwed();
+        this.immersiveMetallurgy$pourAnswer = source.immersiveMetallurgyPourAnswer();
     }
 
     @Inject(method = "serializeNBT()Lnet/minecraft/nbt/Tag;", at = @At("TAIL"))
     private void immersiveMetallurgy$writeCompositions(CallbackInfoReturnable<Tag> cir) {
         if (!(cir.getReturnValue() instanceof CompoundTag tag)) {
             return;
-        }
-        if (this.immersiveMetallurgy$fluxPower > 0F) {
-            tag.putFloat(FLUX_POWER_KEY, this.immersiveMetallurgy$fluxPower);
         }
         if (this.immersiveMetallurgy$slagOwed > 0) {
             tag.putDouble(SLAG_OWED_KEY, this.immersiveMetallurgy$slagOwed);
@@ -337,7 +319,6 @@ public class FluidAlloyRecordMixin implements MeltComposition {
     private void immersiveMetallurgy$readCompositions(CompoundTag tag, CallbackInfo ci) {
         this.immersiveMetallurgy$leafRecord = null;
         this.immersiveMetallurgy$slagOwed = tag.getDouble(SLAG_OWED_KEY);
-        this.immersiveMetallurgy$fluxPower = tag.getFloat(FLUX_POWER_KEY);
         if (!tag.contains(COMPOSITIONS_KEY, Tag.TAG_LIST)) {
             return;
         }

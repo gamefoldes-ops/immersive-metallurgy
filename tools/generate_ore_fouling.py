@@ -51,8 +51,22 @@ DUST_SLAG_RATIO = 0.6
 
 # Crushing frees the mineral from the rock and takes nothing out of it, so a scoop of crushed ore is as dirty as
 # the lump it came from - and the grade is no longer written anywhere on it, so the whole band collapses to its
-# middle. The concentrate has no row at all: no row means no gangue, and that is the payoff of the barrel.
+# middle.
 CRUSHED_SLAG_RATIO = 0.12
+
+# Washing moves grit. It does not take the sulfur out of a mineral, which is what a roast or a furnace's own
+# oxidising flux is for, so a washed piece keeps a residue instead of reaching zero, and the ladder the mod is
+# built on holds: raw ore is Severe, washed ore is Minor, and nothing short of a tap below the slag layer makes
+# metal clean. Sulfides and sulfosalts keep the larger share, which is also the honest reason bismuth bronze and
+# brass stay dirty longest - bismuthinite, sphalerite and tetrahedrite are exactly those metals' ores.
+WASHED_SLAG_RATIO = 0.03
+WASHED_SULFIDE_SLAG_RATIO = 0.05
+WASHED_SULFIDES = ("bismuthinite", "sphalerite", "tetrahedrite")
+
+# Tighter than raw ore's spread on purpose: a washed scoop must not be able to roll under a rule's
+# slag_tolerance and pour clean, because then the residue would be a lottery rather than the reason to build a
+# furnace.
+WASHED_SPREAD = 0.2
 
 
 def default_jar():
@@ -96,6 +110,13 @@ def main():
         entries.append({"ingredient": {"item": f"{MOD}:crushed_ore/{variety}"},
                         "slag_ratio": CRUSHED_SLAG_RATIO,
                         "slag_spread": round(CRUSHED_SLAG_RATIO * SPREAD, 3)})
+
+    # And the barrel's own product, which is the cleanest thing a player can smelt before a furnace exists.
+    for variety in ores.varieties_in_code():
+        ratio = WASHED_SULFIDE_SLAG_RATIO if variety in WASHED_SULFIDES else WASHED_SLAG_RATIO
+        entries.append({"ingredient": {"item": f"{MOD}:washed_ore/{variety}"},
+                        "slag_ratio": ratio,
+                        "slag_spread": round(ratio * WASHED_SPREAD, 3)})
 
     full = os.path.join(RES, "data", MOD, "recipe", "ore_fouling", "ores.json")
     os.makedirs(os.path.dirname(full), exist_ok=True)

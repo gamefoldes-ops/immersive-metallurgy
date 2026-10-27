@@ -4,7 +4,6 @@ import immersivemetallurgy.ImmersiveMetallurgy;
 import immersivemetallurgy.recipe.AlloyTolerances;
 import immersivemetallurgy.recipe.FlawProfiles;
 import immersivemetallurgy.recipe.OreFouling;
-import immersivemetallurgy.recipe.SlagSkimming;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -15,7 +14,7 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 /**
- * Our own recipe type for the numbers that steer forgiving melting. It is a recipe only because
+ * Our own recipe types for the numbers that steer forgiving melting. They are recipes only because
  * that is the one datapack structure Minecraft syncs to the client and reloads with {@code /reload},
  * and the crucible result is recomputed client side every time the contents change.
  */
@@ -23,7 +22,6 @@ public final class IMRecipes {
     public static final ResourceLocation ALLOY_TOLERANCE_ID = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "alloy_tolerance");
     public static final ResourceLocation FLAW_PROFILE_ID = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "flaw_profile");
     public static final ResourceLocation ORE_FOULING_ID = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "ore_fouling");
-    public static final ResourceLocation SLAG_SKIMMING_ID = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "slag_skimming");
 
     public static final DeferredRegister<RecipeType<?>> RECIPE_TYPES = DeferredRegister.create(Registries.RECIPE_TYPE, ImmersiveMetallurgy.MODID);
     public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(Registries.RECIPE_SERIALIZER, ImmersiveMetallurgy.MODID);
@@ -42,11 +40,6 @@ public final class IMRecipes {
             RECIPE_TYPES.register("ore_fouling", () -> RecipeType.simple(ORE_FOULING_ID));
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<OreFouling>> ORE_FOULING_SERIALIZER =
             RECIPE_SERIALIZERS.register("ore_fouling", OreFouling::serializer);
-
-    public static final DeferredHolder<RecipeType<?>, RecipeType<SlagSkimming>> SLAG_SKIMMING =
-            RECIPE_TYPES.register("slag_skimming", () -> RecipeType.simple(SLAG_SKIMMING_ID));
-    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<SlagSkimming>> SLAG_SKIMMING_SERIALIZER =
-            RECIPE_SERIALIZERS.register("slag_skimming", SlagSkimming::serializer);
 
     private IMRecipes() {
     }

@@ -41,8 +41,8 @@ public final class MeltCarries {
             to.set(IMDataComponents.DEFECT_PROFILE.get(), defect);
         }
         // The dirt a pour left in the metal stays in the scrap. Without this a flawed ingot melted next to
-        // clean copper launders itself into clean bronze without a single skim, because the slag only ever
-        // rode on the fluid and never came back with the item.
+        // clean copper launders itself into clean bronze, because the slag only ever rode on the fluid and never
+        // came back with the item.
         if (defect != null && defect.slagShare() > 0 && !to.has(IMDataComponents.SLAG_RATIO.get())) {
             to.set(IMDataComponents.SLAG_RATIO.get(), defect.slagShare() / (1F - defect.slagShare()));
         }
