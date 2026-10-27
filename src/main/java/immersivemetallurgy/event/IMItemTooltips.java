@@ -6,8 +6,10 @@ import immersivemetallurgy.recipe.FlawProfiles;
 import immersivemetallurgy.registry.IMDataComponents;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -50,7 +52,23 @@ public final class IMItemTooltips {
                     .withStyle(sharpness < 40 ? ChatFormatting.RED : ChatFormatting.GRAY));
         }
 
+        // JEI renders an item by asking the game for its tooltip, so this is the only place both the inventory
+        // and a recipe page can say what the mod does to that item: a flawed sheet, part or tool is TFC's own
+        // item with a defect on the stack, so its recipe appears once and the flaw is written on the object.
+        // Under F3+H with the rest of the explanatory detail, because it is about the class of item and not
+        // about this stack.
+        if (advanced && profile == null && isForgedMetal(stack)) {
+            lines.add(Component.translatable("immersive_metallurgy.tooltip.shares_the_name")
+                    .withStyle(ChatFormatting.DARK_GRAY));
+        }
+
         event.getToolTip().addAll(lines);
+    }
+
+    /** Anything this mod can hand a defect to: TFC's own metal objects, whose flawed form is the same item. */
+    private static boolean isForgedMetal(ItemStack stack) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return "tfc".equals(id.getNamespace()) && id.getPath().startsWith("metal/");
     }
 
     private static List<Component> defectLines(DefectProfile profile, FlawProfiles profiles, boolean advanced) {
