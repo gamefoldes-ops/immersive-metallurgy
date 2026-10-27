@@ -7,12 +7,14 @@ but a race, and TFC won that race the first time this chain shipped its own quer
 out of TFC's recipes rather than invented, so a crushed scoop is worth what a powder scoop always was and a lump
 holds the same metal whichever way the player grinds it - the grade surviving as a count.
 
-`washed_ore/<ore>` is what a barrel of water makes of four scoops, and it is clean: it has no row in the fouling
-table at all, which is how the game reads it, and that is the whole payoff of building a barrel. Four rather
-than five so a full stack of scoops divides without a remainder left sitting in the barrel, and five pieces of
-washed ore then fill one mold exactly. Gravity sorting is the honest reason for the oxides and the native metals;
-for the sulfides the barrel stands in for the hand-picking and the roasting a real plant would have spent, which
-is the one place this chain is a game rather than a furnace.
+`washed_ore/<ore>` is what a barrel of water makes of four scoops. It is the cleanest thing a player can smelt
+before a furnace exists, and it is not clean: water moves grit out of the rock, and the sulfur in a sulfide sits
+inside the crystal, so a washed piece keeps 3% slag, or 5% for bismuthinite, sphalerite and tetrahedrite (the
+rows live in `tools/generate_ore_fouling.py`). Four scoops rather than five so a full stack divides without a
+remainder left sitting in the barrel, and five pieces of washed ore then fill one mold exactly. Gravity sorting
+is the honest reason for the oxides and the native metals; for the sulfides the barrel stands in for the
+hand-picking a real plant would have spent, and the roasting that would have taken the sulfur is what the
+furnace's oxidising flux is for.
 
 Grinding washed ore on the quern gives back `tfc:powder/<ore>` - TFC's own powder, still the pigment and the
 glass colour it always was, and nothing else. It is deliberately not meltable: metal worth keeping is worth
