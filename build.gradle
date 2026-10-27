@@ -17,7 +17,7 @@ repositories {
         forRepository {
             maven { url = 'https://maven.blamejared.com' }
         }
-        filter { includeGroup 'vazkii.patchouli' }
+        filter { includeGroup 'vazkii.patchouli'; includeGroup 'mezz.jei'; includeGroup 'net.mezzdev.config' }
     }
 }
 
@@ -69,6 +69,10 @@ dependencies {
     compileOnly "maven.modrinth:terrafirmacraft:${tfc_version}"
     localRuntime "maven.modrinth:terrafirmacraft:${tfc_version}"
     localRuntime "vazkii.patchouli:Patchouli:${patchouli_version}"
+
+    // JEI's API lives in its main artifact, so the plugin compiles against that and dev runs load it
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 }
 
 // The only place the version, license and dependency ranges are written once: they are substituted into
