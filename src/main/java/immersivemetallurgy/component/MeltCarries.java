@@ -3,6 +3,7 @@ package immersivemetallurgy.component;
 import immersivemetallurgy.ImmersiveMetallurgy;
 import immersivemetallurgy.recipe.FlawProfiles;
 import immersivemetallurgy.registry.IMDataComponents;
+import immersivemetallurgy.registry.IMFluids;
 
 import net.dries007.tfc.util.Helpers;
 import net.minecraft.core.component.DataComponentHolder;
@@ -10,6 +11,8 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.material.Fluid;
+import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
 
 /**
@@ -43,10 +46,34 @@ public final class MeltCarries {
         // The dirt a pour left in the metal stays in the scrap. Without this a flawed ingot melted next to
         // clean copper launders itself into clean bronze, because the slag only ever rode on the fluid and never
         // came back with the item.
-        if (defect != null && defect.slagShare() > 0 && !to.has(IMDataComponents.SLAG_RATIO.get())) {
+        Float owed = from.get(IMDataComponents.SLAG_RATIO.get());
+        if (owed != null && owed > 0 && !to.has(IMDataComponents.SLAG_RATIO.get())) {
+            to.set(IMDataComponents.SLAG_RATIO.get(), owed);
+        } else if (defect != null && defect.slagShare() > 0 && !to.has(IMDataComponents.SLAG_RATIO.get())) {
             to.set(IMDataComponents.SLAG_RATIO.get(), defect.slagShare() / (1F - defect.slagShare()));
         }
         priceTheDefect(to);
+    }
+
+    /**
+     * A pour's identity is the fluid it is made of, and only a flawed metal has a flawed fluid, so this is the
+     * one place that decides whether a melt keeps the clean name whatever produced it handed it. TFC picks that
+     * name from the item id or from a recipe's own output, and neither of them knows that the metal remembers
+     * being wrong: a plate forged from flawed bronze is TFC's plate, and the blast furnace's answer is cast
+     * iron by recipe. Metal does not become clean by being moved, so the melt is relabelled here.
+     */
+    public static FluidStack keepTheFlaw(DataComponentHolder source, FluidStack melt) {
+        DefectProfile defect = measuredOrImplied(source);
+        if (defect == null || defect.isClean()) {
+            return melt;
+        }
+        Fluid flawed = IMFluids.flawedFluidOf(IMFluids.alloyOf(melt.getFluid()));
+        if (flawed == null || flawed == melt.getFluid()) {
+            return melt;
+        }
+        FluidStack relabelled = new FluidStack(flawed, melt.getAmount());
+        copyInto(source, relabelled);
+        return relabelled;
     }
 
     /**

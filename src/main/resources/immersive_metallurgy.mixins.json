@@ -6,6 +6,7 @@
   "mixins": [
     "AlloyRecipeGetMixin",
     "AnvilRecipeRecordMixin",
+    "BlastFurnaceOutputMixin",
     "CastingRecipeRecordMixin",
     "CrucibleLedgerCaptureMixin",
     "CrucibleLedgerRestoreMixin",
