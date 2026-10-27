@@ -227,12 +227,7 @@ public final class TolerantAlloyMatcher {
 
     private record Candidate(AlloyRecipe result, ResourceLocation id, double flaw, double deficit, double slagShare, DefectProfile defect, Map<Fluid, Double> components) {
         private Match toMatch() {
-            boolean clean = flaw <= EPS;
-            if (!clean) {
-                // Debug only: the client recomputes the crucible result on every render, so this fires constantly.
-                ImmersiveMetallurgy.LOGGER.debug("Forgiving melt for {}: deficit={}, slag={}, defect={}", id, deficit, slagShare, defect);
-            }
-            return new Match(result, clean, deficit, slagShare, defect, components);
+            return new Match(result, flaw <= EPS, deficit, slagShare, defect, components);
         }
     }
 
