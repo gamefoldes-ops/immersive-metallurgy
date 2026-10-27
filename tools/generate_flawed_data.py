@@ -24,7 +24,7 @@ INGOT_HEAT_CAPACITY = 2.857143
 DOUBLE_INGOT_HEAT_CAPACITY = 5.714286
 MILLIBUCKETS = 100
 CAST_BREAK_CHANCE = 0.1
-# One dust of skimmed slag is worth this much of the metal it was lifted off, and it returns with its own
+# One dust of slag is worth this much of the metal it came out of, and it returns with its own
 # dirt attached (see the slag dust rows in tools/generate_ore_fouling.py), so the loop is a consolation,
 # not a way to get something for nothing.
 DUST_RECOVERY_MILLIBUCKETS = 4
@@ -171,7 +171,6 @@ def make_ingot(color, double):
 
 lang = {
     "itemGroup.immersive_metallurgy": "Immersive Metallurgy",
-    "immersive_metallurgy.screen.skim_ready": "[skim ready]",
     "immersive_metallurgy.tooltip.defects": "Defects: %s",
     "immersive_metallurgy.name.flawed": "Flawed %s",
     "immersive_metallurgy.tooltip.sharpness": "Edge: %s",
@@ -239,8 +238,8 @@ for key, display, melt, forging, welding, has_double, tint, specific_heat in ALL
         "temperature": melt,
     })
 
-    # Skimmed slag goes back into the bath for the metal still hanging in it. Real slag holds 1-5% metal and
-    # is reprocessed industrially; here one dust is worth four millilitres of the metal it was skimmed off,
+    # Slag that left a bath goes back into one for the metal still hanging in it. Real slag holds 1-5% metal and
+    # is reprocessed industrially; here one dust is worth four millilitres of the metal it came out of,
     # which is richer than a plant because you are picking visible prills out by hand, and it comes back
     # dirtier than it went in (the fouling table gives slag dust a high slag_ratio), so recovery costs.
     write("data", MOD, "recipe", "heating", "powder", f"slag_dust_{key}.json", value={
@@ -333,11 +332,9 @@ lang["tag.item.c.double_ingots.flawed"] = "Flawed Double Ingots"
 write("data", "c", "tags", "item", "slag_dust.json", value={"values": dust_tag_values + [f"{MOD}:slag_dust"]})
 lang["tag.item.c.slag_dust"] = "Slag Dust"
 
-# Wood would not survive touching a bath of molten metal, so the plain bowl is not a skimmer.
-write("data", MOD, "tags", "item", "slag_skimmers.json", value={"values": ["tfc:ceramic/bowl"]})
-# Basic slag is the lime-rich kind that comes off iron and steel, and it is the only slag that can stand in
-# for flux a second time: it still wants sulfur and phosphorus. Copper-tin slag is an acidic silicate, so its
-# dust is not in here at all.
+# Basic slag is the lime-rich kind that comes off iron and steel: it still wants sulfur and phosphorus, which
+# is what makes it worth throwing back into a furnace rather than onto a heap, and what made ground-up furnace
+# slag a fertiliser. Copper-tin slag is an acidic silicate, so its dust is not in here at all.
 basic_dust = [f"#c:slag_dust/{alloy[0]}" for alloy in ALLOYS if "steel" in alloy[0] or "iron" in alloy[0]]
 write("data", MOD, "tags", "item", "basic_slag_dust.json", value={"values": basic_dust})
 lang["tag." + MOD + ".basic_slag_dust"] = "Basic Slag Dust"
@@ -347,9 +344,6 @@ write("data", MOD, "tfc", "fertilizer", "basic_slag_dust.json", value={
     "ingredient": {"tag": f"{MOD}:basic_slag_dust"},
     "phosphorus": 0.25,
 })
-write("data", MOD, "tags", "item", "burns_in_the_crucible.json", value={"values": ["minecraft:bowl"]})
-
-# The one item that is not a metal, but exists because skimmed slag has to go somewhere.
 write("assets", MOD, "models", "item", "slag_dust.json", value={
     "parent": "item/generated",
     "textures": {"layer0": f"{MOD}:item/slag_dust"},
