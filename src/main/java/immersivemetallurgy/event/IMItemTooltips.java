@@ -43,6 +43,12 @@ public final class IMItemTooltips {
         DefectProfile profile = stack.get(IMDataComponents.DEFECT_PROFILE.get());
         if (profile != null && !profile.isClean()) {
             lines.addAll(defectLines(profile, profiles, advanced));
+            // How much of the piece is dirt, printed next to the faults that dirt caused: without it the only
+            // way to ask "is this stack washed metal or stuff someone laundered" is to melt it and watch the
+            // crucible, which is a lot of trouble for a question a player should be able to ask anywhere.
+            if (advanced && profile.slagShare() > 0) {
+                lines.add(translated("tooltip.slag", percent(profile.slagShare())).withStyle(ChatFormatting.GRAY));
+            }
         }
 
         Float sharpness = stack.get(IMDataComponents.SHARPNESS.get());
