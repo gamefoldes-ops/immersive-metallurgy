@@ -195,6 +195,35 @@ public final class TolerantAlloyMatcher {
         return (float) Mth.clamp((slagShare - rule.slagTolerance()) / window, 0D, 1D);
     }
 
+    /**
+     * What a bath of this metal holding this much dirt would be worth, for the machines that never ask the alloy
+     * lookup at all. A bloomery is one of them: charcoal and no flux, so the gangue of an ore charge has nowhere
+     * to go but into the iron — which is why real blooms are full of slag stringers and why they had to be
+     * shingled before use. Same numbers the crucible's own verdict uses, so the two can never disagree about how
+     * dirty the same iron is.
+     */
+    public static DefectProfile slagProfile(RecipeManager recipes, Fluid metal, double slagShare) {
+        Rule rule = null;
+        for (RecipeHolder<AlloyTolerances> holder : RecipeHelpers.getRecipes(recipes, IMRecipes.ALLOY_TOLERANCE)) {
+            for (Rule candidate : holder.value().rules()) {
+                if (candidate.alloy() == metal || candidate.flawedResult() == metal) {
+                    rule = candidate;
+                }
+            }
+        }
+        if (rule == null || slagShare <= rule.slagTolerance() || slagShare > rule.maxSlag()) {
+            return DefectProfile.CLEAN;
+        }
+        FlawProfiles profiles = null;
+        for (RecipeHolder<FlawProfiles> holder : RecipeHelpers.getRecipes(recipes, IMRecipes.FLAW_PROFILE)) {
+            profiles = holder.value();
+            break;
+        }
+        return profiles == null
+                ? DefectProfile.CLEAN
+                : toProfile(profiles, Map.of(), Map.of(), slagSeverity(rule, slagShare), 0F, (float) slagShare);
+    }
+
     /** One element off band scores 0, two score half, three or more score 1: a melt wrong in several ways pours badly. */
     private static float spread(int outOfBand) {
         return Mth.clamp((outOfBand - 1) / 2F, 0F, 1F);
