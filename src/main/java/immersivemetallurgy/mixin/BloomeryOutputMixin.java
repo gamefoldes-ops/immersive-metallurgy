@@ -22,7 +22,9 @@ public class BloomeryOutputMixin {
             at = @At(value = "INVOKE", target = "Lnet/dries007/tfc/common/recipes/BloomeryRecipe;assembleOutput()Lnet/minecraft/world/item/ItemStack;"))
     private ItemStack immersiveMetallurgy$carryTheFlaw(BloomeryRecipe recipe) {
         ItemStack bloom = recipe.assembleOutput();
-        MeltCarries.mergeWorstInto(((BloomeryBlockEntity) (Object) this).getInputStacks(), bloom);
+        // Shared by one, not by two: a bloom is fired out of a charge, and nothing in that stack of charcoal
+        // takes slag out of the iron. The anvil is the step that does, and it is already downstream.
+        MeltCarries.mergeWorstInto(((BloomeryBlockEntity) (Object) this).getInputStacks(), bloom, 1F);
         return bloom;
     }
 }

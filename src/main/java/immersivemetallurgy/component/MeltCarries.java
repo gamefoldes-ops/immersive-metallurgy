@@ -84,6 +84,20 @@ public final class MeltCarries {
      * would have to fix.
      */
     public static void mergeWorstInto(Iterable<ItemStack> pieces, MutableDataComponentHolder to) {
+        float divisor = 1F;
+        FlawProfiles profiles = FlawProfiles.of(Helpers.getUnsafeRecipeManager());
+        if (profiles != null) {
+            divisor = profiles.weldMergeDivisor();
+        }
+        mergeWorstInto(pieces, to, divisor);
+    }
+
+    /**
+     * As above, with the sharing written out. A bloom gets the full dose rather than a shared one: nothing
+     * drives slag out of a bloom in the stack of charcoal it was fired in, and the step that does is the
+     * anvil — so halving here would make the bloomery a cleaner, which is exactly what it must not be.
+     */
+    public static void mergeWorstInto(Iterable<ItemStack> pieces, MutableDataComponentHolder to, float divisor) {
         float brittle = 0;
         float soft = 0;
         float edgeWear = 0;
@@ -121,7 +135,6 @@ public final class MeltCarries {
             // and now and then the two faults feed each other. Sharing the sum by two keeps a weld of two
             // equal halves at exactly the severity of either one.
             FlawProfiles profiles = FlawProfiles.of(Helpers.getUnsafeRecipeManager());
-            float divisor = profiles == null ? 2F : profiles.weldMergeDivisor();
             brittle = Math.min(1F, brittle / divisor);
             soft = Math.min(1F, soft / divisor);
             edgeWear = Math.min(1F, edgeWear / divisor);
