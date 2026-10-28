@@ -154,12 +154,43 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         for (Object2DoubleMap.Entry<Fluid> entry : this.content.object2DoubleEntrySet()) {
             AlloyRecord record = immersiveMetallurgyCompositions().get(entry.getKey());
             if (record == null) {
+                record = assumeCompositionOf(entry.getKey());
+            }
+            if (record == null) {
                 leaves.mergeDouble(entry.getKey(), entry.getDoubleValue(), Double::sum);
             } else {
                 record.addTo(entry.getDoubleValue(), leaves);
             }
         }
         return leaves;
+    }
+
+    /**
+     * A flawed melt can sit in a bath with no record of what it was made of — given by command, loaded from an
+     * older save, or carried in as a block item — and the arithmetic still has to be told what it is made of,
+     * because an unlisted fluid makes TFC answer junk for the whole crucible and the melt is never revisited.
+     * Guessed here rather than where the metal arrives, because a bath gains metal through more than one door:
+     * the vessel's per-operation copy, the drip of a pour from another container, and the world's own save.
+     * The middle of TFC's bands is the one answer that cannot make the bath worse than the stack already is,
+     * since the middle sits inside every band; and it is kept, so the pour that comes out remembers being
+     * assumed the same way the bath was judged.
+     */
+    @Unique
+    private AlloyRecord assumeCompositionOf(Fluid fluid) {
+        if (!IMFluids.isOurMolten(fluid)) {
+            return null;
+        }
+        IMAlloys metal = IMFluids.alloyOf(fluid);
+        Fluid clean = metal == null ? null : IMFluids.cleanFluidOf(metal);
+        if (clean == null) {
+            return null;
+        }
+        AlloyRecord guessed = AlloyMidpoints.of(Helpers.getUnsafeRecipeManager(), clean);
+        if (guessed == null || guessed.parts().size() <= 1) {
+            return null;
+        }
+        immersiveMetallurgyCompositions().put(fluid, guessed);
+        return guessed;
     }
 
     /**
@@ -178,19 +209,6 @@ public class FluidAlloyRecordMixin implements MeltComposition {
         AlloyRecord record = stack.get(IMDataComponents.ALLOY_RECORD.get());
         if (record != null && record.parts().size() > 1) {
             immersiveMetallurgyCompositions().put(stack.getFluid(), record);
-        } else if (record == null && IMFluids.isOurMolten(stack.getFluid())) {
-            // A flawed melt can arrive with no record at all - given by command, loaded from an older save, or
-            // carried in as a block item - and the arithmetic still has to be told what it is made of. The
-            // middle of TFC's own bands is the one answer that cannot make the bath worse than the stack
-            // already is, because the middle is inside every band: it dilutes like clean metal instead of
-            // poisoning the crucible the way an unlisted fluid does.
-            IMAlloys metal = IMFluids.alloyOf(stack.getFluid());
-            Fluid clean = metal == null ? null : IMFluids.cleanFluidOf(metal);
-            AlloyRecord guessed = clean == null ? null
-                    : AlloyMidpoints.of(Helpers.getUnsafeRecipeManager(), clean);
-            if (guessed != null && guessed.parts().size() > 1) {
-                immersiveMetallurgyCompositions().put(stack.getFluid(), guessed);
-            }
         }
 
         // A melt can arrive knowing how wrong it is without the bath having asked anything yet — that is what
