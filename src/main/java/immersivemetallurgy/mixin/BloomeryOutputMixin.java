@@ -28,7 +28,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(BloomeryBlockEntity.class)
 public class BloomeryOutputMixin {
     @Redirect(method = "completeRecipe()V",
-            at = @At(value = "INVOKE", target = "Lnet/dries007.tfc/common/recipes/BloomeryRecipe;assembleOutput()Lnet/minecraft/world/item/ItemStack;"))
+            at = @At(value = "INVOKE", target = "Lnet/dries007/tfc/common/recipes/BloomeryRecipe;assembleOutput()Lnet/minecraft/world/item/ItemStack;"))
     private ItemStack immersiveMetallurgy$carryTheFlaw(BloomeryRecipe recipe) {
         ItemStack bloom = recipe.assembleOutput();
         BloomeryBlockEntity self = (BloomeryBlockEntity) (Object) this;
