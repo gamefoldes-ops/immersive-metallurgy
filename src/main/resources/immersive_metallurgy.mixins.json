@@ -7,6 +7,7 @@
     "AlloyRecipeGetMixin",
     "AnvilRecipeRecordMixin",
     "BlastFurnaceOutputMixin",
+    "ChannelFlowMoldMixin",
     "BloomeryInputMixin",
     "BloomeryOutputMixin",
     "CastingRecipeRecordMixin",

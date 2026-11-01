@@ -1,0 +1,54 @@
+{
+  "name": "The Refiner's Fire",
+  "icon": "immersive_metallurgy:refining_hearth",
+  "read_by_default": true,
+  "category": "tfc:metallurgy",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "A Tap Below the Layer",
+      "text": "The crucible pours from the top, so it pours the slag with the metal and no tool can separate them. A furnace can, because a furnace can pour from the **bottom**: the metal runs out through the sole while the layer that floats on top of it stays behind.$p$pThat is the whole machine. It does not smelt rock into metal any better than a bloomery does - it takes dirt out of metal that is already melted, which is the one thing no other fire in the world will do for you."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "How It Is Built",
+      "text": "Build the **floor** first: a 3x3 of firebrick, with the **hearth** in one cell of it looking inward. Then make two of the floor cells **ducts**, and set a **mold table** on the ground in the cell outside each: the one you will tap, and the other for the slag. Where the ground beside the tap is wanted for something else, a **casting channel** may be run straight out of that duct to a table further off instead.$p$pThe two ducts tell each other apart by the wall over them, and that is the whole of how the furnace knows where to pour. The tap is a duct with **brick over it**: metal is the heavy thing, and it lies at the bottom. The channel is a duct with **ducts over it, all the way up to one layer under the top of the stack**, because slag has to fall from where it floats. A third duct in the floor makes the stack ambiguous and the hearth says so.$p$pThen build the shaft up: the middle column stays **open all the way, with nothing over it**, and the eight cells around it are wall. **Every layer of metal is 800 mB and one pour**, and the highest layer is the throat you charge through, so a one-module furnace is a floor plus two layers, and the biggest is a floor plus six.$p$pFirebrick and the duct are the same wall - face the stack however you like, hole for hole. The hearth's window names what is wrong if the stack will not form."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "What the Height Decides",
+      "text": "Slag floats, so it only leaves through a hole the bath actually reaches, and that hole sits **one layer under the top of the stack**. A one-layer furnace therefore drains from the first millilitre; a two-layer one has to be filled past 800 mB; a five-layer one needs **3201 of the 4000 it holds**.$p$pAnd the height decides a second thing, which is what you may refine at all. A charcoal fire with no draught holds about **1350 °C**, and the iron family does not melt before **1535 °C** — that is TFC's own answer, not a rule of ours. A taller chimney draws harder, and this one gains roughly **120 °C per layer** past the second, so a two-layer furnace refines copper, bronze and the precious metals, three layers reach wrought iron and steel, and five burn as hot as any crucible on bellows.$p$pSo a tall furnace is not a better furnace. It is a bigger batch, hotter fire, and one fire instead of five — and it is a promise about how much metal you intend to melt there, because the height is not free."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "If You Break That Promise",
+      "text": "Slag that never reached the hole has nowhere else to go. When the bath freezes it comes out of the metal and onto the walls as a **lining**: it takes that much room away from the furnace for good, and part of it dissolves back into whatever you melt next.$p$pThere are exactly two ways to be rid of it. Fill the next heat properly, so the slag has a hole to leave by. Or, with the fire out, scrape it off the hearth with a **pickaxe**, a hundred millibuckets a swing and a tool that wears each time. Breaking the stack out and rebuilding it also works, and costs the furnace's metal, which is by then in the bath with nowhere to go."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "A Firing",
+      "text": "Charcoal, the powder and the metal go in **down the throat**: drop them into the open top of the stack, and it takes whatever falls down the column. Nothing is fed through the hearth's face, because a click that eats a stack you meant to mine with is a trap rather than a machine — the face lights the fire, scrapes the walls and opens the window, and never touches what you are holding. Light the fire with a **firestarter**, flint and steel or flint and pyrite against the hearth.$p$p**First the heat.** Nothing is timed here: every piece of the charge warms by TFC's own rules — its heat capacity against the temperature of this fire — and runs into the bath the moment it reaches the melting temperature its own recipe asks for. Copper goes in minutes; steel sits there refusing, until the chimney is tall enough to want it. You may tap during the heat, and what you tap will carry every bit of the slag that is still floating in it.$p$p**Then the boil, four minutes.** That is the only time the channel lets slag past, one unit of powder per **25 mB**, and only while the bath stands deep enough to reach the hole. Nothing needs watching, and the fire counts the world's time rather than the ticks you spend standing beside it: sleep through the night or skip an hour, and the heat is as far advanced as if you had waited — charcoal burned and all.$p$p**Then it cools.** Open the tap with an empty hand on the **mold table** standing in the cell outside the tap duct — or on the first **casting channel** of a run laid out of that duct, if the table was set further off. A tap hole is stopped with a bar and knocked open when the heat is ready, and only this furnace's own outlet answers the click. The bath then runs down the channel into the mold at TFC's own rate, a millilitre every other tick, with the stream drawn the same way a crucible's is, and it stops by itself when the mold is full or the bath is. A bellows beside the table hurries the cast along. When the fire dies and the bath sets, whatever slag the boil did not lift off plates onto the walls."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": {
+        "item": "tfc:mold_table"
+      },
+      "title": "The Two Vessels",
+      "text": "Both outlets of the furnace run into TFC's **mold table**, and the tables are TFC's own — knapped from fire clay, fired, and filled by a casting recipe the game already has. What the furnace supplies is the one thing TFC has no reason to: two vessels sized for a whole module of metal, or for the dirt that comes off it.$p$pOn the tap table stands a **refining mold**: a row of ingot beds deep enough for **800 mB at once**, knapped from **fire clay** and fired with it, because that is a bath of molten iron being asked to hold. It is never spent. Pour, wait for it to set, take the ingots off the table, and the mold is there for the next tap. The cast comes out carrying whatever defect the fluid carried, because the table finishes it through the ordinary casting recipe like every other mould in the world.$p$pOn the slag table there is nothing to bring. A table standing in the slag outlet is set with its own **slag plate** by the furnace: common clay, flat, with a rim, shallow on purpose, and not a thing anybody crafts, loses or leaves at home. It is the only vessel in the game that will hold slag, and slag is in no other vessel's tag — so a metal mould still refuses it, and the plate still holds nothing but it. The channel fills it a little at a time; when it is full to the rim the bath stops being cleaned, and an empty hand on the table pays the whole plate out as the dust of whatever metal the bath was.$p$pTake the table away and there is nothing to catch the dirt, so the slag **freezes in the open ground** of the outlet cell — the same dirt, paid later to a pickaxe instead of to your patience. Stand something there that is neither — a stone, or somebody's metal mould on the table — and the slag cannot leave the bath at all, which the window says, and which costs a lining."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "What It Will Not Tell You",
+      "text": "Open the hearth and its window draws the bath as a tank filled with the metal standing in it, with the slag floating above and a line drawn across at the height the channel sits at; hover either and it answers with the numbers, and with how far the fire can come up to. Beside them are the slag outlet and the pour in flight, and under them the lines that say how much powder is left in the fire, whether the tap has a mold, whether the outlet can take anything at all, and how long is left on the phase. It will not name the metal, and it will not show the proportions of a mix.$p$pBronze and steel in one bath still come out as the junk they are, exactly as in a crucible: this fire makes metal **cleaner**, never **predictable**. Read the ingots, not the window."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": {
+        "item": "immersive_metallurgy:refining_hearth"
+      },
+      "title": "Steel, and Nothing Earlier",
+      "text": "Everything the bath touches here is fired clay: the wall, the ducts, the slag plate, the mold — which is as it should be, since a vessel that takes molten metal wants refractory rather than metal.$p$pWhat keeps this fire out of the bronze age is the **hearth**, the one part built with **steel sheets** and a steel pipe: the firebox that holds the charcoal has to stand up to being quenched and reheated every firing, and a sheet of wrought iron will not. A furnace whose firebox is held together with the metal it is refining has been built backwards."
+    }
+  ]
+}

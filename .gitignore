@@ -40,6 +40,10 @@ repo/
 !**/src/**/repo/
 
 ### Python generators ###
+# The scripts that write the derived data stay on the author's machine: a published mod should not carry
+# the workshop, only its output, which is committed and is what you edit. Put this folder back in git if
+# you want the generators published too.
+tools/
 __pycache__/
 *.py[cod]
 

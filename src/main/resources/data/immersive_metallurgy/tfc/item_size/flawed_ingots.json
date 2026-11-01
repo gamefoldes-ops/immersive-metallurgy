@@ -1,6 +1,6 @@
 {
   "ingredient": {
-    "tag": "c:ingots/flawed"
+    "tag": "immersive_metallurgy:flawed_ingots"
   },
   "size": "large",
   "weight": "medium"

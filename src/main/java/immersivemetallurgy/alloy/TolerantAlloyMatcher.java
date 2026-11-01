@@ -79,10 +79,15 @@ public final class TolerantAlloyMatcher {
     }
 
     /**
-     * One metal plus its gangue is the commonest melt in the game - copper ore smelts to copper and slag - and
-     * TFC has no recipe for a metal mixed with something that is not a metal, so the whole crucible would
-     * collapse to unknown. Slag inside the tolerance is still that metal, slag past it is the metal's flawed
+     * One metal plus whatever rode in with it is the commonest melt in the game - copper ore smelts to copper and
+     * slag - and TFC has no recipe for a metal mixed with something that is not a metal, so the whole crucible
+     * would collapse to unknown. Slag inside the tolerance is still that metal, slag past it is the metal's flawed
      * form, and slag past the ceiling really is not this metal any more.
+     *
+     * No dirt at all is also an answer, and it has to be: a flawed ingot melted into a bath of its own metal can
+     * arrive with nothing but itself to show for it, which leaves two fluids in the container and one metal in
+     * the arithmetic. Refusing to answer that made TFC reply junk, and the junk then poisoned the bath for every
+     * pour after it - the one outcome a furnace must never have.
      */
     private static Match pureMetalWithGangue(Object2DoubleMap<Fluid> content, Map<Fluid, Rule> rules, FlawProfiles profiles) {
         double slag = 0;
@@ -102,7 +107,7 @@ public final class TolerantAlloyMatcher {
             metal = entry.getKey();
             metalAmount = entry.getDoubleValue();
         }
-        if (metal == null || slag <= EPS) {
+        if (metal == null) {
             return null;
         }
         Rule rule = rules.get(metal);

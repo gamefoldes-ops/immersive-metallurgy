@@ -4,6 +4,7 @@ import immersivemetallurgy.ImmersiveMetallurgy;
 import immersivemetallurgy.recipe.AlloyTolerances;
 import immersivemetallurgy.recipe.FlawProfiles;
 import immersivemetallurgy.recipe.OreFouling;
+import immersivemetallurgy.recipe.RefiningFurnaceStats;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -22,6 +23,7 @@ public final class IMRecipes {
     public static final ResourceLocation ALLOY_TOLERANCE_ID = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "alloy_tolerance");
     public static final ResourceLocation FLAW_PROFILE_ID = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "flaw_profile");
     public static final ResourceLocation ORE_FOULING_ID = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "ore_fouling");
+    public static final ResourceLocation REFINING_FURNACE_ID = ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "refining_furnace");
 
     public static final DeferredRegister<RecipeType<?>> RECIPE_TYPES = DeferredRegister.create(Registries.RECIPE_TYPE, ImmersiveMetallurgy.MODID);
     public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(Registries.RECIPE_SERIALIZER, ImmersiveMetallurgy.MODID);
@@ -40,6 +42,11 @@ public final class IMRecipes {
             RECIPE_TYPES.register("ore_fouling", () -> RecipeType.simple(ORE_FOULING_ID));
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<OreFouling>> ORE_FOULING_SERIALIZER =
             RECIPE_SERIALIZERS.register("ore_fouling", OreFouling::serializer);
+
+    public static final DeferredHolder<RecipeType<?>, RecipeType<RefiningFurnaceStats>> REFINING_FURNACE =
+            RECIPE_TYPES.register("refining_furnace", () -> RecipeType.simple(REFINING_FURNACE_ID));
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<RefiningFurnaceStats>> REFINING_FURNACE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("refining_furnace", RefiningFurnaceStats::serializer);
 
     private IMRecipes() {
     }

@@ -1,10 +1,13 @@
 package immersivemetallurgy.event;
 
 import immersivemetallurgy.ImmersiveMetallurgy;
+import immersivemetallurgy.client.IMMetalNames;
 import immersivemetallurgy.component.DefectProfile;
 import immersivemetallurgy.recipe.FlawProfiles;
 import immersivemetallurgy.registry.IMDataComponents;
+import immersivemetallurgy.registry.IMItems;
 
+import net.dries007.tfc.common.component.mold.IMold;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -15,6 +18,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +41,27 @@ public final class IMItemTooltips {
         boolean advanced = event.getFlags().isAdvanced();
         ItemStack stack = event.getItemStack();
         List<Component> lines = new ArrayList<>();
+
+        // The two vessels the furnace owns say what they are for on the spot, because nothing about their shape
+        // tells a player that one of them will not accept a crucible and the other will not accept metal. They
+        // also say what stands in them: a mould picked up off a table is otherwise a mystery wrap.
+        boolean plate = stack.is(IMItems.SLAG_PLATE.get());
+        if (plate || stack.is(IMItems.REFINING_MOLD.get())) {
+            lines.add(Component.translatable("immersive_metallurgy.tooltip."
+                            + (plate ? "slag_plate" : "refining_mold"))
+                    .withStyle(ChatFormatting.GRAY));
+            IMold mold = IMold.get(stack);
+            FluidStack held = mold == null ? FluidStack.EMPTY : mold.getFluidInTank(0);
+            if (mold != null) {
+                lines.add(held.isEmpty()
+                        ? Component.translatable("immersive_metallurgy.tooltip.vessel_empty", mold.getTankCapacity(0))
+                                .withStyle(ChatFormatting.GRAY)
+                        : Component.translatable("immersive_metallurgy.tooltip.vessel_holding",
+                                        held.getAmount(), mold.getTankCapacity(0),
+                                        IMMetalNames.moltenName(held.getFluid()))
+                                .withStyle(ChatFormatting.AQUA));
+            }
+        }
 
         Player player = event.getEntity();
         FlawProfiles profiles = player == null ? null : FlawProfiles.of(player.level().getRecipeManager());

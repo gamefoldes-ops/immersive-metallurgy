@@ -1,7 +1,9 @@
 package immersivemetallurgy.registry;
 
 import immersivemetallurgy.ImmersiveMetallurgy;
+import immersivemetallurgy.recipe.RefiningFurnaceStats;
 
+import net.dries007.tfc.common.items.MoldItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -28,6 +30,46 @@ public final class IMItems {
      */
     public static final DeferredHolder<Item, Item> SLAG_DUST =
             ITEMS.registerItem("slag_dust", properties -> new Item(properties.stacksTo(16)));
+
+    /**
+     * The dish the furnace's slag runs into: a flat plate of fired clay with a rim, and the one vessel in the game
+     * that will take slag. It stands on TFC's mold table at the channel's outlet, the table draws it filling
+     * because that is what a table does with whatever stands on it, and a click takes the slag back out as the dust
+     * the bath's metal makes. Slag is in no other vessel's tag and this plate is in no other fluid's, which is how
+     * «шлак не льётся в формы» survives having a slag vessel at all.
+     */
+    public static final DeferredHolder<Item, MoldItem> SLAG_PLATE =
+            ITEMS.registerItem("slag_plate", properties -> new MoldItem(IMItems::slagPlateMb,
+                    IMTags.USABLE_IN_SLAG_PLATE, properties));
+
+    /**
+     * The furnace's own mould, sized for a whole module of metal at once. It stands on the same TFC table as any
+     * other mould and casts through the same casting recipe, so the flaw the bath carried comes out written on the
+     * ingots; what makes it the furnace's is that a crucible cannot fill it, because no crucible holds a module.
+     */
+    public static final DeferredHolder<Item, MoldItem> REFINING_MOLD =
+            ITEMS.registerItem("refining_mold", properties -> new MoldItem(IMItems::refiningMoldMb,
+                    IMTags.USABLE_IN_REFINING_MOLD, properties));
+
+    /** Both vessels take their size from the tuning sheet rather than from a number written here. */
+    private static int slagPlateMb() {
+        RefiningFurnaceStats stats = RefiningFurnaceStats.cached();
+        return stats == null ? 0 : stats.slagPlateMb();
+    }
+
+    private static int refiningMoldMb() {
+        RefiningFurnaceStats stats = RefiningFurnaceStats.cached();
+        return stats == null ? 0 : stats.pourVolume();
+    }
+
+    /**
+     * The mold as it comes off the anvil, before the kiln has been through it. It is only clay, so it is only an
+     * {@link Item}: what makes it fireable is the {@code item_heat} row that names its temperature, because TFC
+     * hands the heat component to every item such a row exists for. The slag plate has no unfired form because
+     * nobody crafts it — the furnace sets one up in its own table.
+     */
+    public static final DeferredHolder<Item, Item> UNFIRED_REFINING_MOLD =
+            ITEMS.registerItem("unfired_refining_mold", properties -> new Item(properties.stacksTo(16)));
 
     /**
      * Every ore variety TFC lets a quern grind, named without its grade prefix. Dressing is one chain for all

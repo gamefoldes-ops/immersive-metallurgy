@@ -1,8 +1,10 @@
 package immersivemetallurgy;
 
+import immersivemetallurgy.client.RefiningFurnaceScreen;
 import immersivemetallurgy.event.IMHoning;
 import immersivemetallurgy.network.IMNetwork;
 import immersivemetallurgy.registry.IMDataComponents;
+import immersivemetallurgy.registry.IMMenus;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.BlockHitResult;
@@ -14,6 +16,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -28,6 +31,11 @@ public class ImmersiveMetallurgyClient {
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
         ImmersiveMetallurgy.LOGGER.info("Immersive Metallurgy client setup, player: {}", Minecraft.getInstance().getUser().getName());
+    }
+
+    @SubscribeEvent
+    static void onRegisterMenus(RegisterMenuScreensEvent event) {
+        event.register(IMMenus.REFINING_FURNACE.get(), RefiningFurnaceScreen::new);
     }
 
     /** The server is blind to the mouse on this version, so while it is held at a stone the client keeps saying so. */

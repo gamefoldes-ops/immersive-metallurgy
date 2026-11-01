@@ -1,0 +1,1 @@
+{"type":"minecraft:crafting_shaped","category":"misc","pattern":["FFF","F F","SPS"],"key":{"F":{"item":"tfc:fire_bricks"},"S":{"tag":"c:sheets/steel"},"P":{"item":"tfc:steel_pipe"}},"result":{"count":1,"id":"immersive_metallurgy:refining_hearth"}}

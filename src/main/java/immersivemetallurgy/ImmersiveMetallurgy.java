@@ -4,11 +4,14 @@ import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 
+import immersivemetallurgy.registry.IMBlocks;
+import immersivemetallurgy.registry.IMBlockEntities;
 import immersivemetallurgy.registry.IMCreativeTab;
 import immersivemetallurgy.registry.IMDataComponents;
 import immersivemetallurgy.registry.IMFluids;
 import immersivemetallurgy.registry.IMItemModifiers;
 import immersivemetallurgy.registry.IMItems;
+import immersivemetallurgy.registry.IMMenus;
 import immersivemetallurgy.registry.IMRecipes;
 
 import net.neoforged.bus.api.IEventBus;
@@ -21,11 +24,14 @@ public class ImmersiveMetallurgy {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ImmersiveMetallurgy(IEventBus modEventBus) {
+        IMBlocks.register(modEventBus);
+        IMBlockEntities.register(modEventBus);
         IMCreativeTab.register(modEventBus);
         IMDataComponents.register(modEventBus);
         IMFluids.register(modEventBus);
         IMItemModifiers.register(modEventBus);
         IMItems.register(modEventBus);
+        IMMenus.register(modEventBus);
         IMRecipes.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);

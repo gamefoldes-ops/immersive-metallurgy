@@ -4,6 +4,7 @@ import immersivemetallurgy.ImmersiveMetallurgy;
 import immersivemetallurgy.recipe.AlloyTolerances;
 import immersivemetallurgy.recipe.FlawProfiles;
 import immersivemetallurgy.recipe.OreFouling;
+import immersivemetallurgy.recipe.RefiningFurnaceStats;
 import immersivemetallurgy.registry.IMAlloys;
 import immersivemetallurgy.registry.IMFluids;
 import immersivemetallurgy.registry.IMRecipes;
@@ -47,7 +48,34 @@ public final class MeltRules {
         fouling(rows, recipes);
         defects(rows, recipes);
         wear(rows, recipes);
+        furnace(rows, recipes);
         return rows;
+    }
+
+    /**
+     * The furnace's sheet, in one row: what a module is, where its channel sits, what slag costs and how long a
+     * firing takes. It is worth a row because those four numbers are the whole build order — a player who wants
+     * a clean pour has to know what height the stack has to reach, and that is arithmetic on the table.
+     */
+    private static void furnace(List<MeltRule> rows, RecipeManager recipes) {
+        RefiningFurnaceStats table = first(recipes, IMRecipes.REFINING_FURNACE);
+        if (table == null) {
+            return;
+        }
+        int smallest = 1;
+        int largest = table.maxModules();
+        rows.add(new MeltRule(List.of(item(ImmersiveMetallurgy.MODID + ":refining_hearth")), List.of(
+                key("jei.furnace.title"),
+                key("jei.furnace.module", text(table.mbPerModule()), text(table.maxModules())),
+                key("jei.furnace.channel", text(table.drainThreshold(smallest)), text(smallest),
+                        text(table.drainThreshold(largest)), text(largest)),
+                key("jei.furnace.reagent", text(table.mbSlagPerFlux()),
+                        text(oneDecimal(table.mbSlagPerFlux() * table.metalDrag()))),
+                key("jei.furnace.heat", text(table.baseTemperature()), text(table.draughtPerLayer()),
+                        text(table.fireTemperature(table.maxOpenLayers())), text(table.pourTemperature()),
+                        minutes(table.boilTicks()), minutes(table.fuelBurnTicks())),
+                key("jei.furnace.lining", text(table.liningScrapeMb()),
+                        text(Math.round(100 * table.liningReturn()))))));
     }
 
     private static void tolerances(List<MeltRule> rows, RecipeManager recipes) {
@@ -183,5 +211,20 @@ public final class MeltRules {
 
     private static String percent(double fraction) {
         return Math.round(100 * fraction) + "%";
+    }
+
+    /** For the numbers too small to be a whole one, where rounding to a percent would say either 0 % or 2 %. */
+    private static String oneDecimal(double value) {
+        return Math.round(10 * value) / 10F + "";
+    }
+
+    /**
+     * A span of ticks in minutes of real time, which at TFC's default day length is also the same number of game
+     * hours — the unit a player can actually act on, since it is the unit the furnace is standing in front of them
+     * in. Whole minutes are printed without the decimal, because "4 minutes" is a plan and "4.0 minutes" is a log.
+     */
+    private static String minutes(int ticks) {
+        float value = ticks / 1200F;
+        return value == Math.floor(value) ? String.valueOf((int) value) : oneDecimal(value);
     }
 }

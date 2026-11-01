@@ -1,0 +1,6 @@
+{
+  "name": "Металлургия",
+  "description": "Грязь в руде, слой сверху ванны и кромка, которая стирается.",
+  "icon": "immersive_metallurgy:slag_dust/bronze",
+  "priority": 0
+}
