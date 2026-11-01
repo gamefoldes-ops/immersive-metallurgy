@@ -47,8 +47,9 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
     public static final int BATH_FLUID = 21;
     public static final int POUR_HEAT = 22;
     public static final int FIRE_CEILING = 23;
+    public static final int FIRE_SECONDS = 24;
 
-    private static final int ENTRIES = 24;
+    private static final int ENTRIES = 25;
 
     private final ContainerData data;
     private final BlockPos hearth;
@@ -97,6 +98,9 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
                     case FIRE_CEILING -> stats == null || furnace.shape() == null
                             ? 0
                             : Math.round(stats.fireTemperature(furnace.shape().layers()));
+                    case FIRE_SECONDS -> stats == null
+                            ? 0
+                            : Math.min(Short.MAX_VALUE, furnace.fireSecondsLeft(stats));
                     default -> 0;
                 };
             }
@@ -168,6 +172,11 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
 
     public int fireCeiling() {
         return data.get(FIRE_CEILING);
+    }
+
+    /** How many seconds of fuel this fire still has in front of it. */
+    public int fireSeconds() {
+        return data.get(FIRE_SECONDS);
     }
 
     /** How much of an open tap has not reached the mould yet, which is the number that says do not click again. */

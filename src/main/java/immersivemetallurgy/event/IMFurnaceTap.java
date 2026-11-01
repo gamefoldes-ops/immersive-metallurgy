@@ -59,7 +59,7 @@ public final class IMFurnaceTap {
                     event.setCancellationResult(InteractionResult.CONSUME);
                 }
                 event.getEntity().displayClientMessage(Component.translatable("screen." + ImmersiveMetallurgy.MODID
-                        + ".furnace.tap." + why), true);
+                        + ".furnace.tap." + why, furnace.tapContents()), true);
                 return;
             }
             event.setUseBlock(TriState.FALSE);

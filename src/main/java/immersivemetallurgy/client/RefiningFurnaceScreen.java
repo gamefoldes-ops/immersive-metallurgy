@@ -8,6 +8,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
@@ -131,7 +132,7 @@ public class RefiningFurnaceScreen extends AbstractContainerScreen<RefiningFurna
     private Component phase() {
         int temperature = menu.temperature();
         ChatFormatting hot = temperature >= 1000 ? ChatFormatting.RED : ChatFormatting.GRAY;
-        return switch (menu.phase()) {
+        MutableComponent line = switch (menu.phase()) {
             case 1 -> Component.translatable("screen.immersive_metallurgy.furnace.melting",
                     temperature, menu.chargeLeft()).withStyle(ChatFormatting.GOLD);
             case 2 -> Component.translatable("screen.immersive_metallurgy.furnace.boiling",
@@ -141,6 +142,14 @@ public class RefiningFurnaceScreen extends AbstractContainerScreen<RefiningFurna
             default -> Component.translatable("screen.immersive_metallurgy.furnace.cold", temperature)
                     .withStyle(ChatFormatting.GRAY);
         };
+        // What the phase word describes is the bath. A furnace whose boil is over but which still has ten minutes
+        // of charcoal in it is not "cooling" in the sense a player acts on, so the fire says for itself how long
+        // it has left beside the phase it is in.
+        return menu.fireSeconds() > 0
+                ? line.append(Component.literal(" · ").withStyle(ChatFormatting.GRAY))
+                        .append(Component.translatable("screen.immersive_metallurgy.furnace.fire_left",
+                                        clock(menu.fireSeconds() * 20)).withStyle(ChatFormatting.GRAY))
+                : line;
     }
 
     /**

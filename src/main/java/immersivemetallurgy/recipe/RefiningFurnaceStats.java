@@ -296,7 +296,7 @@ public record RefiningFurnaceStats(Geometry geometry, Fire fire, Slag slag, Cast
      * five modules need 3201 of 4000, which is why height is a promise about the load rather than a free upgrade.
      */
     public int drainThreshold(int modules) {
-        return mbPerModule() * (channelLayer(modules) - 1) + 1;
+        return mbPerModule() * channelLayer(modules) + 1;
     }
 
     /** How many open layers a stack of the largest legal furnace has, the throat included. */

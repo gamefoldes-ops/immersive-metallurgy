@@ -644,6 +644,23 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     }
 
     /**
+     * What actually stands on the tap table, in the two numbers that tell a full mould from one that was never a
+     * vessel at all. A refusal that says only "full" sends a player to empty a table that has nothing in it, so
+     * the machine says what it saw instead of what it assumed.
+     */
+    public Component tapContents() {
+        TapLine line = tapLine();
+        ItemStack vessel = line == null ? ItemStack.EMPTY : line.table().getMoldStack();
+        if (vessel.isEmpty()) {
+            return Component.literal("нет сосуда");
+        }
+        IMold mold = IMold.get(vessel);
+        return Component.literal(BuiltInRegistries.ITEM.getKey(vessel.getItem()).getPath() + " "
+                + (mold == null ? "?" : mold.getFluidInTank(0).getAmount()) + "/"
+                + (mold == null ? "?" : mold.getTankCapacity(0)) + " mB");
+    }
+
+    /**
      * Why the tap will not start, in the one word a channel can say out loud, in the order a player can act in:
      * is this the tap's own channel, is there a run to a table, is there a mould on that table, is a pour already
      * running, is the bath liquid at all, is there any metal left in it.
@@ -745,12 +762,17 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
                 phase = Phase.COOLING;
             }
         } else if (phase == Phase.BOILING) {
-            drainSlag(stats);
+            // The boil is the reaction, not the draining. Nothing leaves the bath while it runs, and what the
+            // powder took out of the metal runs off through the channel afterwards, while the bath is still
+            // liquid enough to give it up.
             if (--timer <= 0) {
                 phase = Phase.COOLING;
             }
-        } else if (temperature < stats.pourTemperature() && fuelCount() == 0) {
-            coolDown();
+        } else if (phase == Phase.COOLING) {
+            drainSlag(stats);
+            if (temperature < stats.pourTemperature() && fuelCount() == 0) {
+                coolDown();
+            }
         }
     }
 
@@ -814,6 +836,21 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             }
         }
         return ItemStack.EMPTY;
+    }
+
+    /**
+     * How much longer this fire can last: what the burning piece has left, plus every piece still lying in the
+     * box at its own burn time. The window counts this down, because "cooling" over a furnace with ten minutes of
+     * charcoal in it is not a reading of the machine but a lie about it.
+     */
+    public int fireSecondsLeft(RefiningFurnaceStats stats) {
+        int ticks = Math.max(0, fuelTicks);
+        for (ItemStack stack : fuel) {
+            if (!stack.isEmpty()) {
+                ticks += stack.getCount() * stats.burnTicks(stack);
+            }
+        }
+        return ticks / 20;
     }
 
     /**
