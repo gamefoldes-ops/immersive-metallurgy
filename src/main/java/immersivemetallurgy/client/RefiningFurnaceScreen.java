@@ -135,7 +135,7 @@ public class RefiningFurnaceScreen extends AbstractContainerScreen<RefiningFurna
             case 1 -> Component.translatable("screen.immersive_metallurgy.furnace.melting",
                     temperature, menu.chargeLeft()).withStyle(ChatFormatting.GOLD);
             case 2 -> Component.translatable("screen.immersive_metallurgy.furnace.boiling",
-                    temperature, hours(menu.ticksLeft())).withStyle(ChatFormatting.GOLD);
+                    temperature, clock(menu.ticksLeft())).withStyle(ChatFormatting.GOLD);
             case 3 -> Component.translatable("screen.immersive_metallurgy.furnace.cooling", temperature)
                     .withStyle(hot);
             default -> Component.translatable("screen.immersive_metallurgy.furnace.cold", temperature)
@@ -143,7 +143,13 @@ public class RefiningFurnaceScreen extends AbstractContainerScreen<RefiningFurna
         };
     }
 
-    private static String hours(int ticks) {
-        return Math.round(ticks / 100F) / 10F + " h";
+    /**
+     * What is left of the boil, in the minutes and seconds the player is actually short of. Counted off the world's
+     * clock at twenty ticks a second, because that is the unit a person waiting in front of a machine keeps time
+     * in — "3.4 hours" asked for an arithmetic nobody does while a tap is running.
+     */
+    private static String clock(int ticks) {
+        int left = Math.max(0, ticks);
+        return left / 1200 + ":" + String.format("%02d", (left % 1200) / 20);
     }
 }

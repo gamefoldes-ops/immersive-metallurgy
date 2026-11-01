@@ -7,6 +7,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.dries007.tfc.common.recipes.RecipeHelpers;
+import net.dries007.tfc.util.data.Fuel;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -329,6 +330,16 @@ public record RefiningFurnaceStats(Geometry geometry, Fire fire, Slag slag, Cast
 
     public boolean isFuel(ItemStack stack) {
         return charge.fuel().test(stack);
+    }
+
+    /**
+     * How long one piece of this fuel keeps the fire, read out of TFC's own fuel table so charcoal, coal and
+     * bituminous coal each burn the time the game already says they do rather than the time this sheet happens to
+     * name. The sheet's figure answers for anything TFC has no opinion about.
+     */
+    public int burnTicks(ItemStack stack) {
+        Fuel fuel = stack.isEmpty() ? null : Fuel.get(stack);
+        return fuel == null ? fire.fuelBurnTicks() : fuel.duration();
     }
 
     @Override

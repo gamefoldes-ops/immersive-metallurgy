@@ -800,9 +800,20 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     private void burnFuel(RefiningFurnaceStats stats) {
         fuelTicks--;
         if (fuelTicks <= 0 && fuelCount() > 0) {
+            int burn = stats.burnTicks(nextFuel());
             consumeOne(fuel);
-            fuelTicks += stats.fuelBurnTicks();
+            fuelTicks += burn;
         }
+    }
+
+    /** The next piece the fire will eat, whose own duration decides how long this stretch of burning lasts. */
+    private ItemStack nextFuel() {
+        for (ItemStack stack : fuel) {
+            if (!stack.isEmpty()) {
+                return stack;
+            }
+        }
+        return ItemStack.EMPTY;
     }
 
     /**
