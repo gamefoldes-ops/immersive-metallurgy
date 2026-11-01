@@ -48,8 +48,9 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
     public static final int POUR_HEAT = 22;
     public static final int FIRE_CEILING = 23;
     public static final int FIRE_SECONDS = 24;
+    public static final int BOIL_TICKS = 25;
 
-    private static final int ENTRIES = 25;
+    private static final int ENTRIES = 26;
 
     private final ContainerData data;
     private final BlockPos hearth;
@@ -98,6 +99,7 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
                     case FIRE_CEILING -> stats == null || furnace.shape() == null
                             ? 0
                             : Math.round(stats.fireTemperature(furnace.shape().layers()));
+                    case BOIL_TICKS -> stats == null ? 0 : stats.boilTicks();
                     case FIRE_SECONDS -> stats == null
                             ? 0
                             : Math.min(Short.MAX_VALUE, furnace.fireSecondsLeft(stats));
@@ -175,6 +177,11 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
     }
 
     /** How many seconds of fuel this fire still has in front of it. */
+    /** How long the boil runs once the last of the charge has gone into the bath. */
+    public int boilTicks() {
+        return data.get(BOIL_TICKS);
+    }
+
     public int fireSeconds() {
         return data.get(FIRE_SECONDS);
     }

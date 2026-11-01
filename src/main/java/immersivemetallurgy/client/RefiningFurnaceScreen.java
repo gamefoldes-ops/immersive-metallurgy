@@ -144,7 +144,13 @@ public class RefiningFurnaceScreen extends AbstractContainerScreen<RefiningFurna
         };
         // What the phase word describes is the bath. A furnace whose boil is over but which still has ten minutes
         // of charcoal in it is not "cooling" in the sense a player acts on, so the fire says for itself how long
-        // it has left beside the phase it is in.
+        // it has left beside the phase it is in. And while the charge is still going in, the number a player is
+        // deciding against is the boil that has not started yet, so that clock rides on the melting line too.
+        if (menu.phase() == 1) {
+            line = line.append(Component.literal(" · ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.translatable("screen.immersive_metallurgy.furnace.boil_next",
+                                    clock(menu.boilTicks())).withStyle(ChatFormatting.GRAY));
+        }
         return menu.fireSeconds() > 0
                 ? line.append(Component.literal(" · ").withStyle(ChatFormatting.GRAY))
                         .append(Component.translatable("screen.immersive_metallurgy.furnace.fire_left",

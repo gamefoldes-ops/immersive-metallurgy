@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
 import immersivemetallurgy.registry.IMBlocks;
+import immersivemetallurgy.registry.IMCapabilities;
 import immersivemetallurgy.registry.IMBlockEntities;
 import immersivemetallurgy.registry.IMCreativeTab;
 import immersivemetallurgy.registry.IMDataComponents;
@@ -34,6 +35,7 @@ public class ImmersiveMetallurgy {
         IMMenus.register(modEventBus);
         IMRecipes.register(modEventBus);
 
+        modEventBus.addListener(IMCapabilities::register);
         modEventBus.addListener(this::commonSetup);
     }
 

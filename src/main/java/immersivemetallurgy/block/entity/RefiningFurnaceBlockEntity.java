@@ -31,6 +31,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.Containers;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -851,6 +852,29 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             }
         }
         return ticks / 20;
+    }
+
+    /**
+     * Dropping the fire with a shovel, which is how a shaft furnace is really stopped: the blast is cut and the
+     * burning charge is drawn out. Nothing is destroyed — the fuel comes back out at the hearth as items — because
+     * a player who quenched changed their mind about a heat, they did not agree to lose a stack of charcoal.
+     */
+    public boolean quench() {
+        if (level == null || level.isClientSide || phase == Phase.IDLE) {
+            return false;
+        }
+        fuelTicks = 0;
+        for (int slot = 0; slot < fuel.size(); slot++) {
+            ItemStack drawn = fuel.get(slot);
+            if (!drawn.isEmpty()) {
+                Containers.dropItemStack(level, worldPosition.getX() + 0.5, worldPosition.getY() + 0.5,
+                        worldPosition.getZ() + 0.5, drawn);
+                fuel.set(slot, ItemStack.EMPTY);
+            }
+        }
+        phase = Phase.COOLING;
+        setChanged();
+        return true;
     }
 
     /**

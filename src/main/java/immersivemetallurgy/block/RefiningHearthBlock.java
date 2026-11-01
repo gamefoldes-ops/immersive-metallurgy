@@ -83,6 +83,12 @@ public class RefiningHearthBlock extends BaseEntityBlock {
             level.playSound(null, pos, SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1F, 0.8F);
             return ItemInteractionResult.CONSUME;
         }
+        if (held.is(ItemTags.SHOVELS) && furnace.quench()) {
+            level.playSound(null, pos, SoundEvents.GENERIC_EXTINGUISH_FIRE, SoundSource.BLOCKS, 1F, 1F);
+            player.displayClientMessage(Component.translatable("screen." + ImmersiveMetallurgy.MODID
+                    + ".furnace.quenched"), true);
+            return ItemInteractionResult.sidedSuccess(level.isClientSide);
+        }
         // Nothing is fed to this furnace by hand. A click that ate an item cost a stack to a player who meant to
         // mine the block, so fuel, powder and metal all go in the way they go into a real shaft furnace: dropped
         // down the open throat, where what is not wanted simply keeps falling rather than vanishing.
