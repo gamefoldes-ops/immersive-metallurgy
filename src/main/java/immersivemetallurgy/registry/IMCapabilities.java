@@ -16,14 +16,18 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
  * whole reason the furnace's tap could never fill its own mould.
  */
 public final class IMCapabilities {
+    /** Every vessel this mod adds, all of them TFC's own {@link MoldItem}. */
+    private static final net.minecraft.world.item.Item[] VESSELS = {
+            IMItems.SLAG_PLATE.get(), IMItems.REFINING_MOLD.get(), IMItems.CLAY_REFINING_MOLD.get(),
+    };
+
     private IMCapabilities() {
     }
 
     public static void register(RegisterCapabilitiesEvent event) {
         event.registerItem(ItemCapabilities.MOLD, IMCapabilities::moldOf,
-                IMItems.SLAG_PLATE.get(), IMItems.REFINING_MOLD.get());
-        event.registerItem(ItemCapabilities.HEAT, (stack, context) -> moldOf(stack, context).heatContainer(),
-                IMItems.SLAG_PLATE.get(), IMItems.REFINING_MOLD.get());
+                VESSELS);
+        event.registerItem(ItemCapabilities.HEAT, (stack, context) -> moldOf(stack, context).heatContainer(), VESSELS);
     }
 
     private static Mold moldOf(net.minecraft.world.item.ItemStack stack, Object context) {

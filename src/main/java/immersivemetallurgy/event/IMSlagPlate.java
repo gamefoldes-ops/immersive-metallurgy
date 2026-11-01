@@ -41,12 +41,15 @@ public final class IMSlagPlate {
             if (furnace == null || !furnace.ownsSlagOutlet(table)) {
                 continue;
             }
+            // The click is answered whether or not there was slag to pay out, because the plate is a fitting and
+            // not a possession: TFC's own table would otherwise hand it back into the inventory on an idle click,
+            // and a furnace whose slag catcher can wander off is a furnace that silently stops refining.
             if (furnace.cleanSlagPlate(event.getEntity()) > 0) {
-                event.setUseBlock(TriState.FALSE);
-                event.setUseItem(TriState.FALSE);
-                event.setCancellationResult(InteractionResult.CONSUME);
                 level.playSound(null, table, SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 0.6F, 1.2F);
             }
+            event.setUseBlock(TriState.FALSE);
+            event.setUseItem(TriState.FALSE);
+            event.setCancellationResult(InteractionResult.CONSUME);
             return;
         }
     }

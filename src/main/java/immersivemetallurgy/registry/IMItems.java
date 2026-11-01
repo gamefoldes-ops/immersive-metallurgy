@@ -51,6 +51,15 @@ public final class IMItems {
             ITEMS.registerItem("refining_mold", properties -> new MoldItem(IMItems::refiningMoldMb,
                     IMTags.USABLE_IN_REFINING_MOLD, properties));
 
+    /**
+     * The same tray knocked out of common clay instead of fire clay. It holds what the fireclay one holds and is
+     * fired at the same heat; the difference is only what it costs to be wrong, which is the whole reason a player
+     * who cannot reach fire clay yet is allowed to build a furnace at all.
+     */
+    public static final DeferredHolder<Item, MoldItem> CLAY_REFINING_MOLD =
+            ITEMS.registerItem("clay_refining_mold", properties -> new MoldItem(IMItems::refiningMoldMb,
+                    IMTags.USABLE_IN_REFINING_MOLD, properties));
+
     /** Both vessels take their size from the tuning sheet rather than from a number written here. */
     private static int slagPlateMb() {
         RefiningFurnaceStats stats = RefiningFurnaceStats.cached();
@@ -70,6 +79,8 @@ public final class IMItems {
      */
     public static final DeferredHolder<Item, Item> UNFIRED_REFINING_MOLD =
             ITEMS.registerItem("unfired_refining_mold", properties -> new Item(properties.stacksTo(16)));
+    public static final DeferredHolder<Item, Item> UNFIRED_CLAY_REFINING_MOLD =
+            ITEMS.registerItem("unfired_clay_refining_mold", properties -> new Item(properties.stacksTo(16)));
 
     /**
      * Every ore variety TFC lets a quern grind, named without its grade prefix. Dressing is one chain for all

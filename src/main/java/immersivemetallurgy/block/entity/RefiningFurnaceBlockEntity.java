@@ -71,7 +71,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     public enum Phase { IDLE, HEATING, BOILING, COOLING }
 
     /** What the furnace wants out of a click, and the reason it said no. */
-    public enum Refusal { NONE, UNFORMED, SETTING, NO_ROOM, FUEL_FULL, POWDER_FULL, NOT_A_CHARGE }
+    public enum Refusal { NONE, UNFORMED, SETTING, FUEL_FULL, POWDER_FULL, NOT_A_CHARGE }
 
     /** How many of the held item went in, and what stopped it when nothing did. */
     public record Loaded(int took, Refusal refusal) {
@@ -369,9 +369,10 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (per <= 0) {
             return new Loaded(0, Refusal.NOT_A_CHARGE);
         }
-        // A charge is measured against the vessel and not against the pour: overfilling does not lose the excess,
-        // it stays in the bath and comes out on a later tap or as the slag the boil lifts off.
-        return take(charge, held, Math.min(held.getCount(), vesselRoom() / per), Refusal.NO_ROOM);
+        // A charge is not measured against the vessel at all. Everything that is thrown down the throat melts,
+        // and what will not stand in the hearth runs off over the dam — so the answer to "how much can I put in"
+        // is "as much as you can carry", and the answer to the excess is a cast on the table rather than a refusal.
+        return take(charge, held, held.getCount(), Refusal.NONE);
     }
 
     private Loaded take(NonNullList<ItemStack> slots, ItemStack held, int room, Refusal whenFull) {
@@ -543,21 +544,32 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
      * record already rides along on.
      */
     public String startTap(RefiningFurnaceStats stats, BlockPos clicked) {
+        return startTap(stats, clicked, stats.pourVolume());
+    }
+
+    /**
+     * Opening the tap for a stated amount rather than for a whole module, which is what the overflow needs: a
+     * player who over-filled the shaft wants the excess off, not a second module of metal on top of it.
+     */
+    private String startTap(RefiningFurnaceStats stats, BlockPos clicked, int offered) {
         String why = tapRefusal(stats, clicked);
         if (!why.equals("none")) {
             return why;
         }
         TapLine line = tapLine();
-        FluidStack offer = bath.drain(level, stats.pourVolume(), IFluidHandler.FluidAction.SIMULATE);
+        FluidStack offer = bath.drain(level, offered, IFluidHandler.FluidAction.SIMULATE);
         int wanted = line.table().getSidedFluidInventory(line.intoTable().getOpposite())
                 .fill(offer, IFluidHandler.FluidAction.SIMULATE);
         if (wanted <= 0) {
-            // "Full" is a claim about the mould, so it is only made when the mould really is at its rim. A vessel
-            // with room in it that still turns the pour away is a different complaint, and telling the two apart
-            // is the difference between a player emptying a table and a player being lied to.
+            // Three different things make a mould refuse a pour, and the player does a different one of three
+            // chores in each case: lift a finished cast, empty a vessel holding another metal, or go and find out
+            // why the table is not holding a vessel at all. One word for all three sent people to empty a table
+            // that had nothing on it.
             IMold vessel = IMold.get(line.table().getMoldStack());
-            return vessel == null || vessel.getTankCapacity(0) <= vessel.getFluidInTank(0).getAmount()
-                    ? "full" : "refused";
+            if (vessel == null || vessel.getTankCapacity(0) <= 0) {
+                return "novessel";
+            }
+            return vessel.getFluidInTank(0).isEmpty() ? "full" : "other";
         }
         pourLeft = wanted;
         pourTable = line.tablePos();
@@ -775,6 +787,24 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
                 coolDown();
             }
         }
+        spill(stats);
+    }
+
+    /**
+     * What a bath standing above its own capacity does with the excess: runs it off over the dam and into whatever
+     * mould waits on the tap table, the way a cupola's cinder notch leaves the hearth at a fixed depth no matter
+     * how much is charged above it. The metal is not lost and not punished for being poured — it comes out as the
+     * cast the table is standing there to take — and the bath that stays behind is the whole heat's average,
+     * which is the point of filling a shaft furnace rather than a crucible.
+     */
+    private void spill(RefiningFurnaceStats stats) {
+        if (pourLeft > 0 || shape == null || !isPourable(stats)) {
+            return;
+        }
+        int over = bath.getAmount() - capacity();
+        if (over > 0) {
+            startTap(stats, shape.tapOutlet(), over);
+        }
     }
 
     /**
@@ -810,9 +840,14 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
                 continue;
             }
             FluidStack melt = recipe.assembleFluid(stack.copyWithCount(1));
-            if (melt == null || melt.isEmpty() || melt.getAmount() > vesselRoom()) {
+            if (melt == null || melt.isEmpty()) {
                 continue;
             }
+            // Nothing here refuses a melt for want of room. A shaft furnace that is fed more than its hearth holds
+            // does not stop melting — it runs the excess over the dam, which is what `spill` below is for — and
+            // that is what lets a charge of nine copper and one tin come out as ninety-and-ten bronze rather than
+            // as a furnace that has quietly stopped taking the tenth ingot.
+
             stack.shrink(1);
             bath.fill(MeltCarries.keepTheFlaw(stack, melt), IFluidHandler.FluidAction.EXECUTE, container);
             return;
