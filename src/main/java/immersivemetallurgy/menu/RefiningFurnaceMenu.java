@@ -95,7 +95,7 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
                     case TAP_LEFT -> furnace.tapRemaining();
                     case SLAG_OUTLET_BLOCKED -> furnace.slagOutletBlocked() ? 1 : 0;
                     case BATH_FLUID -> furnace.bathFluidId();
-                    case POUR_HEAT -> stats == null ? 0 : Math.round(stats.pourTemperature());
+                    case POUR_HEAT -> stats == null ? 0 : Math.round(furnace.pourHeat(stats));
                     case FIRE_CEILING -> stats == null || furnace.shape() == null
                             ? 0
                             : Math.round(stats.fireTemperature(furnace.shape().layers()));

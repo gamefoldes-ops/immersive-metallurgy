@@ -51,6 +51,16 @@ public final class IMFurnaceTap {
             if (stats == null) {
                 return;
             }
+            if (clicked == TFCBlocks.MOLD_TABLE.get() && furnace.skimmingMb() > 0
+                    && furnace.collectSkimmings(event.getEntity()) > 0) {
+                // An empty tap table is the furnace's dump: what ran over the dam is lifted off here, in whole
+                // pieces or the last partial one, because it is metal and it belongs to whoever built the shaft.
+                event.setUseBlock(TriState.FALSE);
+                event.setUseItem(TriState.FALSE);
+                event.setCancellationResult(InteractionResult.CONSUME);
+                level.playSound(null, outlet, SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.6F, 1.4F);
+                return;
+            }
             String why = furnace.startTap(stats, outlet);
             if (!why.equals("none")) {
                 if (clicked == TFCBlocks.CHANNEL.get()) {

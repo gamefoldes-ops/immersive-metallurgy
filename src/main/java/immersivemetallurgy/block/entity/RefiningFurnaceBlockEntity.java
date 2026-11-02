@@ -21,6 +21,7 @@ import net.dries007.tfc.common.blocks.TFCBlocks;
 import net.dries007.tfc.common.component.fluid.FluidContainerInfo;
 import net.dries007.tfc.common.component.heat.HeatCapability;
 import net.dries007.tfc.common.component.mold.IMold;
+import net.dries007.tfc.util.data.FluidHeat;
 import net.dries007.tfc.common.recipes.HeatingRecipe;
 import net.dries007.tfc.util.FluidAlloy;
 import net.dries007.tfc.util.calendar.Calendars;
@@ -355,7 +356,39 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
 
     /** Whether the bath is still liquid enough to run out of the tap, whatever phase the firing is in. */
     public boolean isPourable(RefiningFurnaceStats stats) {
-        return phase != Phase.IDLE && temperature >= stats.pourTemperature();
+        return phase != Phase.IDLE && temperature >= pourHeat(stats);
+    }
+
+    /**
+     * The heat at which this bath begins to give metal up. A crucible is poured when its melt is liquid and a
+     * shaft furnace is no different: tin in the charge is molten long before copper is, and what has melted can
+     * be drawn off while the rest still sits solid in the stack — it simply comes out carrying the dirt it is
+     * floating in. The flat figure in the tuning sheet is the floor for a bath with nothing molten in it at all.
+     */
+    public float pourHeat(RefiningFurnaceStats stats) {
+        float lowest = meltOfBath(stats);
+        return lowest < 0 ? stats.pourTemperature() : Math.min(lowest, stats.pourTemperature());
+    }
+
+    /** The melt temperature of what the bath has become, which is what the boil works on. */
+    private float meltOfResult(RefiningFurnaceStats stats) {
+        FluidHeat heat = FluidHeat.get(bath.getResult(level).getFluid());
+        return heat == null ? stats.pourTemperature() : heat.meltTemperature();
+    }
+
+    /** The melt temperature of the easiest metal standing in the bath, or -1 when there is no metal in it. */
+    private float meltOfBath(RefiningFurnaceStats stats) {
+        float lowest = -1;
+        for (Fluid fluid : bath.getContent().keySet()) {
+            if (IMFluids.SLAG.fluid() == fluid) {
+                continue;
+            }
+            FluidHeat heat = FluidHeat.get(fluid);
+            if (heat != null && (lowest < 0 || heat.meltTemperature() < lowest)) {
+                lowest = heat.meltTemperature();
+            }
+        }
+        return lowest;
     }
 
     /**
@@ -831,7 +864,10 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
 
         if (phase == Phase.HEATING) {
             heatCharge(stats);
-            if (!hasCharge()) {
+            // The boil is a chemical phase of a liquid bath, so it does not start the moment the last piece has
+            // gone in: it starts when the fire is hot enough to have the bath's own metal molten in it. Tin and
+            // copper charged together boil only once the copper — the result — is actually melting.
+            if (!hasCharge() && temperature >= meltOfResult(stats)) {
                 phase = Phase.BOILING;
                 timer = stats.boilTicks();
             } else if (fuelTicks <= 0 && fuelCount() == 0) {
