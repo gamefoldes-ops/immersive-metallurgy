@@ -4,6 +4,7 @@ import net.dries007.tfc.common.capabilities.ItemCapabilities;
 import net.dries007.tfc.common.component.mold.IMold;
 import net.dries007.tfc.common.component.mold.Mold;
 import net.dries007.tfc.common.items.MoldItem;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 
 /**
@@ -28,6 +29,9 @@ public final class IMCapabilities {
         event.registerItem(ItemCapabilities.MOLD, IMCapabilities::moldOf,
                 VESSELS);
         event.registerItem(ItemCapabilities.HEAT, (stack, context) -> moldOf(stack, context).heatContainer(), VESSELS);
+        // The mold table fills a vessel through the *fluid handler* capability, not through the mold one: asking
+        // only for MOLD left our trays readable but unreachable, so a tap opened on them and delivered nothing.
+        event.registerItem(Capabilities.FluidHandler.ITEM, IMCapabilities::moldOf, VESSELS);
     }
 
     private static Mold moldOf(net.minecraft.world.item.ItemStack stack, Object context) {

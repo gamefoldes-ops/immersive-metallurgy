@@ -750,6 +750,11 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (line.table().getMoldStack().isEmpty()) {
             return "mold";
         }
+        if (line.table().getMoldStack().is(IMItems.SLAG_PLATE.get())) {
+            // The furnace's own slag dish standing on the tap table is the same object in the wrong cell: it holds
+            // slag and nothing else, so a pour into it is a pour into a vessel that will never take metal.
+            return "slagdish";
+        }
         if (pourLeft > 0) {
             return "busy";
         }
@@ -865,11 +870,18 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         // What the hearth is sized to hold is so much *metal*, not so much of anything: a bath of 800 mB of metal
         // with 120 of slag floating in it stands above its own capacity, and spilling on the total would take
         // clean bronze out of the notch for dirt that has not reached it yet.
-        int over = (bath.getAmount() - slagMb()) - capacity();
+        // The number a module promises is the number it keeps: the lining eats capacity for real, but it is not
+        // what the player read on the JEI page when they built the stack, and spilling to 799 of a promised 800
+        // reads as a machine with a hidden tax rather than as a machine with dirty walls.
+        int keep = ratedCapacity();
+        int over = (bath.getAmount() - slagMb()) - keep;
         if (over <= 0) {
             return;
         }
-        FluidStack drawn = bath.drain(level, Math.min(TAP_MB_PER_TICK, over), IFluidHandler.FluidAction.EXECUTE);
+        // Whatever stands above the vessel's own rim leaves at once, because nothing can melt into a cell that is
+        // already full; what is between the module's promise and that rim runs off at the notch's own rate.
+        int off = bath.getAmount() > vesselCapacity() ? over : Math.min(TAP_MB_PER_TICK, over);
+        FluidStack drawn = bath.drain(level, Math.min(off, over), IFluidHandler.FluidAction.EXECUTE);
         if (drawn.isEmpty()) {
             return;
         }
@@ -887,6 +899,12 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         }
         skimming.set(IMDataComponents.SKIMMING_MB, skimmingMb() + drawn.getAmount());
         setChanged();
+    }
+
+    /** What the stack's modules promise, before the walls' lining is taken off it. */
+    private int ratedCapacity() {
+        RefiningFurnaceStats stats = stats();
+        return shape == null || stats == null ? 0 : stats.capacity(shape.modules());
     }
 
     /** How much of the last heat has gone over the dam and is still waiting to be lifted off. */
