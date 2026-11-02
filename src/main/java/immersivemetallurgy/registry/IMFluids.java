@@ -189,8 +189,14 @@ public final class IMFluids {
             return langName;
         }
 
+        /**
+         * The colour a pour of this fluid is painted with. A metal's own name is asked for here rather than at
+         * registration because the answer comes from TFC's {@code Metal} enum, and the only reader of this number
+         * is the client extension, which is asked long after registries exist. Slag names no metal and keeps the
+         * colour it was registered with.
+         */
         public int tint() {
-            return tint;
+            return alloy == null ? tint : alloy.fluidTint();
         }
 
         public DeferredHolder<FluidType, FluidType> typeHolder() {

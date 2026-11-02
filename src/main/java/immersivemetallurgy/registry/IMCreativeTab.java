@@ -29,7 +29,7 @@ public final class IMCreativeTab {
                     .displayItems((parameters, output) -> {
                         for (Item item : BuiltInRegistries.ITEM) {
                             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
-                            if (ImmersiveMetallurgy.MODID.equals(id.getNamespace())) {
+                            if (ImmersiveMetallurgy.MODID.equals(id.getNamespace()) && item != IMItems.SLAG_PLATE.get()) {
                                 output.accept(new ItemStack(item));
                             }
                         }

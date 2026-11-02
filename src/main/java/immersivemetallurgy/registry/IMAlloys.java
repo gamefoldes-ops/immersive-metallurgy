@@ -1,5 +1,7 @@
 package immersivemetallurgy.registry;
 
+import net.dries007.tfc.util.Metal;
+
 import java.util.List;
 
 /**
@@ -13,7 +15,8 @@ import java.util.List;
  *
  * Temperatures are deliberately not here — TFC reads them from {@code tfc:fluid_heat} and {@code tfc:item_heat}
  * data, which {@code tools/generate_flawed_data.py} writes. The tints are the average colour of TFC's own ingot
- * art for that metal, so the flawed palette and the clean art cannot disagree.
+ * art for that metal, which is what the generated art is coloured from; a pour asks TFC for the metal's own colour
+ * instead, see {@link #fluidTint()}.
  */
 public record IMAlloys(String key, String display, int tint, boolean doubleIngot) {
     public static final List<IMAlloys> ALL = List.of(
@@ -61,9 +64,25 @@ public record IMAlloys(String key, String display, int tint, boolean doubleIngot
         return "slag_dust/" + key;
     }
 
+    /**
+     * The colour a pour of this metal is painted with. TFC tints its one molten sprite by {@link Metal#getColor()}
+     * in {@code ClientEventHandler}, so a flawed copper and TFC's clean copper have to answer the same number or
+     * the same metal reads two different colours in two different moulds. Our own average-of-the-art colour is
+     * brighter than that everywhere it was measured — black bronze 0xFF5A405D against TFC's 0xFF3B2636 — and on a
+     * sprite whose own pixels are all near white it shows as a pale wash rather than as the metal. The table value
+     * stays for a metal TFC does not name, and for the art this list still colours.
+     */
+    public int fluidTint() {
+        for (Metal metal : Metal.values()) {
+            if (metal.getSerializedName().equals(key)) {
+                return metal.getColor();
+            }
+        }
+        return tint;
+    }
+
     /** The metal a name refers to, or null when it is not one of the metals this mod carries. */
-    public static IMAlloys byKey(String key) {
-        for (IMAlloys alloy : ALL) {
+    public static IMAlloys byKey(String key) {        for (IMAlloys alloy : ALL) {
             if (alloy.key().equals(key)) {
                 return alloy;
             }

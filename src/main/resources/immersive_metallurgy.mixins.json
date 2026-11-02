@@ -7,23 +7,26 @@
     "AlloyRecipeGetMixin",
     "AnvilRecipeRecordMixin",
     "BlastFurnaceOutputMixin",
-    "ChannelFlowMoldMixin",
     "BloomeryInputMixin",
     "BloomeryOutputMixin",
     "CastingRecipeRecordMixin",
+    "ChannelFlowMoldMixin",
     "CrucibleLedgerCaptureMixin",
     "CrucibleLedgerRestoreMixin",
     "FluidAlloyRecordMixin",
     "HeatingRecipeRecordMixin",
     "ItemStackFlawedNameMixin",
-    "MetalItemFlawedIngotMixin",
     "ItemStackMeltStackingMixin",
+    "MetalItemFlawedIngotMixin",
+    "MoldTablePlateDropMixin",
+    "MoldTablePlateLockMixin",
     "VanillaCraftingMeltMixin",
     "VesselGangueMixin",
     "WeldingRecipeRecordMixin"
   ],
   "client": [
     "CrucibleScreenResultLabelMixin",
+    "MoldTableItemShapeMixin",
     "MoldTableVesselMixin"
   ],
   "injectors": {
