@@ -941,6 +941,35 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         return shape == null || stats == null ? 0 : stats.capacity(shape.modules());
     }
 
+    /**
+     * Emptying the shaft through its own tap. Whatever metal is standing in the bath is drawn off as skimmings and
+     * paid out on the spot, because the last few dozen millilitres of a heat will not fill a mould, and a player
+     * who wants the furnace empty should not have to wait for a boil that can never finish or break the walls to
+     * get at it. Metal leaves by the tap; the slag outlet carries dirt and nothing else.
+     */
+    public int drainHeel(net.minecraft.world.entity.player.Player player, RefiningFurnaceStats stats) {
+        if (level == null || level.isClientSide || !isPourable(stats) || bath.isEmpty()) {
+            return 0;
+        }
+        FluidStack rest = bath.drain(level, bath.getAmount(), IFluidHandler.FluidAction.EXECUTE);
+        if (rest.isEmpty()) {
+            return 0;
+        }
+        if (skimming.isEmpty()) {
+            skimming = new ItemStack(IMItems.SKIMMINGS.get());
+            skimming.set(IMDataComponents.SKIMMING_FLUID,
+                    BuiltInRegistries.FLUID.getKey(rest.getFluid()).toString());
+            skimming.set(IMDataComponents.SKIMMING_MB, 0);
+        }
+        AlloyRecord record = rest.get(IMDataComponents.ALLOY_RECORD.get());
+        if (record != null) {
+            skimming.set(IMDataComponents.ALLOY_RECORD.get(), record);
+        }
+        skimming.set(IMDataComponents.SKIMMING_MB, skimmingMb() + rest.getAmount());
+        setChanged();
+        return collectSkimmings(player);
+    }
+
     /** How much of the last heat has gone over the dam and is still waiting to be lifted off. */
     public int skimmingMb() {
         Integer held = skimming.get(IMDataComponents.SKIMMING_MB.get());
@@ -1381,10 +1410,12 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         FurnaceShape before = shape;
         shape = result.shape();
         fault = result.fault();
-        if (shape != null && (before == null || !shape.slagOutlet().equals(before.slagOutlet()))) {
-            // The slag dish is laid the moment the furnace knows where its outlet is, not the first time slag
-            // reaches it: a player who sets a table in the notch wants to see the machine take it, and a catcher
-            // that only appears once the bath is already dirty reads as a bug in the table.
+        if (shape != null && (before == null || !shape.slagOutlet().equals(before.slagOutlet())
+                || slagPlate() == null)) {
+            // The slag dish is laid the moment the furnace knows where its outlet is, and re-laid on every scan
+            // after that: a player who sets a table in the notch wants to see the machine take it, and anything
+            // that can be taken off it — by a path this mod does not own — should be the furnace's problem to
+            // put right again rather than the player's to notice.
             ensureSlagPlate();
         }
         setChanged();

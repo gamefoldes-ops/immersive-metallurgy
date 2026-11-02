@@ -33,6 +33,12 @@ public final class IMFurnaceTap {
     private IMFurnaceTap() {
     }
 
+    /** Whether the tap table is standing there with nothing on it, which is the emptying gesture. */
+    private static boolean lineEmpty(RefiningFurnaceBlockEntity furnace, BlockPos outlet) {
+        return furnace.tapLine() != null && furnace.tapLine().table().getMoldStack().isEmpty()
+                && outlet.equals(furnace.shape().tapOutlet());
+    }
+
     @SubscribeEvent
     public static void onRightClickOutlet(PlayerInteractEvent.RightClickBlock event) {
         Level level = event.getLevel();
@@ -51,10 +57,18 @@ public final class IMFurnaceTap {
             if (stats == null) {
                 return;
             }
-            if (clicked == TFCBlocks.MOLD_TABLE.get() && furnace.skimmingMb() > 0
-                    && furnace.collectSkimmings(event.getEntity()) > 0) {
+            if (clicked == TFCBlocks.MOLD_TABLE.get() && lineEmpty(furnace, outlet)
+                    && furnace.drainHeel(event.getEntity(), stats) > 0) {
                 // An empty tap table is the furnace's dump: what ran over the dam is lifted off here, in whole
                 // pieces or the last partial one, because it is metal and it belongs to whoever built the shaft.
+                event.setUseBlock(TriState.FALSE);
+                event.setUseItem(TriState.FALSE);
+                event.setCancellationResult(InteractionResult.CONSUME);
+                level.playSound(null, outlet, SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.6F, 1.4F);
+                return;
+            }
+            if (clicked == TFCBlocks.MOLD_TABLE.get() && furnace.skimmingMb() > 0
+                    && furnace.collectSkimmings(event.getEntity()) > 0) {
                 event.setUseBlock(TriState.FALSE);
                 event.setUseItem(TriState.FALSE);
                 event.setCancellationResult(InteractionResult.CONSUME);

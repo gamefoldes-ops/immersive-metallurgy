@@ -64,8 +64,7 @@ public final class IMSlagPlate {
             // not a possession: TFC's own table would otherwise hand it back into the inventory on an idle click,
             // and a furnace whose slag catcher can wander off is a furnace that silently stops refining.
             int dust = furnace.cleanSlagPlate(event.getEntity());
-            int skimmings = furnace.collectSkimmings(event.getEntity());
-            if (dust > 0 || skimmings > 0) {
+            if (dust > 0) {
                 level.playSound(null, table, SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 0.6F, 1.2F);
             }
             event.setUseBlock(TriState.FALSE);

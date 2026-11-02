@@ -23,7 +23,8 @@
     "WeldingRecipeRecordMixin"
   ],
   "client": [
-    "CrucibleScreenResultLabelMixin"
+    "CrucibleScreenResultLabelMixin",
+    "MoldTableVesselMixin"
   ],
   "injectors": {
     "defaultRequire": 1
