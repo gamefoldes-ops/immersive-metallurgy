@@ -3,7 +3,6 @@ package immersivemetallurgy.mixin;
 import immersivemetallurgy.registry.IMItems;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import net.dries007.tfc.client.render.blockentity.MoldBlockEntityRenderer;
 import net.dries007.tfc.common.blockentities.MoldTableBlockEntity;
 import net.minecraft.client.Minecraft;
@@ -37,10 +36,11 @@ public class MoldTableVesselMixin {
         }
         Level level = table.getLevel();
         pose.pushPose();
-        // Flat on the board, a little inside its edge, at the same height the table's own moulds sit at.
-        pose.translate(0.5F, 0.03F, 0.5F);
-        pose.mulPose(Axis.XP.rotationDegrees(-90F));
-        pose.scale(0.62F, 0.62F, 0.62F);
+        // GROUND already lays an item flat on its back and turns it face-up, so the pose only centres it on the
+        // board and lifts it clear of the table's own top face — anything lower is hidden by the board it sits on,
+        // which is what made the first attempt draw a tray nobody could see.
+        pose.translate(0.5F, 0.07F, 0.5F);
+        pose.scale(1.7F, 1.7F, 1.7F);
         Minecraft.getInstance().getItemRenderer().renderStatic(vessel, ItemDisplayContext.FIXED, light, overlay,
                 pose, buffers, level == null ? Minecraft.getInstance().level : level, 0);
         pose.popPose();

@@ -40,7 +40,7 @@ public final class IMSlagPlate {
             // A table standing in a furnace's slag outlet is part of the furnace. Nothing else is set on it and
             // nothing is taken off it, because the one thing this machine must not be able to lose is the vessel
             // its whole purpose runs through.
-            for (BlockPos near : BlockPos.withinManhattan(event.getPos(), 3, 2, 3)) {
+            for (BlockPos near : BlockPos.withinManhattan(event.getPos(), 5, 7, 5)) {
                 RefiningFurnaceBlockEntity hearth = level.getBlockEntity(near, IMBlockEntities.HEARTH.get()).orElse(null);
                 if (hearth == null || !hearth.ownsSlagOutlet(event.getPos())) {
                     continue;
@@ -55,7 +55,7 @@ public final class IMSlagPlate {
             return;
         }
         BlockPos table = event.getPos();
-        for (BlockPos near : BlockPos.withinManhattan(table, 3, 2, 3)) {
+        for (BlockPos near : BlockPos.withinManhattan(table, 5, 7, 5)) {
             RefiningFurnaceBlockEntity furnace = level.getBlockEntity(near, IMBlockEntities.HEARTH.get()).orElse(null);
             if (furnace == null || !furnace.ownsSlagOutlet(table)) {
                 continue;
