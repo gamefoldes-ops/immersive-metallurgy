@@ -1,6 +1,7 @@
 package immersivemetallurgy.block.entity;
 
 import immersivemetallurgy.ImmersiveMetallurgy;
+import immersivemetallurgy.component.AlloyRecord;
 import immersivemetallurgy.block.RefiningHearthBlock;
 import immersivemetallurgy.component.MeltComposition;
 import immersivemetallurgy.component.MeltCarries;
@@ -152,8 +153,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
      * the metal alone. It is collected as skimmings at the slag table, the same gesture that pays out
      * the dust, and it goes back into the throat rather than being thrown away.
      */
-    private int skimmingMb;
-    private String skimmingFluid = "";
+    private ItemStack skimming = ItemStack.EMPTY;
     /**
      * Where this fire last stood on the two clocks the world keeps: TFC's calendar, which is what a night's sleep
      * and {@code /tfc time add} advance, and the world's day time, which is what vanilla {@code /time add} moves
@@ -404,6 +404,13 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (melt.isEmpty()) {
             return new Loaded(0, Refusal.NOT_A_CHARGE);
         }
+        // The composition has to come back with the metal. A record-less fluid in a standing bath is exactly the
+        // junk case the tolerant matcher refuses, and the whole heat turns to unknown behind it.
+        AlloyRecord record = held.get(IMDataComponents.ALLOY_RECORD.get());
+        if (record == null) {
+            return new Loaded(0, Refusal.NOT_A_CHARGE);
+        }
+        melt.set(IMDataComponents.ALLOY_RECORD.get(), record);
         held.shrink(1);
         bath.fill(melt, IFluidHandler.FluidAction.EXECUTE, container);
         setChanged();
@@ -641,7 +648,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         }
         // The pair a table carries points back along the stream, at the cell the metal came out of: TFC's own
         // isFlowing() looks for a channel there, and the renderer draws the spout from it.
-        line.table().setSource(from, offer.getFluid(), Pair.of(line.intoTable().getOpposite(), (byte) 1));
+        line.table().setSource(from, offer.getFluid(), Pair.of(pourSide, (byte) 1));
         setChanged();
         return "none";
     }
@@ -855,7 +862,10 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (shape == null || !isPourable(stats)) {
             return;
         }
-        int over = bath.getAmount() - capacity();
+        // What the hearth is sized to hold is so much *metal*, not so much of anything: a bath of 800 mB of metal
+        // with 120 of slag floating in it stands above its own capacity, and spilling on the total would take
+        // clean bronze out of the notch for dirt that has not reached it yet.
+        int over = (bath.getAmount() - slagMb()) - capacity();
         if (over <= 0) {
             return;
         }
@@ -863,41 +873,52 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (drawn.isEmpty()) {
             return;
         }
-        skimmingFluid = BuiltInRegistries.FLUID.getKey(drawn.getFluid()).toString();
-        skimmingMb += drawn.getAmount();
+        if (skimming.isEmpty()) {
+            skimming = new ItemStack(IMItems.SKIMMINGS.get());
+            skimming.set(IMDataComponents.SKIMMING_FLUID,
+                    BuiltInRegistries.FLUID.getKey(drawn.getFluid()).toString());
+            skimming.set(IMDataComponents.SKIMMING_MB, 0);
+        }
+        // The composition rides the same component the melt itself carries. A piece without it is worse than no
+        // piece at all: the bath it comes back to has no record for the fluid and calls the whole heat unknown.
+        AlloyRecord record = drawn.get(IMDataComponents.ALLOY_RECORD.get());
+        if (record != null) {
+            skimming.set(IMDataComponents.ALLOY_RECORD.get(), record);
+        }
+        skimming.set(IMDataComponents.SKIMMING_MB, skimmingMb() + drawn.getAmount());
         setChanged();
     }
 
+    /** How much of the last heat has gone over the dam and is still waiting to be lifted off. */
+    public int skimmingMb() {
+        Integer held = skimming.get(IMDataComponents.SKIMMING_MB.get());
+        return held == null ? 0 : held;
+    }
+
     /**
-     * Taking the skimmings off the hearth: one piece per full ingot's worth of what ran over the dam, stamped with
-     * the fluid and the amount it actually is, so a player who filled a shaft too full gets their metal back as
-     * something that can be thrown in again rather than as a number on a screen.
+     * Taking the skimmings off the hearth in whole ingot-sized pieces, each carrying the fluid, the amount and the
+     * composition of what actually ran over, so a piece is a record of the heat rather than a token for it.
      */
     public int collectSkimmings(net.minecraft.world.entity.player.Player player) {
-        int pieces = skimmingMb / 100;
+        int pieces = skimmingMb() / 100;
         if (pieces <= 0 || level == null || level.isClientSide) {
             return 0;
         }
         for (int piece = 0; piece < pieces; piece++) {
-            ItemStack skimming = new ItemStack(IMItems.SKIMMINGS.get());
-            skimming.set(IMDataComponents.SKIMMING_FLUID, skimmingFluid);
-            skimming.set(IMDataComponents.SKIMMING_MB, 100);
-            if (!player.getInventory().add(skimming)) {
-                player.drop(skimming, false);
+            ItemStack lump = skimming.copyWithCount(1);
+            lump.set(IMDataComponents.SKIMMING_MB, 100);
+            if (!player.getInventory().add(lump)) {
+                player.drop(lump, false);
             }
         }
-        skimmingMb -= pieces * 100;
-        if (skimmingMb < 100) {
-            skimmingMb = 0;
+        skimming.set(IMDataComponents.SKIMMING_MB, skimmingMb() - pieces * 100);
+        if (skimmingMb() <= 0) {
+            skimming = ItemStack.EMPTY;
         }
         setChanged();
         return pieces;
     }
 
-    /** How much of the last heat went over the dam and is still waiting to be lifted off. */
-    public int skimmingMb() {
-        return skimmingMb;
-    }
 
     /**
      * What the walls give back to a fresh melt: a share of the plated-out slag comes off the brick and into the
@@ -1091,8 +1112,18 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             return plate;
         }
         MoldTableBlockEntity table = slagTable();
-        if (level == null || level.isClientSide || table == null || !table.getMoldStack().isEmpty()) {
+        if (level == null || level.isClientSide || table == null) {
             return null;
+        }
+        if (!table.getMoldStack().isEmpty()) {
+            // Something else is standing in the furnace's slag outlet. It goes back out as an item rather than
+            // being destroyed, and the plate takes its place, because the outlet is the one cell the machine
+            // cannot run without and a player who put a mould there meant it as a catcher.
+            ItemStack foreign = table.getMoldStack();
+            Containers.dropItemStack(level, table.getBlockPos().getX() + 0.5, table.getBlockPos().getY() + 0.6,
+                    table.getBlockPos().getZ() + 0.5, foreign);
+            table.setMoldStack(ItemStack.EMPTY);
+            table.setAndUpdateSlots(MoldTableBlockEntity.MOLD_SLOT);
         }
         table.setMoldStack(new ItemStack(IMItems.SLAG_PLATE.get()));
         table.setAndUpdateSlots(MoldTableBlockEntity.MOLD_SLOT);
@@ -1462,8 +1493,9 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         tag.putFloat("temperature", temperature);
         tag.putInt("fuel_ticks", fuelTicks);
         tag.putBoolean("doused", doused);
-        tag.putInt("skimming_mb", skimmingMb);
-        tag.putString("skimming_fluid", skimmingFluid);
+        if (!skimming.isEmpty()) {
+            tag.put("skimming", skimming.save(registries));
+        }
         tag.putLong("last_calendar_tick", lastCalendarTick);
         tag.putLong("last_day_time", lastDayTime);
         tag.put(CHARGE_KEY, ContainerHelper.saveAllItems(new CompoundTag(), charge, registries));
@@ -1488,8 +1520,8 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         temperature = tag.getFloat("temperature");
         fuelTicks = tag.getInt("fuel_ticks");
         doused = tag.getBoolean("doused");
-        skimmingMb = tag.getInt("skimming_mb");
-        skimmingFluid = tag.getString("skimming_fluid");
+        skimming = tag.contains("skimming")
+                ? ItemStack.parseOptional(registries, tag.getCompound("skimming")) : ItemStack.EMPTY;
         // A furnace saved before the fire kept a clock has no answer, and the honest one is "start from now":
         // guessing at the missing span would burn a firing that was never lit.
         lastCalendarTick = tag.contains("last_calendar_tick") ? tag.getLong("last_calendar_tick") : -1;
