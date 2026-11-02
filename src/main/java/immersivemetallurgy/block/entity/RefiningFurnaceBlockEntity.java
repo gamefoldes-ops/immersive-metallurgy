@@ -90,7 +90,13 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
      * millilitre every other tick. The furnace keeps that rather than inventing a faster one, so a tap and a
      * crucible pour the same metal at the same speed and a bath of twelve hours is worth the wait it costs.
      */
-    private static final int TAP_MB_PER_TICK = 1;
+    /**
+     * Two millilitres a tick. TFC's crucible drips one every other tick and the furnace deliberately does not
+     * keep that pace: a module of metal is eight hundred millilitres, and at the crucible's rate a single tap
+     * costs a minute and a half of standing in front of the machine — which is a cost the shaft furnace was never
+     * meant to add, its whole bargain being volume for time already spent elsewhere.
+     */
+    private static final int TAP_MB_PER_TICK = 2;
 
     /** How far a channel run may travel from the tap and still be one line this furnace will feed. */
     private static final int MAX_TAP_RUN = 8;
@@ -163,8 +169,6 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
      */
     private long lastCalendarTick = -1;
     private long lastDayTime;
-    /** The pour's own clock, because a catch-up runs several ticks at once and {@code getGameTime} does not move. */
-    private int pourWait;
 
     public RefiningFurnaceBlockEntity(BlockPos pos, BlockState state) {
         super(IMBlockEntities.HEARTH.get(), pos, state);
@@ -658,12 +662,6 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (pourLeft <= 0) {
             return;
         }
-        // TFC's drip is one millilitre every other tick, counted here rather than off the world's game time,
-        // because a catch-up runs several ticks inside one and game time does not move while it does.
-        if (++pourWait < 2) {
-            return;
-        }
-        pourWait = 0;
         if (!(level.getBlockEntity(pourTable) instanceof MoldTableBlockEntity table)) {
             pourLeft = 0;
             return;
@@ -1344,8 +1342,15 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         }
         FurnaceShape.Result result = FurnaceShape.scan(level, worldPosition, state.getValue(RefiningHearthBlock.FACING),
                 stats.maxModules(), stats.channelOffsetFromTop());
+        FurnaceShape before = shape;
         shape = result.shape();
         fault = result.fault();
+        if (shape != null && (before == null || !shape.slagOutlet().equals(before.slagOutlet()))) {
+            // The slag dish is laid the moment the furnace knows where its outlet is, not the first time slag
+            // reaches it: a player who sets a table in the notch wants to see the machine take it, and a catcher
+            // that only appears once the bath is already dirty reads as a bug in the table.
+            ensureSlagPlate();
+        }
         setChanged();
     }
 
