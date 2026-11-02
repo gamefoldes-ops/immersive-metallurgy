@@ -27,7 +27,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(MoldBlockEntityRenderer.class)
 public class MoldTableVesselMixin {
     @Inject(method = "render(Lnet/dries007/tfc/common/blockentities/MoldTableBlockEntity;FLcom/mojang/blaze3d/"
-            + "vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;II)V", at = @At("RETURN"))
+            + "vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;II)V", at = @At("RETURN"),
+            require = 0)
     private void immersiveMetallurgy$drawOurVessel(MoldTableBlockEntity table, float partialTick, PoseStack pose,
                                                   MultiBufferSource buffers, int light, int overlay, CallbackInfo ci) {
         ItemStack vessel = table.getMoldStack();
