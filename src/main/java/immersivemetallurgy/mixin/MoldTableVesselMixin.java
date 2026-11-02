@@ -36,11 +36,16 @@ public class MoldTableVesselMixin {
         }
         Level level = table.getLevel();
         pose.pushPose();
-        // GROUND already lays an item flat on its back and turns it face-up, so the pose only centres it on the
-        // board and lifts it clear of the table's own top face — anything lower is hidden by the board it sits on,
-        // which is what made the first attempt draw a tray nobody could see.
-        pose.translate(0.5F, 0.07F, 0.5F);
-        pose.scale(1.7F, 1.7F, 1.7F);
+        // The board stands upright and the moulds on it hang facing out of it, so the tray is placed the same way:
+        // turned to the table's own front, moved onto that face, and given the size TFC's moulds have rather than
+        // the half-block-plus that the first attempt covered the whole board with.
+        net.minecraft.core.Direction facing = table.getBlockState()
+                .getOptionalValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING)
+                .orElse(net.minecraft.core.Direction.NORTH);
+        pose.translate(0.5F, 0.52F, 0.5F);
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(facing.toYRot()));
+        pose.translate(0.0F, 0.0F, 0.26F);
+        pose.scale(0.5F, 0.5F, 0.5F);
         Minecraft.getInstance().getItemRenderer().renderStatic(vessel, ItemDisplayContext.FIXED, light, overlay,
                 pose, buffers, level == null ? Minecraft.getInstance().level : level, 0);
         pose.popPose();
