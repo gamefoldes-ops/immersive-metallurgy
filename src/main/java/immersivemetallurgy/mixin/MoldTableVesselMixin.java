@@ -36,16 +36,18 @@ public class MoldTableVesselMixin {
         }
         Level level = table.getLevel();
         pose.pushPose();
-        // The board stands upright and the moulds on it hang facing out of it, so the tray is placed the same way:
-        // turned to the table's own front, moved onto that face, and given the size TFC's moulds have rather than
-        // the half-block-plus that the first attempt covered the whole board with.
+        // The numbers are TFC's own: its renderer paints a mould as a quad from 0.125 to 0.875 of the block, at
+        // 0.95 of the board's depth, standing upright in the board's plane rather than lying on it. Copying them
+        // is the only way ours lands where theirs does instead of hovering over the frame at twice the size.
         net.minecraft.core.Direction facing = table.getBlockState()
                 .getOptionalValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING)
                 .orElse(net.minecraft.core.Direction.NORTH);
-        pose.translate(0.5F, 0.52F, 0.5F);
+        pose.translate(0.5F, 0.5F, 0.5F);
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(facing.toYRot()));
-        pose.translate(0.0F, 0.0F, 0.26F);
-        pose.scale(0.5F, 0.5F, 0.5F);
+        pose.translate(0.0F, 0.0F, 0.45F);
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90F));
+        pose.scale(0.75F, 0.75F, 0.75F);
+        pose.translate(-0.5F, -0.5F, 0.0F);
         Minecraft.getInstance().getItemRenderer().renderStatic(vessel, ItemDisplayContext.FIXED, light, overlay,
                 pose, buffers, level == null ? Minecraft.getInstance().level : level, 0);
         pose.popPose();
