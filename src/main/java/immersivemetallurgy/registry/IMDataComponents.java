@@ -58,6 +58,22 @@ public final class IMDataComponents {
                     .networkSynchronized(MeltLedger.STREAM_CODEC)
                     .build());
 
+    /**
+     * What a piece of skimmings is made of, and how much of it there is. Two plain values rather than a fluid
+     * stack, because a fluid is a registry key and a component that has to survive a server restart should not
+     * be the thing that decides whether the registry lookup happens before or after it is read.
+     */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<String>> SKIMMING_FLUID =
+            DATA_COMPONENTS.register("skimming_fluid", () -> DataComponentType.<String>builder()
+                    .persistent(Codec.STRING)
+                    .networkSynchronized(ByteBufCodecs.STRING_UTF8)
+                    .build());
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> SKIMMING_MB =
+            DATA_COMPONENTS.register("skimming_mb", () -> DataComponentType.<Integer>builder()
+                    .persistent(Codec.INT)
+                    .networkSynchronized(ByteBufCodecs.VAR_INT)
+                    .build());
+
     private IMDataComponents() {
     }
 

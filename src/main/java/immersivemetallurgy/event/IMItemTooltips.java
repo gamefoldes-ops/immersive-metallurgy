@@ -63,6 +63,19 @@ public final class IMItemTooltips {
             }
         }
 
+        if (stack.is(IMItems.SKIMMINGS.get())) {
+            // What ran over the dam has to say how much of it there is and what it is, or it is a lump of nothing
+            // in a slot; the two numbers are the whole reason the piece exists.
+            lines.add(Component.translatable("immersive_metallurgy.tooltip.skimmings").withStyle(ChatFormatting.GRAY));
+            Integer mb = stack.get(IMDataComponents.SKIMMING_MB.get());
+            String fluidId = stack.get(IMDataComponents.SKIMMING_FLUID.get());
+            if (mb != null && fluidId != null) {
+                lines.add(Component.translatable("immersive_metallurgy.tooltip.vessel_holding", mb, mb,
+                                IMMetalNames.moltenName(BuiltInRegistries.FLUID.get(ResourceLocation.tryParse(fluidId))))
+                        .withStyle(ChatFormatting.AQUA));
+            }
+        }
+
         Player player = event.getEntity();
         FlawProfiles profiles = player == null ? null : FlawProfiles.of(player.level().getRecipeManager());
         DefectProfile profile = stack.get(IMDataComponents.DEFECT_PROFILE.get());

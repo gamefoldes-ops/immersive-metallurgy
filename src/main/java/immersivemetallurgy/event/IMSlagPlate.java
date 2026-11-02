@@ -10,6 +10,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -32,7 +33,25 @@ public final class IMSlagPlate {
     @SubscribeEvent
     public static void onRightClickTable(PlayerInteractEvent.RightClickBlock event) {
         Level level = event.getLevel();
-        if (level.isClientSide || event.getHand() != InteractionHand.MAIN_HAND || !event.getItemStack().isEmpty()) {
+        if (level.isClientSide || event.getHand() != InteractionHand.MAIN_HAND) {
+            return;
+        }
+        if (!event.getItemStack().isEmpty()) {
+            // A table standing in a furnace's slag outlet is part of the furnace. Nothing else is set on it and
+            // nothing is taken off it, because the one thing this machine must not be able to lose is the vessel
+            // its whole purpose runs through.
+            for (BlockPos near : BlockPos.withinManhattan(event.getPos(), 3, 2, 3)) {
+                RefiningFurnaceBlockEntity hearth = level.getBlockEntity(near, IMBlockEntities.HEARTH.get()).orElse(null);
+                if (hearth == null || !hearth.ownsSlagOutlet(event.getPos())) {
+                    continue;
+                }
+                event.setUseBlock(TriState.FALSE);
+                event.setUseItem(TriState.FALSE);
+                event.setCancellationResult(InteractionResult.CONSUME);
+                event.getEntity().displayClientMessage(Component.translatable("screen." + ImmersiveMetallurgy.MODID
+                        + ".furnace.slag_table_locked"), true);
+                return;
+            }
             return;
         }
         BlockPos table = event.getPos();
@@ -44,7 +63,9 @@ public final class IMSlagPlate {
             // The click is answered whether or not there was slag to pay out, because the plate is a fitting and
             // not a possession: TFC's own table would otherwise hand it back into the inventory on an idle click,
             // and a furnace whose slag catcher can wander off is a furnace that silently stops refining.
-            if (furnace.cleanSlagPlate(event.getEntity()) > 0) {
+            int dust = furnace.cleanSlagPlate(event.getEntity());
+            int skimmings = furnace.collectSkimmings(event.getEntity());
+            if (dust > 0 || skimmings > 0) {
                 level.playSound(null, table, SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 0.6F, 1.2F);
             }
             event.setUseBlock(TriState.FALSE);
