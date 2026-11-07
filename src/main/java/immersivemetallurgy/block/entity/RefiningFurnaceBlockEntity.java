@@ -7,6 +7,7 @@ import immersivemetallurgy.component.MeltComposition;
 import immersivemetallurgy.component.MeltCarries;
 import immersivemetallurgy.furnace.Casts;
 import immersivemetallurgy.furnace.FurnaceShape;
+import immersivemetallurgy.furnace.MoltenTower;
 import immersivemetallurgy.menu.RefiningFurnaceMenu;
 import immersivemetallurgy.recipe.RefiningFurnaceStats;
 import immersivemetallurgy.registry.IMBlockEntities;
@@ -147,6 +148,13 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     private int rescanCooldown;
     private int pickupCooldown;
     /**
+     * The molten column the bath last had standing in the shaft, and the quarter-layer it was drawn to. The tower
+     * is repainted when the bath visibly moves or the fire changes, not every tick: what it calls writes blocks,
+     * and a furnace that is merely sitting there has no business saving a column of the world once a tick.
+     */
+    private FurnaceShape tower;
+    private int towerSignature = -1;
+    /**
      * What the fire and everything in it stand at, in the same degrees TFC's own heating recipes answer melt
      * questions in, so an item in this furnace warms by TFC's rules rather than by a timer of ours.
      */
@@ -196,6 +204,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             self.takeThrownIn(stats);
         }
         self.tick(stats);
+        self.paintTower(stats);
     }
 
     /**
@@ -237,6 +246,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         pourLeft = 0;
         phase = Phase.IDLE;
         timer = 0;
+        clearTower();
         setChanged();
         setLit(false);
     }
@@ -570,6 +580,10 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             }
             lining = 0;
         }
+        // The bath itself goes with the hearth, and so does the column of molten that was standing where it was.
+        // Nothing else will take those blocks down: they are unbreakable, and a leftover one is a permanent
+        // decoration in someone's build.
+        clearTower();
         setChanged();
     }
 
@@ -837,6 +851,43 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             }
         }
         setChanged();
+    }
+
+    /**
+     * Keeps the visible bath in step with what is standing in the shaft. This is the bloomery's and the blast
+     * furnace's own mechanism — TFC's molten blocks, painted by TFC's helper — so the shaft reads the way the
+     * game's other furnaces read rather than the way a hole in a wall reads.
+     *
+     * The column is measured against the charge as well as the melt, for the same reason the bloomery's is: what
+     * TFC hands its helper is how much stuff is in there, and metal thrown down the throat is in there from the
+     * moment it lands, cold and unburnt. A furnace that only showed metal once it had melted would look empty at
+     * the exact moment it is most obviously full, and the player would have no way to see what he just charged.
+     */
+    private void paintTower(RefiningFurnaceStats stats) {
+        int standing = bath.getAmount() + chargeMb(stats);
+        int asked = MoltenTower.signature(shape, stats, standing, isLit());
+        if (asked == towerSignature) {
+            return;
+        }
+        towerSignature = asked;
+        if (tower != null && (shape == null || !tower.center().equals(shape.center()) || asked < 0)) {
+            MoltenTower.hide(level, tower);
+        }
+        if (asked < 0) {
+            tower = null;
+            return;
+        }
+        MoltenTower.show(level, shape, stats, standing, isLit());
+        tower = shape;
+    }
+
+    /** Takes the visible bath down for good: the stack stopped being a stack, or the hearth stopped existing. */
+    private void clearTower() {
+        if (tower != null) {
+            MoltenTower.hide(level, tower);
+            tower = null;
+            towerSignature = -1;
+        }
     }
 
     /**

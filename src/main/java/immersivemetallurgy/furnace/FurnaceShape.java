@@ -3,6 +3,7 @@ package immersivemetallurgy.furnace;
 import immersivemetallurgy.registry.IMBlocks;
 import immersivemetallurgy.registry.IMTags;
 
+import net.dries007.tfc.common.blocks.TFCBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.LevelAccessor;
@@ -226,7 +227,10 @@ public record FurnaceShape(int modules, int layers, int channelLayer, Direction 
     }
 
     private static boolean isShaft(BlockState state) {
-        return state.isAir() || state.canBeReplaced();
+        // Air is an open shaft. So is the molten column the furnace stands in its own shaft — that tower is
+        // furniture the hearth paints from the bath, not something the player built, and a stack that read its own
+        // bath as a wall would shorten itself on the next scan and then call that a fault.
+        return state.isAir() || state.canBeReplaced() || state.is(TFCBlocks.MOLTEN.get());
     }
 
     /** A wall cell is refractory brick or the duct a route runs through, and the two are one and the same wall. */
