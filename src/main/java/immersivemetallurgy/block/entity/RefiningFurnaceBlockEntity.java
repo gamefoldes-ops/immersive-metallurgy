@@ -2,6 +2,7 @@ package immersivemetallurgy.block.entity;
 
 import immersivemetallurgy.ImmersiveMetallurgy;
 import immersivemetallurgy.component.AlloyRecord;
+import immersivemetallurgy.block.RefiningDuctBlock;
 import immersivemetallurgy.block.RefiningHearthBlock;
 import immersivemetallurgy.component.MeltComposition;
 import immersivemetallurgy.component.MeltCarries;
@@ -584,6 +585,9 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         // Nothing else will take those blocks down: they are unbreakable, and a leftover one is a permanent
         // decoration in someone's build.
         clearTower();
+        // The holes in the wall outlive the hearth that read them as a tap and a slag run, so they are told to
+        // stop saying so — otherwise a broken furnace leaves a spout hanging over a table for years.
+        markDucts(shape, null);
         setChanged();
     }
 
@@ -627,6 +631,14 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             here = next;
         }
         return null;
+    }
+
+    /**
+     * Whether a click on this cell is the tap's own handle: the outlet itself. The launder over the table is drawn,
+     * never placed, so there is no second cell to click.
+     */
+    public boolean isTapHandle(BlockPos clicked) {
+        return shape != null && clicked.equals(shape.tapOutlet());
     }
 
     /**
@@ -785,7 +797,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
      * running, is the bath liquid at all, is there any metal left in it.
      */
     public String tapRefusal(RefiningFurnaceStats stats, BlockPos clicked) {
-        if (shape == null || !clicked.equals(shape.tapOutlet())) {
+        if (!isTapHandle(clicked)) {
             return "stranger";
         }
         TapLine line = tapLine();
@@ -1469,7 +1481,40 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             // put right again rather than the player's to notice.
             ensureSlagPlate();
         }
+        markDucts(before, shape);
         setChanged();
+    }
+
+    /**
+     * Tells the two holes in the wall which line each of them carries, so that whatever can only read block
+     * states — first of all the renderer that hangs the tap's spout over the table standing in front of it — can
+     * see it without asking the furnace, across the side or otherwise. A stack that came apart, or that the player
+     * grew by one module, leaves its old holes saying nothing at all.
+     */
+    private void markDucts(FurnaceShape before, FurnaceShape now) {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        if (before != null) {
+            if (now == null || !before.tapWall().equals(now.tapWall())) {
+                markDuct(before.tapWall(), RefiningDuctBlock.LINE_NONE);
+            }
+            if (now == null || !before.slagWall().equals(now.slagWall())) {
+                markDuct(before.slagWall(), RefiningDuctBlock.LINE_NONE);
+            }
+        }
+        if (now != null) {
+            markDuct(now.tapWall(), RefiningDuctBlock.LINE_TAP);
+            markDuct(now.slagWall(), RefiningDuctBlock.LINE_SLAG);
+        }
+    }
+
+    private void markDuct(BlockPos duct, int line) {
+        BlockState state = level.getBlockState(duct);
+        if (!state.is(IMBlocks.REFINING_DUCT.get()) || state.getValue(RefiningDuctBlock.LINE) == line) {
+            return;
+        }
+        level.setBlockAndUpdate(duct, state.setValue(RefiningDuctBlock.LINE, line));
     }
 
     /** Which missing part stopped the stack from being a furnace, as a number the window can carry. */

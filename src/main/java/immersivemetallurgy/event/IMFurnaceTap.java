@@ -38,7 +38,6 @@ public final class IMFurnaceTap {
         return furnace.tapLine() != null && furnace.tapLine().table().getMoldStack().isEmpty()
                 && outlet.equals(furnace.shape().tapOutlet());
     }
-
     @SubscribeEvent
     public static void onRightClickOutlet(PlayerInteractEvent.RightClickBlock event) {
         Level level = event.getLevel();
@@ -50,7 +49,7 @@ public final class IMFurnaceTap {
         BlockPos outlet = event.getPos();
         for (BlockPos near : BlockPos.withinManhattan(outlet, 4, 3, 4)) {
             RefiningFurnaceBlockEntity furnace = level.getBlockEntity(near, IMBlockEntities.HEARTH.get()).orElse(null);
-            if (furnace == null || !furnace.formed() || !outlet.equals(furnace.shape().tapOutlet())) {
+            if (furnace == null || !furnace.formed() || !furnace.isTapHandle(outlet)) {
                 continue;
             }
             RefiningFurnaceStats stats = RefiningFurnaceStats.of(level.getRecipeManager());

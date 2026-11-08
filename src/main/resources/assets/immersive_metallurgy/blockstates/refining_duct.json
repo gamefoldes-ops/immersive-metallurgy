@@ -1,1 +1,5 @@
-{"variants":{"":{"model":"immersive_metallurgy:block/refining_duct"}}}
+{"variants":{
+  "line=0":{"model":"immersive_metallurgy:block/refining_duct"},
+  "line=1":{"model":"immersive_metallurgy:block/refining_duct"},
+  "line=2":{"model":"immersive_metallurgy:block/refining_duct"}
+}}

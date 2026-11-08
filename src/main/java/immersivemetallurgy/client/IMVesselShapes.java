@@ -1,14 +1,19 @@
 package immersivemetallurgy.client;
 
 import immersivemetallurgy.ImmersiveMetallurgy;
+import immersivemetallurgy.block.RefiningDuctBlock;
+import immersivemetallurgy.registry.IMBlocks;
 import immersivemetallurgy.registry.IMItems;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.LevelReader;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -32,6 +37,20 @@ public final class IMVesselShapes {
             ModelResourceLocation.standalone(ResourceLocation.fromNamespaceAndPath(
                     ImmersiveMetallurgy.MODID, "item/refining_tray"));
 
+    /**
+     * The tap's spout: TFC's own channel, drawn rather than placed.
+     *
+     * A launder hung over a table wants to look like the trough it is, and TFC already drew one — including the
+     * variant with a hole in its bottom for the metal to leave through. So the furnace borrows its pieces
+     * (`base`, the `connection` reaching to the duct, and a `stop` on every side that is not) rather than keeping
+     * a copy of its own. Nothing is placed and nothing is stored: one cell holds one block and that cell belongs
+     * to the mold table, the duct behind the table carries which line it runs on, and this is the renderer that
+     * already draws things in that cell.
+     */
+    public static final ModelResourceLocation CHANNEL_BASE = standalone("tfc:block/channel_base");
+    public static final ModelResourceLocation CHANNEL_CONNECTION = standalone("tfc:block/channel_connection");
+    public static final ModelResourceLocation CHANNEL_STOP = standalone("tfc:block/channel_stop");
+
     private IMVesselShapes() {
     }
 
@@ -42,9 +61,68 @@ public final class IMVesselShapes {
                 || item == IMItems.CLAY_REFINING_MOLD.get();
     }
 
+    /**
+     * Whether the table holds one of the two eight-ingot trays, as opposed to the slag dish. Only the trays stand
+     * a pixel above the board, and they are the only ones whose pour has to follow them up there.
+     */
+    public static boolean isTray(ItemStack vessel) {
+        Item item = vessel.getItem();
+        return item == IMItems.REFINING_MOLD.get() || item == IMItems.CLAY_REFINING_MOLD.get();
+    }
+
     @SubscribeEvent
     public static void registerShapes(ModelEvent.RegisterAdditional event) {
         event.register(TRAY);
+        event.register(CHANNEL_BASE);
+        event.register(CHANNEL_CONNECTION);
+        event.register(CHANNEL_STOP);
+    }
+
+    /**
+     * The side the tap hole stands on, or null when this cell is not in front of one. Read off the duct's own
+     * state, because the furnace that wrote it is a server-side thing and the renderer asking has no business
+     * reaching across the side to find out what a build means.
+     */
+    @Nullable
+    public static Direction tapSide(LevelReader level, BlockPos table) {
+        for (Direction side : Direction.Plane.HORIZONTAL) {
+            net.minecraft.world.level.block.state.BlockState near = level.getBlockState(table.relative(side));
+            if (near.is(IMBlocks.REFINING_DUCT.get()) && near.getValue(RefiningDuctBlock.LINE)
+                    == RefiningDuctBlock.LINE_TAP) {
+                return side;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * One of TFC's channel pieces, or null when the resource pack did not give it — which reads as no launder,
+     * the metal still being painted by TFC itself.
+     */
+    @Nullable
+    public static BakedModel channel(ModelResourceLocation piece) {
+        BakedModel model = Minecraft.getInstance().getModelManager().getModel(piece);
+        return model == Minecraft.getInstance().getModelManager().getMissingModel() ? null : model;
+    }
+
+    /**
+     * How much to turn a channel piece about the cell's centre so it reaches the given side. TFC's multipart
+     * states give these angles as `y` rotations, which run the other way round from the pose stack's, so this
+     * hands back the negation and the renderer can pass it straight to the axis.
+     */
+    public static float pieceYaw(Direction side) {
+        return switch (side) {
+            case EAST -> 0F;
+            case SOUTH -> -90F;
+            case WEST -> 180F;
+            case NORTH -> -270F;
+            default -> 0F;
+        };
+    }
+
+    /** A model file of another mod, asked for by the very path its own blockstate uses. */
+    private static ModelResourceLocation standalone(String path) {
+        return ModelResourceLocation.standalone(ResourceLocation.parse(path));
     }
 
     /**
