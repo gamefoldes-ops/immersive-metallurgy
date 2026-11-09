@@ -9,6 +9,7 @@ import immersivemetallurgy.component.MeltCarries;
 import immersivemetallurgy.furnace.Casts;
 import immersivemetallurgy.furnace.FurnaceShape;
 import immersivemetallurgy.furnace.MoltenTower;
+import immersivemetallurgy.furnace.SlagDish;
 import immersivemetallurgy.menu.RefiningFurnaceMenu;
 import immersivemetallurgy.recipe.RefiningFurnaceStats;
 import immersivemetallurgy.registry.IMBlockEntities;
@@ -49,6 +50,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -164,12 +166,16 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     /** Whether a shovel has dropped this fire, which holds the fuel off until the hearth is lit again. */
     private boolean doused;
     /**
-     * The metal that stood above the hearth and went over the dam, kept here in millilitres and by the
-     * fluid it was when it left, because what runs off a cupola's notch is the bath's own mix and not
-     * the metal alone. It is collected as skimmings at the slag table, the same gesture that pays out
-     * the dust, and it goes back into the throat rather than being thrown away.
+     * What is running through the slag hole, and for how long more. The metal that goes over the dam arrives as
+     * one event of a few millilitres and the slag drips at a millilitre a tick, so neither of them would leave a
+     * visible stream if the renderer only drew what moved this very tick. The hole is therefore held open for a
+     * moment past the last of it, and the block state is written only when this changes — once a second of
+     * flowing, not once a millilitre.
      */
-    private ItemStack skimming = ItemStack.EMPTY;
+    private int slagFlowTicks;
+    private int slagFlowKind = RefiningDuctBlock.FLOW_NONE;
+    /** The other half of a second: long enough for a stream to read as pouring, short enough to stop with the flow. */
+    private static final int SLAG_FLOW_TICKS = 20;
     /**
      * Where this fire last stood on the two clocks the world keeps: TFC's calendar, which is what a night's sleep
      * and {@code /tfc time add} advance, and the world's day time, which is what vanilla {@code /time add} moves
@@ -205,6 +211,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             self.takeThrownIn(stats);
         }
         self.tick(stats);
+        self.tickSlagFlow();
         self.paintTower(stats);
     }
 
@@ -291,7 +298,9 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
 
     /** Millilitres of metal in the bath, which is what was promised; the slag riding in it is extra volume. */
     public int metalInBath() {
-        return (int) Math.max(0, bath.getAmount() - slagInBath());
+        // Read off the rounded slag, the same figure the notch and the window use: subtracting the exact double
+        // from a total that was itself rounded truncates a bath of 800 metal down to 799 while dirt is in it.
+        return Math.max(0, bath.getAmount() - slagMb());
     }
 
     /** How much of the bath is slag rather than metal, in millilitres. */
@@ -665,18 +674,21 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         TapLine line = tapLine();
         FluidStack offer = bath.drain(level, offered, IFluidHandler.FluidAction.SIMULATE);
         Direction side = line.intoTable().getOpposite();
-        int wanted = line.table().getSidedFluidInventory(side).fill(offer, IFluidHandler.FluidAction.SIMULATE);
+        IFluidHandler sink = line.table().getSidedFluidInventory(side);
+        int wanted = sink == null ? 0 : sink.fill(offer, IFluidHandler.FluidAction.SIMULATE);
         if (wanted <= 0) {
             // A table standing tight against the duct is fed through the face that touches the furnace, and a run
             // of channel through the face the channel says it came from - but which face the table itself will
             // take is its own business, so the tap asks all six rather than insisting on the one that seems
             // obvious. A pour that found nowhere to go was reported as a full mould for a whole session before
-            // this was tried from the other side.
+            // this was tried from the other side. A face with no vessel answers null rather than refusing, so it
+            // is skipped rather than asked - and the click that found nowhere to send the pour says so below.
             for (Direction candidate : Direction.values()) {
                 if (candidate == side) {
                     continue;
                 }
-                int also = line.table().getSidedFluidInventory(candidate).fill(offer, IFluidHandler.FluidAction.SIMULATE);
+                IFluidHandler alt = line.table().getSidedFluidInventory(candidate);
+                int also = alt == null ? 0 : alt.fill(offer, IFluidHandler.FluidAction.SIMULATE);
                 if (also > 0) {
                     side = candidate;
                     wanted = also;
@@ -954,48 +966,109 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     }
 
     /**
-     * What a bath standing above its own capacity does with the excess: runs it off over the dam and into whatever
-     * mould waits on the tap table, the way a cupola's cinder notch leaves the hearth at a fixed depth no matter
-     * how much is charged above it. The metal is not lost and not punished for being poured — it comes out as the
-     * cast the table is standing there to take — and the bath that stays behind is the whole heat's average,
-     * which is the point of filling a shaft furnace rather than a crucible.
+     * What a bath standing above its own capacity does with the excess. The cinder notch streams the metal above
+     * it into the slag dish at a fixed rate, so the taik fills over time rather than in one jump, and the bath
+     * backs up above the notch while the stream runs - a single charge past the cap is held, not destroyed. Only
+     * what stands above the walls themselves, a shaft filled past even the headroom the vessel is built with, runs
+     * over the sides and is lost. That is «насыпал больше - теряется»: a gross overfill, not an ordinary one. The
+     * metal that does run over the walls carries dirt scraped off the lining, so the taik is not a free way to
+     * compress stock.
      */
     private void spill(RefiningFurnaceStats stats) {
         if (shape == null || !isPourable(stats)) {
             return;
         }
-        // What the hearth is sized to hold is so much *metal*, not so much of anything: a bath of 800 mB of metal
-        // with 120 of slag floating in it stands above its own capacity, and spilling on the total would take
-        // clean bronze out of the notch for dirt that has not reached it yet.
-        // The number a module promises is the number it keeps: the lining eats capacity for real, but it is not
-        // what the player read on the JEI page when they built the stack, and spilling to 799 of a promised 800
-        // reads as a machine with a hidden tax rather than as a machine with dirty walls.
-        int keep = ratedCapacity();
-        int over = (bath.getAmount() - slagMb()) - keep;
-        if (over <= 0) {
-            return;
+        // The notch sits at the metal the modules promise. Slag is not counted against it - it floats above the
+        // metal and leaves by its own channel.
+        int metal = metalInBath();
+        int over = metal - ratedCapacity();
+        if (over > 0) {
+            // TFC's drain takes metal and slag in proportion, so to leave the notch's metal behind the volume run
+            // over is the excess scaled up by the bath's own metal share. The notch carries a stream of it a tick;
+            // whatever is left stands in the bath, backed up over the notch, until the stream drains it away.
+            int want = (int) Math.round((double) bath.getAmount() * over / metal);
+            runOverDam(Math.min(want, stats.overflowMbPerTick()), true, stats);
         }
-        // Whatever stands above the vessel's own rim leaves at once, because nothing can melt into a cell that is
-        // already full; what is between the module's promise and that rim runs off at the notch's own rate.
-        int off = bath.getAmount() > vesselCapacity() ? over : Math.min(TAP_MB_PER_TICK, over);
-        FluidStack drawn = bath.drain(level, Math.min(off, over), IFluidHandler.FluidAction.EXECUTE);
+        // Only a bath risen past the physical bore of the stack spills over the walls. The bore keeps the vessel's
+        // own headroom for slag but never falls below the notch, so dirty walls shrink room without turning an
+        // ordinary load into a loss.
+        int overTheWall = bath.getAmount() - Math.max(ratedCapacity(), stats.vesselCapacity(shape.modules()));
+        if (overTheWall > 0) {
+            loseOverWall(overTheWall, stats);
+        }
+    }
+
+    /**
+     * Running a stated amount of the bath over the dam and into the slag dish, and telling the dish what part of
+     * it was dirt.
+     *
+     * TFC's drain is proportional over every component, so a pour of this much takes slag out of the hearth along
+     * with the metal — and if the dish is only told about the metal, the dirt has left the world and the
+     * skimmings are worth more than what went over. So the share the bath is holding right now is worked out
+     * first, and the dish is given both numbers: metal as the fluid the bath was pouring, dirt into the same tank
+     * the channel drains into. The dish fills to its rim and no further; what will not fit is left to the caller.
+     *
+     * When {@code scrape} is set the pour ran over the walls on its way here, so it carries slag scraped off the
+     * lining on top of its own dirt — the taik is not free compression. Answers the millilitres that went over.
+     */
+    private int runOverDam(int want, boolean scrape, RefiningFurnaceStats stats) {
+        SlagDish dish = slagDish();
+        if (dish == null || want <= 0) {
+            return 0;
+        }
+        int room = dish.roomMb();
+        if (room <= 0) {
+            return 0;
+        }
+        want = Math.min(want, room);
+        int dirt = (int) Math.round((double) want * slagMb() / Math.max(1, bath.getAmount()));
+        dirt = Math.min(dirt, want - 1);
+        FluidStack drawn = bath.drain(level, want, IFluidHandler.FluidAction.EXECUTE);
         if (drawn.isEmpty()) {
+            return 0;
+        }
+        dish.addMetal(drawn.copyWithAmount(drawn.getAmount() - dirt));
+        dish.addSlag(dirt);
+        if (scrape) {
+            int extra = overflowScrape(dirt, dish.roomMb(), stats);
+            if (extra > 0) {
+                dish.addSlag(extra);
+            }
+        }
+        updateSlagTable();
+        markSlagFlow(RefiningDuctBlock.FLOW_METAL);
+        setChanged();
+        return want;
+    }
+
+    /**
+     * Metal that ran over the walls because the notch could not carry it: it leaves the world, and on its way out
+     * it scrapes slag off the lining just as the stream into the dish does. The dirt it picked up leaves with it.
+     */
+    private void loseOverWall(int volume, RefiningFurnaceStats stats) {
+        if (volume <= 0) {
             return;
         }
-        if (skimming.isEmpty()) {
-            skimming = new ItemStack(IMItems.SKIMMINGS.get());
-            skimming.set(IMDataComponents.SKIMMING_FLUID,
-                    BuiltInRegistries.FLUID.getKey(drawn.getFluid()).toString());
-            skimming.set(IMDataComponents.SKIMMING_MB, 0);
-        }
-        // The composition rides the same component the melt itself carries. A piece without it is worse than no
-        // piece at all: the bath it comes back to has no record for the fluid and calls the whole heat unknown.
-        AlloyRecord record = drawn.get(IMDataComponents.ALLOY_RECORD.get());
-        if (record != null) {
-            skimming.set(IMDataComponents.ALLOY_RECORD.get(), record);
-        }
-        skimming.set(IMDataComponents.SKIMMING_MB, skimmingMb() + drawn.getAmount());
+        int dirt = (int) Math.round((double) volume * slagMb() / Math.max(1, bath.getAmount()));
+        bath.drain(level, volume, IFluidHandler.FluidAction.EXECUTE);
+        overflowScrape(dirt, Integer.MAX_VALUE, stats);
         setChanged();
+    }
+
+    /**
+     * Slag scraped off the walls by metal running over them: a multiple of the dirt already in the pour, taken from
+     * the lining rather than copied out of nothing. Capped by what the walls hold and by {@code room} — the dish's
+     * remaining volume for the stream that carries it, or unlimited for metal already lost over the wall. Clean
+     * walls scrape nothing, so a furnace kept clean does not dirty its overflow.
+     */
+    private int overflowScrape(int baseDirt, int room, RefiningFurnaceStats stats) {
+        if (baseDirt <= 0 || lining <= 0 || room <= 0) {
+            return 0;
+        }
+        int extra = (int) Math.round(baseDirt * (stats.overflowSlagMultiplier() - 1F));
+        extra = Math.min(extra, Math.min(lining, room));
+        lining -= extra;
+        return extra;
     }
 
     /** What the stack's modules promise, before the walls' lining is taken off it. */
@@ -1005,62 +1078,42 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     }
 
     /**
-     * Emptying the shaft through its own tap. Whatever metal is standing in the bath is drawn off as skimmings and
-     * paid out on the spot, because the last few dozen millilitres of a heat will not fill a mould, and a player
-     * who wants the furnace empty should not have to wait for a boil that can never finish or break the walls to
-     * get at it. Metal leaves by the tap; the slag outlet carries dirt and nothing else.
+     * Emptying the shaft over the dam: what stands above the slag channel is drawn off and laid in the slag dish,
+     * because the metal riding high in a full bath will not fill a mould and nobody should have to break the walls
+     * to skim it. What sits at the pipe and below it stays in the hearth — nothing runs off over a dam it is not
+     * standing above, and the channel is that dam. The tap low in the floor is the only route that can ever reach
+     * the heel under the pipe, which is what keeps a dish from becoming a way to drain the furnace for free.
+     *
+     * Answered in the same words the tap uses: "none" once the overflow is in the dish, "empty" when the bath was
+     * already down at the pipe, "nodish" or "dishfull" when the dish cannot take it.
      */
-    public int drainHeel(net.minecraft.world.entity.player.Player player, RefiningFurnaceStats stats) {
-        if (level == null || level.isClientSide || !isPourable(stats) || bath.isEmpty()) {
-            return 0;
+    public String drainHeel(RefiningFurnaceStats stats) {
+        if (level == null || level.isClientSide || shape == null || !isPourable(stats) || bath.isEmpty()) {
+            return "empty";
         }
-        FluidStack rest = bath.drain(level, bath.getAmount(), IFluidHandler.FluidAction.EXECUTE);
-        if (rest.isEmpty()) {
-            return 0;
+        SlagDish dish = slagDish();
+        if (dish == null) {
+            return "nodish";
         }
-        if (skimming.isEmpty()) {
-            skimming = new ItemStack(IMItems.SKIMMINGS.get());
-            skimming.set(IMDataComponents.SKIMMING_FLUID,
-                    BuiltInRegistries.FLUID.getKey(rest.getFluid()).toString());
-            skimming.set(IMDataComponents.SKIMMING_MB, 0);
+        // The channel floor is the least the metal may be skimmed down to: mb_per_module filled to the channel's
+        // own layer. Anything at or under that height is below the pipe and cannot be run over the dam.
+        int pipe = stats.mbPerModule() * shape.channelLayer();
+        int metal = metalInBath();
+        int over = metal - pipe;
+        if (over <= 0) {
+            return "empty";
         }
-        AlloyRecord record = rest.get(IMDataComponents.ALLOY_RECORD.get());
-        if (record != null) {
-            skimming.set(IMDataComponents.ALLOY_RECORD.get(), record);
+        int want = (int) Math.round((double) bath.getAmount() * over / metal);
+        if (!dish.takes(want)) {
+            return "dishfull";
         }
-        skimming.set(IMDataComponents.SKIMMING_MB, skimmingMb() + rest.getAmount());
-        setChanged();
-        return collectSkimmings(player);
+        return runOverDam(want, false, stats) > 0 ? "none" : "empty";
     }
 
-    /** How much of the last heat has gone over the dam and is still waiting to be lifted off. */
-    public int skimmingMb() {
-        Integer held = skimming.get(IMDataComponents.SKIMMING_MB.get());
-        return held == null ? 0 : held;
-    }
-
-    /**
-     * Taking the skimmings off the hearth in whole ingot-sized pieces, each carrying the fluid, the amount and the
-     * composition of what actually ran over, so a piece is a record of the heat rather than a token for it.
-     */
-    public int collectSkimmings(net.minecraft.world.entity.player.Player player) {
-        int pieces = skimmingMb() / 100;
-        if (pieces <= 0 || level == null || level.isClientSide) {
-            return 0;
-        }
-        for (int piece = 0; piece < pieces; piece++) {
-            ItemStack lump = skimming.copyWithCount(1);
-            lump.set(IMDataComponents.SKIMMING_MB, 100);
-            if (!player.getInventory().add(lump)) {
-                player.drop(lump, false);
-            }
-        }
-        skimming.set(IMDataComponents.SKIMMING_MB, skimmingMb() - pieces * 100);
-        if (skimmingMb() <= 0) {
-            skimming = ItemStack.EMPTY;
-        }
-        setChanged();
-        return pieces;
+    /** How much metal the dish under the notch is holding, for the window and for the tooltips. */
+    public int dishMetalMb() {
+        SlagDish dish = slagDish();
+        return dish == null ? 0 : dish.metalMb();
     }
 
 
@@ -1191,8 +1244,14 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             return;
         }
         IMold plate = ensureSlagPlate();
-        if (plate == null) {
+        SlagDish dish = slagDish();
+        if (plate == null || dish == null) {
             freezeSlag(mb, stats);
+            return;
+        }
+        // What the dish is holding of metal is volume it is not giving to dirt, and the two of them share one bowl.
+        mb = Math.min(mb, dish.roomMb());
+        if (mb <= 0) {
             return;
         }
         int offered = plate.fill(new FluidStack(slag, mb), IFluidHandler.FluidAction.SIMULATE);
@@ -1215,9 +1274,9 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             bath.fill(new FluidStack(slag, taken - filled), IFluidHandler.FluidAction.EXECUTE, container);
         }
         plate.setTemperature(temperature);
-        MoldTableBlockEntity table = slagTable();
-        if (table != null) {
-            table.setAndUpdateSlots(MoldTableBlockEntity.MOLD_SLOT);
+        updateSlagTable();
+        if (filled > 0) {
+            markSlagFlow(RefiningDuctBlock.FLOW_SLAG);
         }
         setChanged();
     }
@@ -1284,36 +1343,59 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         return plate.getFluidInTank(0).getAmount();
     }
 
-    /**
-     * What an empty hand on the slag table does: the plate gives up everything it holds as dust of the metal the
-     * bath is made of, and the furnace goes back to draining. TFC's own click cannot do this, because slag has no
-     * casting recipe and a table with nothing to hand back hands nothing back — so the paying out is ours, and it
-     * answers only a table some furnace claims as its slag outlet.
-     */
-    public int cleanSlagPlate(Player player) {
-        IMold plate = slagPlate();
-        if (plate == null || level == null || level.isClientSide) {
-            return 0;
-        }
-        RefiningFurnaceStats stats = RefiningFurnaceStats.of(level.getRecipeManager());
-        int mb = plate.getFluidInTank(0).getAmount();
-        int units = stats == null ? 0 : mb / Math.max(1, stats.mbSlagPerFlux());
-        if (units <= 0) {
-            return 0;
-        }
-        plate.drainIgnoringTemperature(units * stats.mbSlagPerFlux(), IFluidHandler.FluidAction.EXECUTE);
+    /** The dish standing in the slag outlet, with both of the things it can hold, or null when there is none. */
+    @Nullable
+    private SlagDish slagDish() {
+        MoldTableBlockEntity table = slagTable();
+        return table == null ? null : SlagDish.of(table.getMoldStack());
+    }
+
+    /** The table under the dish saving what its contents just became, which TFC only does for its own clicks. */
+    private void updateSlagTable() {
         MoldTableBlockEntity table = slagTable();
         if (table != null) {
             table.setAndUpdateSlots(MoldTableBlockEntity.MOLD_SLOT);
         }
-        ItemStack dust = Casts.dust(bath.getResult(level), units);
-        for (ItemStack piece : Casts.split(dust)) {
-            if (!player.getInventory().add(piece)) {
-                player.drop(piece, false);
-            }
+    }
+
+    /**
+     * What an empty hand on the slag table does: the dish gives up the metal that went over the dam as one piece of
+     * skimmings, sized by what is actually in it, and then the slag as dust of the metal the bath is made of. This
+     * is the only place skimmings are lifted off anywhere. TFC's own click cannot do either of them, because slag
+     * has no casting recipe and a table with nothing to hand back hands nothing back — so the paying out is ours,
+     * and it answers only a table some furnace claims as its slag outlet.
+     */
+    public int cleanSlagPlate(Player player) {
+        SlagDish dish = slagDish();
+        if (dish == null || level == null || level.isClientSide) {
+            return 0;
         }
-        setChanged();
-        return units;
+        RefiningFurnaceStats stats = RefiningFurnaceStats.of(level.getRecipeManager());
+        int paid = 0;
+        if (dish.metalMb() > 0) {
+            ItemStack lump = dish.metalAsItem();
+            if (!player.getInventory().add(lump)) {
+                player.drop(lump, false);
+            }
+            dish.clearMetal();
+            paid++;
+        }
+        int units = stats == null ? 0 : dish.slagMb() / Math.max(1, stats.mbSlagPerFlux());
+        if (units > 0) {
+            dish.drainSlag(units * stats.mbSlagPerFlux());
+            ItemStack dust = Casts.dust(bath.getResult(level), units);
+            for (ItemStack piece : Casts.split(dust)) {
+                if (!player.getInventory().add(piece)) {
+                    player.drop(piece, false);
+                }
+            }
+            paid += units;
+        }
+        if (paid > 0) {
+            updateSlagTable();
+            setChanged();
+        }
+        return paid;
     }
 
     /**
@@ -1517,6 +1599,37 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         level.setBlockAndUpdate(duct, state.setValue(RefiningDuctBlock.LINE, line));
     }
 
+    /**
+     * Saying that something is running through the slag hole, and holding the stream open for a moment after the
+     * last millilitre. Slag leaves at a millilitre a tick and the overflow streams over the notch a few millilitres
+     * at a time, so a renderer that only drew what moved this very tick would show a flicker rather than a pour.
+     */
+    private void markSlagFlow(int kind) {
+        slagFlowTicks = SLAG_FLOW_TICKS;
+        slagFlowKind = kind;
+        writeSlagFlow();
+    }
+
+    /** Counting the held-open stream down, and closing the hole's word for it when the last of it has run out. */
+    private void tickSlagFlow() {
+        if (slagFlowTicks > 0 && --slagFlowTicks == 0) {
+            slagFlowKind = RefiningDuctBlock.FLOW_NONE;
+            writeSlagFlow();
+        }
+    }
+
+    /** Writing the flow into the duct's state, which is the only thing the renderer in front of it can read. */
+    private void writeSlagFlow() {
+        if (level == null || level.isClientSide || shape == null) {
+            return;
+        }
+        BlockState state = level.getBlockState(shape.slagWall());
+        if (!state.is(IMBlocks.REFINING_DUCT.get()) || state.getValue(RefiningDuctBlock.FLOW) == slagFlowKind) {
+            return;
+        }
+        level.setBlockAndUpdate(shape.slagWall(), state.setValue(RefiningDuctBlock.FLOW, slagFlowKind));
+    }
+
     /** Which missing part stopped the stack from being a furnace, as a number the window can carry. */
     public int faultOrdinal() {
         return fault.ordinal();
@@ -1601,14 +1714,15 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     /** The bath's own container rules: molten metal and slag only, and room for what the stack is built to hold. */
     private final class Container implements FluidContainerInfo {
         /**
-         * The vessel's own room for metal plus slag, not the metal figure the window quotes: TFC compares what is
-         * already in the bath plus what is arriving against this, so it is the whole capacity of the stack with
-         * the lining off it — never the free space, which would count the metal already in there twice and fill
-         * the furnace at half its size.
+         * The bath itself is not what limits the furnace — the cinder notch is. TFC truncates a fill to whatever
+         * this answers and the caller keeps the change, so a vessel-sized number here would quietly drop the part
+         * of a melt that arrives while the bath is full, and would lose metal outright when the dish is full and
+         * the hearth has to back up above the notch. The tank therefore takes all that is charged; the notch keeps
+         * the working level at the promised metal and runs the rest over the dam.
          */
         @Override
         public int fluidCapacity() {
-            return vesselCapacity();
+            return Integer.MAX_VALUE;
         }
 
         @Override
@@ -1679,9 +1793,6 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         tag.putFloat("temperature", temperature);
         tag.putInt("fuel_ticks", fuelTicks);
         tag.putBoolean("doused", doused);
-        if (!skimming.isEmpty()) {
-            tag.put("skimming", skimming.save(registries));
-        }
         tag.putLong("last_calendar_tick", lastCalendarTick);
         tag.putLong("last_day_time", lastDayTime);
         tag.put(CHARGE_KEY, ContainerHelper.saveAllItems(new CompoundTag(), charge, registries));
@@ -1706,8 +1817,6 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         temperature = tag.getFloat("temperature");
         fuelTicks = tag.getInt("fuel_ticks");
         doused = tag.getBoolean("doused");
-        skimming = tag.contains("skimming")
-                ? ItemStack.parseOptional(registries, tag.getCompound("skimming")) : ItemStack.EMPTY;
         // A furnace saved before the fire kept a clock has no answer, and the honest one is "start from now":
         // guessing at the missing span would burn a firing that was never lit.
         lastCalendarTick = tag.contains("last_calendar_tick") ? tag.getLong("last_calendar_tick") : -1;

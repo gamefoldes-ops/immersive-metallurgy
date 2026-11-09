@@ -114,9 +114,11 @@ public record RefiningFurnaceStats(Geometry geometry, Fire fire, Slag slag, Cast
      *                           draws no air, and without that air the iron family stays solid in it
      * @param fuelBurnTicks      how long one piece of fuel keeps that heat — TFC's charcoal duration
      * @param pourTemperature    below this the bath is no longer liquid enough to run out of the tap
+     * @param overflowMbPerTick  how fast the cinder notch streams excess into the slag dish; what arrives above
+     *                           the notch faster than this runs over the walls and is lost
      */
     public record Fire(int boilTicks, int slagDrainMbPerTick, float baseTemperature, float draughtPerLayer,
-                       int fuelBurnTicks, float pourTemperature) {
+                       int fuelBurnTicks, float pourTemperature, int overflowMbPerTick) {
 
         public static final Codec<Fire> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.intRange(1, 20 * 60 * 60).fieldOf("boil_ticks").forGetter(Fire::boilTicks),
@@ -124,20 +126,23 @@ public record RefiningFurnaceStats(Geometry geometry, Fire fire, Slag slag, Cast
                 Codec.FLOAT.fieldOf("base_temperature").forGetter(Fire::baseTemperature),
                 Codec.FLOAT.optionalFieldOf("draught_per_layer", 120F).forGetter(Fire::draughtPerLayer),
                 Codec.intRange(1, 20 * 60 * 60).fieldOf("fuel_burn_ticks").forGetter(Fire::fuelBurnTicks),
-                Codec.FLOAT.fieldOf("pour_temperature").forGetter(Fire::pourTemperature)
+                Codec.FLOAT.fieldOf("pour_temperature").forGetter(Fire::pourTemperature),
+                Codec.intRange(1, 1000).optionalFieldOf("overflow_mb_per_tick", 16).forGetter(Fire::overflowMbPerTick)
         ).apply(instance, Fire::new));
     }
 
     /** What slag costs to get rid of, what it costs in metal, how many units of dust the slag plate will hold,
      * and how much of a bath the furnace will ever agree to hold — which is what caps the powder a firing is
      * worth stocking. */
-    public record Slag(int mbPerFlux, float metalDrag, int plateCapacity, float shareCeiling) {
+    public record Slag(int mbPerFlux, float metalDrag, int plateCapacity, float shareCeiling,
+                       float overflowSlagMultiplier) {
 
         public static final Codec<Slag> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.intRange(1, 64000).fieldOf("mb_per_flux").forGetter(Slag::mbPerFlux),
                 Codec.floatRange(0F, 1F).fieldOf("metal_drag").forGetter(Slag::metalDrag),
                 Codec.intRange(1, 64).fieldOf("plate_capacity").forGetter(Slag::plateCapacity),
-                Codec.floatRange(0F, 1F).optionalFieldOf("share_ceiling", 0.25F).forGetter(Slag::shareCeiling)
+                Codec.floatRange(0F, 1F).optionalFieldOf("share_ceiling", 0.25F).forGetter(Slag::shareCeiling),
+                Codec.floatRange(1F, 4F).optionalFieldOf("overflow_slag_multiplier", 1.75F).forGetter(Slag::overflowSlagMultiplier)
         ).apply(instance, Slag::new));
     }
 
@@ -206,6 +211,11 @@ public record RefiningFurnaceStats(Geometry geometry, Fire fire, Slag slag, Cast
         return fire.slagDrainMbPerTick();
     }
 
+    /** How fast the cinder notch streams excess into the dish; what arrives faster than this is lost over the walls. */
+    public int overflowMbPerTick() {
+        return fire.overflowMbPerTick();
+    }
+
     /**
      * How hot the fire burns in a stack this tall: the draught of the chimney is what lets a charcoal fire reach
      * past the iron family's 1535°, and a two-layer shaft has none of it.
@@ -236,6 +246,11 @@ public record RefiningFurnaceStats(Geometry geometry, Fire fire, Slag slag, Cast
 
     public float metalDrag() {
         return slag.metalDrag();
+    }
+
+    /** How much slag metal running over the walls scrapes off the lining, as a multiple of the dirt already in it. */
+    public float overflowSlagMultiplier() {
+        return slag.overflowSlagMultiplier();
     }
 
     /** How many units of dust the slag plate holds, which is also how much a frozen heap may hold. */

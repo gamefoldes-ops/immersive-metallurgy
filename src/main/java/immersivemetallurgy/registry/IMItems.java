@@ -1,6 +1,7 @@
 package immersivemetallurgy.registry;
 
 import immersivemetallurgy.ImmersiveMetallurgy;
+import immersivemetallurgy.item.SkimmingsItem;
 import immersivemetallurgy.recipe.RefiningFurnaceStats;
 
 import net.dries007.tfc.common.items.MoldItem;
@@ -41,10 +42,12 @@ public final class IMItems {
     /**
      * What the shaft loses over its dam: metal that ran off the top of a bath filled past its hearth, frozen with
      * the slag it carried. It is not dirt and it is not a loss — it is the part of the heat that stood above the
-     * channel, and it goes back into the throat to be melted and refined again.
+     * channel, and it goes back into the throat to be melted and refined again. Its weight and size are the metal
+     * inside it, not a fixed figure, see {@link immersivemetallurgy.item.SkimmingsItem}; the base stack matches
+     * the lightest tier TFC sizes the empty item from.
      */
     public static final DeferredHolder<Item, Item> SKIMMINGS =
-            ITEMS.registerItem("skimmings", properties -> new Item(properties.stacksTo(16)));
+            ITEMS.registerItem("skimmings", properties -> new SkimmingsItem(properties.stacksTo(32)));
 
     public static final DeferredHolder<Item, MoldItem> SLAG_PLATE =
             ITEMS.registerItem("slag_plate", properties -> new MoldItem(IMItems::slagPlateMb,

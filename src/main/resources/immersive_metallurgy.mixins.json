@@ -18,6 +18,7 @@
     "ItemStackFlawedNameMixin",
     "ItemStackMeltStackingMixin",
     "MetalItemFlawedIngotMixin",
+    "MoldTableLaunderShapeMixin",
     "MoldTablePlateDropMixin",
     "MoldTablePlateLockMixin",
     "VanillaCraftingMeltMixin",

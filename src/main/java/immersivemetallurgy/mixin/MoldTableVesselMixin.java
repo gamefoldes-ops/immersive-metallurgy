@@ -1,24 +1,22 @@
 package immersivemetallurgy.mixin;
 
+import immersivemetallurgy.client.IMLaunder;
+import immersivemetallurgy.client.IMSlagDish;
 import immersivemetallurgy.client.IMVesselShapes;
-import immersivemetallurgy.registry.IMBlocks;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
 import net.dries007.tfc.client.RenderHelpers;
 import net.dries007.tfc.client.render.blockentity.MoldBlockEntityRenderer;
 import net.dries007.tfc.common.blockentities.MoldTableBlockEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.apache.commons.lang3.tuple.Pair;
 import org.spongepowered.asm.mixin.Mixin;
@@ -38,23 +36,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(MoldBlockEntityRenderer.class)
 public class MoldTableVesselMixin {
     /**
-     * What fraction of the surrounding light the drawn spout keeps, out of sixteen. The item path hands every
-     * vertex the light it is given and no ambient occlusion at all, while TFC's channel is drawn as a block and
-     * comes back shaded by what stands next to it — same clay, two brightnesses, and the spout read as burnt
-     * beside the table it belongs to. Dimming the light is the honest half of a fix: one knob, no re-tuned shape,
-     * and it does not pretend this path can ask for real AO.
-     */
-    private static final int CLAY_SHADE = 12;
-    private static final int CLAY_SHADE_OF = 16;
-
-    /** The same packed sky and block light, pulled down to the shade a block of clay would sit in. */
-    private static int shaded(int light) {
-        int sky = (light >> 16) * CLAY_SHADE / CLAY_SHADE_OF;
-        int block = (light & 0xFFFF) * CLAY_SHADE / CLAY_SHADE_OF;
-        return (sky << 16) | block;
-    }
-
-    /**
      * One pixel, for the eight-ingot tray only.
      *
      * The tray was authored to stand at y 1..2 so that TFC's own pour animation, which tops out at y 1.95, filled
@@ -68,90 +49,55 @@ public class MoldTableVesselMixin {
     private static boolean raised;
 
     /**
-     * The tap's stream, at the height of the launder it runs in.
-     *
-     * TFC fills a channel with a four-pixel bar along the way the metal came and a four-pixel square in its
-     * middle, both at y 1..4 of the channel's own cell. Our launder is that same channel, drawn five pixels above
-     * the board, so the metal is those same two boxes lifted by the same five — and then it goes on down through
-     * the hole the channel leaves in its bottom when it points at a table. A table fed by anything else, TFC's own
-     * channels included, keeps the stream exactly as the game draws it.
+     * Whether this table stands in front of the furnace's tap. The tap's stream is drawn by TFC, from the table's
+     * own source, and only needs moving into the launder — which is what the redirect below is for, and it is
+     * given heights rather than vessels, so the answer has to be decided while the table is still in hand.
      */
-    private static final float PIXEL = 1F / 16F;
-    /** Five pixels of air between the board and the launder's own floor, which is where the channel stands. */
-    private static final float LAUNDER_LIFT = 5 * PIXEL;
-    /** The bar and the middle square together: from six pixels into the cell to six past the wall, y 6..9. */
-    private static final AABB LAUNDER_RUN = new AABB(6 * PIXEL, 6 * PIXEL, 6 * PIXEL, 22 * PIXEL, 9 * PIXEL,
-            10 * PIXEL);
-    /** The same middle square, through the open bottom and down to the board. */
-    private static final AABB LAUNDER_FALL = new AABB(6 * PIXEL, PIXEL, 6 * PIXEL, 10 * PIXEL, 7 * PIXEL, 10 * PIXEL);
     private static boolean launder;
 
     /**
-     * Hanging TFC's own channel over the table as the tap's launder.
+     * What the slag dish standing on this table holds, or null for every other vessel. Its tank is the slag and TFC
+     * paints that; the metal the hearth ran over the dam is a count and a fluid on the stack, so its surface has to
+     * be drawn here — and the slag's lifted to float above it, which is what the redirect below is for.
+     */
+    private static IMSlagDish.Contents dish;
+
+    /**
+     * Hanging TFC's own channel over the table, and pouring the slag line through it.
      *
-     * The furnace already borrows TFC's trough for the slag line, and the tap wanted the same thing worn
-     * honestly — so this draws the channel's own baked pieces rather than a shape of ours. They belong to a cell,
-     * and the launder sits in the table's cell, five pixels above its floor, which is exactly where a block cannot
-     * also be, one cell holding one block. So nothing is placed and nothing is stored: the duct behind the table
-     * carries which line it runs on in its own state, and this is the renderer that already draws things in that
-     * cell. Drawn at HEAD, before TFC's own render has committed to whether it will bail on a table holding a
-     * foreign vessel, so a bare tap table still shows its launder.
+     * Both of the furnace's holes hang a trough over the table standing in front of them, and both are the same
+     * drawing: the channel's own baked pieces, turned toward the hole and lifted five pixels, with its floor left
+     * open — which is what makes it the variant with a hole rather than a closed one. Nothing is placed and
+     * nothing is stored, because one cell holds one block and that cell belongs to the mold table; the duct behind
+     * it carries which line runs through it, and what is moving right now. Drawn at HEAD, before TFC's own render
+     * has committed to whether it will bail on a table holding a foreign vessel, so a bare table still shows its
+     * launder. The tap's metal is left to TFC below; the slag line has no source of its own, so its stream — slag,
+     * or the metal that ran over the dam — is drawn here too.
      */
     @Inject(method = "render(Lnet/dries007/tfc/common/blockentities/MoldTableBlockEntity;FLcom/mojang/blaze3d/"
             + "vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;II)V", at = @At("HEAD"),
             require = 0)
-    private void immersiveMetallurgy$drawTapSpout(MoldTableBlockEntity table, float partialTick, PoseStack pose,
-                                                  MultiBufferSource buffers, int light, int overlay, CallbackInfo ci) {
-        // Decided here, at the top, because this is the only point in the draw that still holds the table: the
-        // redirects below are aimed at static helpers that are given heights, not vessels.
+    private void immersiveMetallurgy$drawLaunder(MoldTableBlockEntity table, float partialTick, PoseStack pose,
+                                                 MultiBufferSource buffers, int light, int overlay, CallbackInfo ci) {
         raised = IMVesselShapes.isTray(table.getMoldStack());
         launder = false;
+        dish = IMSlagDish.read(table.getMoldStack());
         Level level = table.getLevel();
         if (level == null) {
             return;
         }
-        Direction side = IMVesselShapes.tapSide(level, table.getBlockPos());
-        launder = side != null;
-        if (side == null) {
+        IMLaunder.On on = IMLaunder.of(level, table);
+        if (!on.isReal()) {
             return;
         }
-        BakedModel base = IMVesselShapes.channel(IMVesselShapes.CHANNEL_BASE);
-        BakedModel joint = IMVesselShapes.channel(IMVesselShapes.CHANNEL_CONNECTION);
-        BakedModel stop = IMVesselShapes.channel(IMVesselShapes.CHANNEL_STOP);
-        if (base == null || joint == null || stop == null) {
-            return;
-        }
-        VertexConsumer sink = buffers.getBuffer(RenderType.solid());
-        // The stack is only what the model is asked for quads about; a launder is not an item and has no overrides,
-        // so a duct in the hand answers the same as anything else. Built per draw on purpose: a static stack here
-        // was once a crash, because client classes are loaded before items exist.
-        ItemStack probe = new ItemStack(IMBlocks.REFINING_DUCT.get());
-        int clay = shaded(light);
-        drawPiece(pose, sink, base, probe, clay, overlay, 0F);
-        drawPiece(pose, sink, joint, probe, clay, overlay, IMVesselShapes.pieceYaw(side));
-        for (Direction other : Direction.Plane.HORIZONTAL) {
-            if (other != side) {
-                drawPiece(pose, sink, stop, probe, clay, overlay, IMVesselShapes.pieceYaw(other));
+        launder = on.line() == IMLaunder.Line.TAP;
+        IMLaunder.drawClay(pose, buffers, on, light, overlay);
+        if (on.line() == IMLaunder.Line.SLAG) {
+            FluidStack flowing = IMLaunder.flowing(level, table, on);
+            if (flowing != null) {
+                IMLaunder.drawStream(pose, buffers, flowing, on, light, overlay);
             }
         }
-        // The bottom piece is left out on purpose: without it the channel is the variant that has a hole in its
-        // floor, which is the one TFC draws when the cell below is where the metal is going.
-    }
-
-    /**
-     * One of TFC's channel pieces, standing in this cell and turned about its centre.
-     *
-     * The channel is authored on the floor of its own cell, so the launder is the same pieces lifted five pixels
-     * and turned by the same angles its multipart states use.
-     */
-    private static void drawPiece(PoseStack pose, VertexConsumer sink, BakedModel piece, ItemStack probe, int light,
-                                  int overlay, float yaw) {
-        pose.pushPose();
-        pose.translate(0.5F, LAUNDER_LIFT, 0.5F);
-        pose.mulPose(Axis.YP.rotationDegrees(yaw));
-        pose.translate(-0.5F, 0.0F, -0.5F);
-        Minecraft.getInstance().getItemRenderer().renderModelLists(piece, probe, light, overlay, pose, sink);
-        pose.popPose();
     }
 
     /**
@@ -174,22 +120,17 @@ public class MoldTableVesselMixin {
             RenderHelpers.renderChannelFlow(pose, buffer, sprite, color, light, overlay, source, renderFlowSource);
             return;
         }
-        pose.pushPose();
-        pose.translate(0.5F, 0.0F, 0.5F);
-        pose.mulPose(Axis.YP.rotationDegrees(IMVesselShapes.pieceYaw(source.getLeft())));
-        pose.translate(-0.5F, 0.0F, -0.5F);
-        RenderHelpers.renderTexturedCuboid(pose, buffer, sprite, light, overlay, LAUNDER_RUN, color);
-        RenderHelpers.renderTexturedCuboid(pose, buffer, sprite, light, overlay, LAUNDER_FALL, color);
-        pose.popPose();
+        IMLaunder.drawStream(pose, buffer, sprite, color, source.getLeft(), light, overlay);
     }
 
     /**
-     * The metal standing in a raised tray, while it is still liquid.
+     * The height of what stands in the table's vessel, while it is still liquid.
      *
-     * TFC works the height out itself — `1 + 0.95 × fill`, over sixteen — and hands it as the fifth float to
-     * {@link RenderHelpers#renderFluidFace}. The tray model was lifted a pixel, so this has to follow it or the
-     * pour would sit a pixel under the clay it is inside. Both trailing ints are passed straight back in the
-     * places they came from, which is why it does not matter which of them is overlay and which is light.
+     * TFC works it out itself — `1 + 0.95 × fill`, over sixteen — and hands it as the fifth float to
+     * {@link RenderHelpers#renderFluidFace}. Two things follow from that: the tray model was lifted a pixel, so the
+     * pour has to follow it or it sits a pixel under the clay it is inside; and a slag dish holding metal as well
+     * as dirt has to show the slag at the height of both, not of the tank alone. Both trailing ints are passed
+     * straight back in the places they came from, which is why it does not matter which is overlay and which light.
      */
     @Redirect(method = "render(Lnet/dries007/tfc/common/blockentities/MoldTableBlockEntity;FLcom/mojang/blaze3d/"
             + "vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;II)V", require = 0,
@@ -199,8 +140,8 @@ public class MoldTableVesselMixin {
     private void immersiveMetallurgy$raiseMoltenFace(PoseStack pose, FluidStack fluid, MultiBufferSource buffers,
                                                      float minX, float maxX, float minZ, float maxZ, float y,
                                                      int first, int second) {
-        RenderHelpers.renderFluidFace(pose, fluid, buffers, minX, maxX, minZ, maxZ, raised ? y + RAISE : y,
-                first, second);
+        float surface = dish != null ? IMSlagDish.slagLevel(dish) : (raised ? y + RAISE : y);
+        RenderHelpers.renderFluidFace(pose, fluid, buffers, minX, maxX, minZ, maxZ, surface, first, second);
     }
 
     /** The same pixel for a cast that has already set, whose heights come from {@link RenderHelpers#getYVertices}. */
@@ -235,5 +176,9 @@ public class MoldTableVesselMixin {
         Minecraft.getInstance().getItemRenderer().render(vessel, ItemDisplayContext.NONE, false, pose, buffers,
                 light, overlay, shape);
         pose.popPose();
+        if (dish != null && dish.hasMetal()) {
+            // The metal the hearth ran over the dam, under the slag TFC has just painted over it.
+            IMSlagDish.drawMetal(pose, buffers, dish, light, overlay);
+        }
     }
 }

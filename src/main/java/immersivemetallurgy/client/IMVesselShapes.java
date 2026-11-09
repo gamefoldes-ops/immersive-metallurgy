@@ -1,19 +1,15 @@
 package immersivemetallurgy.client;
 
 import immersivemetallurgy.ImmersiveMetallurgy;
-import immersivemetallurgy.block.RefiningDuctBlock;
-import immersivemetallurgy.registry.IMBlocks;
 import immersivemetallurgy.registry.IMItems;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelResourceLocation;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.LevelReader;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -76,23 +72,6 @@ public final class IMVesselShapes {
         event.register(CHANNEL_BASE);
         event.register(CHANNEL_CONNECTION);
         event.register(CHANNEL_STOP);
-    }
-
-    /**
-     * The side the tap hole stands on, or null when this cell is not in front of one. Read off the duct's own
-     * state, because the furnace that wrote it is a server-side thing and the renderer asking has no business
-     * reaching across the side to find out what a build means.
-     */
-    @Nullable
-    public static Direction tapSide(LevelReader level, BlockPos table) {
-        for (Direction side : Direction.Plane.HORIZONTAL) {
-            net.minecraft.world.level.block.state.BlockState near = level.getBlockState(table.relative(side));
-            if (near.is(IMBlocks.REFINING_DUCT.get()) && near.getValue(RefiningDuctBlock.LINE)
-                    == RefiningDuctBlock.LINE_TAP) {
-                return side;
-            }
-        }
-        return null;
     }
 
     /**

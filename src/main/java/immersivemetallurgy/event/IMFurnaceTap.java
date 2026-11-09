@@ -56,23 +56,24 @@ public final class IMFurnaceTap {
             if (stats == null) {
                 return;
             }
-            if (clicked == TFCBlocks.MOLD_TABLE.get() && lineEmpty(furnace, outlet)
-                    && furnace.drainHeel(event.getEntity(), stats) > 0) {
-                // An empty tap table is the furnace's dump: what ran over the dam is lifted off here, in whole
-                // pieces or the last partial one, because it is metal and it belongs to whoever built the shaft.
-                event.setUseBlock(TriState.FALSE);
-                event.setUseItem(TriState.FALSE);
-                event.setCancellationResult(InteractionResult.CONSUME);
-                level.playSound(null, outlet, SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.6F, 1.4F);
-                return;
-            }
-            if (clicked == TFCBlocks.MOLD_TABLE.get() && furnace.skimmingMb() > 0
-                    && furnace.collectSkimmings(event.getEntity()) > 0) {
-                event.setUseBlock(TriState.FALSE);
-                event.setUseItem(TriState.FALSE);
-                event.setCancellationResult(InteractionResult.CONSUME);
-                level.playSound(null, outlet, SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.6F, 1.4F);
-                return;
+            if (clicked == TFCBlocks.MOLD_TABLE.get() && lineEmpty(furnace, outlet)) {
+                // An empty tap table is the furnace's dump: what is left of the heat is drawn off and laid in the
+                // slag dish, because the last few dozen millilitres will not fill a mould and nobody should have to
+                // break the walls to empty a hearth. Nothing is handed over here — skimmings are lifted off the
+                // dish, which is the one place they are ever taken.
+                String heel = furnace.drainHeel(stats);
+                if (!heel.equals("empty")) {
+                    event.setUseBlock(TriState.FALSE);
+                    event.setUseItem(TriState.FALSE);
+                    event.setCancellationResult(InteractionResult.CONSUME);
+                    if (!heel.equals("none")) {
+                        event.getEntity().displayClientMessage(Component.translatable("screen."
+                                + ImmersiveMetallurgy.MODID + ".furnace.tap." + heel), true);
+                    } else {
+                        level.playSound(null, outlet, SoundEvents.LAVA_POP, SoundSource.BLOCKS, 0.6F, 1.4F);
+                    }
+                    return;
+                }
             }
             String why = furnace.startTap(stats, outlet);
             if (!why.equals("none")) {
