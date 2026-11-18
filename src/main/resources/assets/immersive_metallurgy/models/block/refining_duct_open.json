@@ -1,0 +1,1 @@
+{"parent":"minecraft:block/block","textures":{"open":"immersive_metallurgy:block/refining_duct_open","particle":"immersive_metallurgy:block/refining_duct_open"},"elements":[{"from":[0,0,-0.02],"to":[16,16,0],"faces":{"north":{"uv":[0,0,16,16],"texture":"#open"}}}]}

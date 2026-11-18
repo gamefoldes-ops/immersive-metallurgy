@@ -10,6 +10,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.SimpleContainerData;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
@@ -47,10 +48,12 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
     public static final int BATH_FLUID = 21;
     public static final int POUR_HEAT = 22;
     public static final int FIRE_CEILING = 23;
-    public static final int FIRE_SECONDS = 24;
-    public static final int BOIL_TICKS = 25;
+    public static final int BOIL_TICKS = 24;
+    public static final int FUEL_COUNT = 25;
+    public static final int FUEL_CAPACITY = 26;
+    public static final int FUEL_BURN_PERCENT = 27;
 
-    private static final int ENTRIES = 26;
+    private static final int ENTRIES = 28;
 
     private final ContainerData data;
     private final BlockPos hearth;
@@ -100,9 +103,9 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
                             ? 0
                             : Math.round(stats.fireTemperature(furnace.shape().layers()));
                     case BOIL_TICKS -> stats == null ? 0 : stats.boilTicks();
-                    case FIRE_SECONDS -> stats == null
-                            ? 0
-                            : Math.min(Short.MAX_VALUE, furnace.fireSecondsLeft(stats));
+                    case FUEL_COUNT -> furnace.fuelCount();
+                    case FUEL_CAPACITY -> stats == null ? 0 : furnace.fuelCapacity(stats);
+                    case FUEL_BURN_PERCENT -> furnace.fuelBurnPercent();
                     default -> 0;
                 };
             }
@@ -118,6 +121,16 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
         this.data = data;
         this.hearth = hearth;
         addDataSlots(data);
+        // The furnace holds no items of its own — the charge goes in by hand at the hearth — so the only slots in
+        // this window are the player's, laid out on the blast furnace's own grid: three rows then the hotbar.
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 9; col++) {
+                addSlot(new Slot(inventory, col + row * 9 + 9, 8 + col * 18, 104 + row * 18));
+            }
+        }
+        for (int col = 0; col < 9; col++) {
+            addSlot(new Slot(inventory, col, 8 + col * 18, 162));
+        }
     }
 
     public int volume() {
@@ -176,14 +189,24 @@ public class RefiningFurnaceMenu extends AbstractContainerMenu {
         return data.get(FIRE_CEILING);
     }
 
-    /** How many seconds of fuel this fire still has in front of it. */
     /** How long the boil runs once the last of the charge has gone into the bath. */
     public int boilTicks() {
         return data.get(BOIL_TICKS);
     }
 
-    public int fireSeconds() {
-        return data.get(FIRE_SECONDS);
+    /** How many pieces of coal are lying in the hearth, not counting the one already alight. */
+    public int fuelCount() {
+        return data.get(FUEL_COUNT);
+    }
+
+    /** How many pieces the hearth can hold at this stack height. */
+    public int fuelCapacity() {
+        return data.get(FUEL_CAPACITY);
+    }
+
+    /** How far through the piece currently alight the fire is, so the coal gauge drains smoothly. */
+    public int fuelBurnPercent() {
+        return data.get(FUEL_BURN_PERCENT);
     }
 
     /** How much of an open tap has not reached the mould yet, which is the number that says do not click again. */

@@ -1,10 +1,16 @@
 package immersivemetallurgy.registry;
 
 import immersivemetallurgy.ImmersiveMetallurgy;
+import immersivemetallurgy.block.CastingTableBlock;
+import immersivemetallurgy.block.LaunderBlock;
+import immersivemetallurgy.block.LaunderChannelBlock;
 import immersivemetallurgy.block.RefiningDuctBlock;
-import immersivemetallurgy.block.RefiningHearthBlock;
+import immersivemetallurgy.block.RefiningFurnaceBlock;
 import immersivemetallurgy.block.SlagHeapBlock;
 
+import net.dries007.tfc.common.blockentities.MoldTableBlockEntity;
+import net.dries007.tfc.common.blockentities.TFCBlockEntities;
+import net.dries007.tfc.common.blocks.ExtendedProperties;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -17,26 +23,59 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 /**
- * The three blocks a refining furnace is built out of. Everything refractory can also be TFC's own firebrick, so
+ * The blocks a refining furnace is built out of. Everything refractory can also be TFC's own firebrick, so
  * what is registered here is only what has to remember something or what TFC does not have: the hearth holds the
- * fire and the whole furnace's state, the duct is a brick with a hole in it that a route runs through, and the slag
- * heap is what freezes in an outlet that has nothing standing in it to catch the slag. The metal half of the output
- * is not ours at all — that is TFC's channel and mold table, with our own clay plate on it — and neither is the
- * table itself. The era gate is the hearth, the one recipe here that cannot be made without a steel sheet.
+ * fire and the whole furnace's state, the duct is a brick with a hole in it that a route runs through, the casting
+ * table is TFC's mold table with the launder built onto it, and the slag heap is what freezes in an outlet that has
+ * nothing standing in it to catch the slag. The metal half of the output is not ours at all — that is TFC's channel
+ * and mold table, with our own clay plate on it — and neither is the table itself. The era gate is the hearth, the
+ * one recipe here that cannot be made without a steel sheet.
  */
 public final class IMBlocks {
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(ImmersiveMetallurgy.MODID);
     public static final DeferredRegister.Items BLOCK_ITEMS = DeferredRegister.createItems(ImmersiveMetallurgy.MODID);
 
-    public static final DeferredBlock<RefiningHearthBlock> REFINING_HEARTH = BLOCKS.registerBlock("refining_hearth",
-            RefiningHearthBlock::new, refractory());
+    public static final DeferredBlock<RefiningFurnaceBlock> REFINING_FURNACE = BLOCKS.registerBlock("refining_furnace",
+            RefiningFurnaceBlock::new, refractory());
     public static final DeferredBlock<RefiningDuctBlock> REFINING_DUCT = BLOCKS.registerBlock("refining_duct",
             RefiningDuctBlock::new, firedClay());
     public static final DeferredBlock<SlagHeapBlock> SLAG_HEAP = BLOCKS.registerBlock("slag_heap",
             SlagHeapBlock::new, crust());
 
-    public static final DeferredHolder<Item, BlockItem> REFINING_HEARTH_ITEM =
-            BLOCK_ITEMS.registerSimpleBlockItem(REFINING_HEARTH);
+    /**
+     * The table the furnace's output lands on, with the launder built onto it. It keeps TFC's own mold table block
+     * entity — the type TFC's channel and crucible look a table up by — so a pour, a cast and a cooling recipe all
+     * run on it exactly as on a plain table; only the block, its model and its shape are ours. It has no item and
+     * no recipe: it is the cell where a launder and an ordinary TFC mold table have both been laid, in either
+     * order ({@link LaunderBlock} and {@link immersivemetallurgy.event.IMCastingTable}), so nothing new has to be
+     * crafted. Breaking it drops the ordinary table and the TFC channel back. Registered through a supplier rather
+     * than the property factory because its constructor takes TFC's {@link ExtendedProperties}, which is where the
+     * block entity and its ticker are wired.
+     */
+    public static final DeferredBlock<CastingTableBlock> CASTING_TABLE = BLOCKS.register("refining_casting_table",
+            () -> new CastingTableBlock(ExtendedProperties.of(table())
+                    .blockEntity(() -> TFCBlockEntities.MOLD_TABLE.get())
+                    .serverTicks(MoldTableBlockEntity::serverTick)));
+
+    /**
+     * The launder on its own, before a table stands under it: the trough half of the casting table with no board
+     * and no vessel. Like the combined table it has no item — a player lays TFC's own channel at the outlet and it
+     * swaps for this trough — and clicking it with a mold table completes the pair. Breaking it drops the channel.
+     */
+    public static final DeferredBlock<LaunderBlock> LAUNDER = BLOCKS.registerBlock("refining_launder",
+            LaunderBlock::new, table());
+
+    /**
+     * The launder with a channel under it instead of a table: the trough unchanged, and TFC's own channel below
+     * it, keeping TFC's channel block entity so it joins the channels beside it and carries the metal on. No item
+     * of its own — a channel laid on a standing launder completes the pair, and breaking it drops both channels.
+     */
+    public static final DeferredBlock<LaunderChannelBlock> LAUNDER_CHANNEL =
+            BLOCKS.register("refining_launder_channel", () -> new LaunderChannelBlock(
+                    ExtendedProperties.of(table()).blockEntity(() -> TFCBlockEntities.CHANNEL.get())));
+
+    public static final DeferredHolder<Item, BlockItem> REFINING_FURNACE_ITEM =
+            BLOCK_ITEMS.registerSimpleBlockItem(REFINING_FURNACE);
     public static final DeferredHolder<Item, BlockItem> REFINING_DUCT_ITEM =
             BLOCK_ITEMS.registerSimpleBlockItem(REFINING_DUCT);
 
@@ -55,7 +94,7 @@ public final class IMBlocks {
                 .requiresCorrectToolForDrops()
                 .strength(3.5F, 4.5F)
                 .sound(SoundType.STONE)
-                .lightLevel(state -> state.getValue(RefiningHearthBlock.LIT) ? 13 : 0);
+                .lightLevel(state -> state.getValue(RefiningFurnaceBlock.LIT) ? 13 : 0);
     }
 
     /**
@@ -68,6 +107,20 @@ public final class IMBlocks {
                 .requiresCorrectToolForDrops()
                 .strength(3.0F, 4.0F)
                 .sound(SoundType.STONE);
+    }
+
+    /**
+     * The casting table is fired clay like the duct, but it is not a full cube: a board with a trough standing on
+     * it, so it never occludes the faces of what stands beside it. Broken with a pickaxe, the same as the rest of
+     * the furnace's clay.
+     */
+    private static BlockBehaviour.Properties table() {
+        return BlockBehaviour.Properties.of()
+                .mapColor(MapColor.STONE)
+                .requiresCorrectToolForDrops()
+                .strength(3.0F, 4.0F)
+                .sound(SoundType.STONE)
+                .noOcclusion();
     }
 
     /**

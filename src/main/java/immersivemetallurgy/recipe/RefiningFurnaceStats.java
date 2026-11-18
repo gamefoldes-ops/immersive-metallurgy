@@ -6,6 +6,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import net.dries007.tfc.common.component.heat.Heat;
 import net.dries007.tfc.common.recipes.RecipeHelpers;
 import net.dries007.tfc.util.data.Fuel;
 import net.minecraft.core.HolderLookup;
@@ -13,6 +14,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
@@ -283,6 +285,14 @@ public record RefiningFurnaceStats(Geometry geometry, Fire fire, Slag slag, Cast
         return charge.perModule();
     }
 
+    /**
+     * The hearth's coal box: eight pieces for every layer of shaft plus eight for the throat, so the fuel a stack
+     * can hold grows in step with the metal it can melt — 16 for a single layer, 24 for two, and so on.
+     */
+    public int fuelCapacity(int modules) {
+        return charge.perModule() * (modules + 1);
+    }
+
     /** The metal a stack of this height promises: what a charge may be worth and what the window counts. */
     public int capacity(int modules) {
         return mbPerModule() * modules;
@@ -347,14 +357,35 @@ public record RefiningFurnaceStats(Geometry geometry, Fire fire, Slag slag, Cast
         return charge.fuel().test(stack);
     }
 
+    /** Ticks one piece of ordinary coal keeps a minimal shaft: 35 s, the four-minute boil plus a little to reach it. */
+    private static final int COAL_TICKS_AT_WHITE = 35 * 20;
+    /** A brilliant-white draught eats its fuel this much quicker than a white one; cooler fire keeps the full 35 s. */
+    private static final float BRILLIANT_BURN_FACTOR = 0.8F;
+
+    /** The anchor above, for the tuning readout that quotes how long a coal lasts. */
+    public int coalTicksAtWhite() {
+        return COAL_TICKS_AT_WHITE;
+    }
+
     /**
-     * How long one piece of this fuel keeps the fire, read out of TFC's own fuel table so charcoal, coal and
-     * bituminous coal each burn the time the game already says they do rather than the time this sheet happens to
-     * name. The sheet's figure answers for anything TFC has no opinion about.
+     * How long one piece of this fuel keeps the fire at this heat. The piece's own worth is read out of TFC's fuel
+     * table so charcoal, coal and bituminous coal keep the ratios the game already gives them, but the whole table
+     * is scaled so ordinary coal lands on 35 s at white heat, and a fire pushed past white into brilliant white
+     * burns its fuel quicker. Anything TFC has no opinion about burns as coal.
      */
-    public int burnTicks(ItemStack stack) {
+    public int burnTicks(ItemStack stack, float temperature) {
+        float factor = Heat.getHeat(temperature) == Heat.BRILLIANT_WHITE ? BRILLIANT_BURN_FACTOR : 1F;
+        return Math.max(1, Math.round(COAL_TICKS_AT_WHITE * (rawBurnTicks(stack) / (float) coalBurnTicks()) * factor));
+    }
+
+    private int rawBurnTicks(ItemStack stack) {
         Fuel fuel = stack.isEmpty() ? null : Fuel.get(stack);
-        return fuel == null ? fire.fuelBurnTicks() : fuel.duration();
+        return fuel == null ? coalBurnTicks() : fuel.duration();
+    }
+
+    private int coalBurnTicks() {
+        Fuel coal = Fuel.get(new ItemStack(Items.COAL));
+        return coal == null ? fire.fuelBurnTicks() : coal.duration();
     }
 
     @Override

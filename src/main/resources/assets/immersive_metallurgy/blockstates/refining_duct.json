@@ -1,5 +1,1 @@
-{"variants":{
-  "line=0":{"model":"immersive_metallurgy:block/refining_duct"},
-  "line=1":{"model":"immersive_metallurgy:block/refining_duct"},
-  "line=2":{"model":"immersive_metallurgy:block/refining_duct"}
-}}
+{"multipart":[{"apply":{"model":"immersive_metallurgy:block/refining_duct"}},{"when":{"north":"true"},"apply":{"model":"immersive_metallurgy:block/refining_duct_open"}},{"when":{"south":"true"},"apply":{"model":"immersive_metallurgy:block/refining_duct_open","y":180}},{"when":{"east":"true"},"apply":{"model":"immersive_metallurgy:block/refining_duct_open","y":90}},{"when":{"west":"true"},"apply":{"model":"immersive_metallurgy:block/refining_duct_open","y":270}},{"when":{"up":"true"},"apply":{"model":"immersive_metallurgy:block/refining_duct_open","x":270}},{"when":{"down":"true"},"apply":{"model":"immersive_metallurgy:block/refining_duct_open","x":90}},{"when":{"mouth":"1"},"apply":{"model":"immersive_metallurgy:block/refining_duct_open","x":270}},{"when":{"mouth":"2"},"apply":{"model":"immersive_metallurgy:block/refining_duct_mouth"}},{"when":{"mouth":"3"},"apply":{"model":"immersive_metallurgy:block/refining_duct_mouth","y":180}},{"when":{"mouth":"4"},"apply":{"model":"immersive_metallurgy:block/refining_duct_mouth","y":270}},{"when":{"mouth":"5"},"apply":{"model":"immersive_metallurgy:block/refining_duct_mouth","y":90}}]}

@@ -12,18 +12,18 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The furnace's launder as a place in the world rather than a picture.
+ * The furnace's launder as a place in the world: which side its hole stands on, what is running through it, and
+ * the footprint it takes up.
  *
- * The trough is drawn, not placed — one cell holds one block and the cell it hangs in belongs to somebody's mold
- * table — but a thing you can walk through is not a thing you built. So the same footprint the renderer uses is
- * written here as a shape, and the table takes it on top of its own. Both of the furnace's holes hang one, so
- * both of them are asked for here, and neither of them asks what it carries.
+ * The trough is part of the casting table block now, so the shape written here is what that block stands on top
+ * of its own board — a thing you can walk through is not a thing you built. Both of the furnace's holes hang one,
+ * so both of them are asked for here, and neither of them asks what it carries.
  */
 public final class Launder {
     /** The trough's own box, in the cell's sixteenths, measured with the hole it comes out of on the +x side. */
     private static final int FLOOR = 5;
-    private static final int RIM = 10;
-    private static final int NEAR = 5;
+    private static final int RIM = 11;
+    private static final int NEAR = 7;
     private static final int FAR = 16;
     private static final int SIDE = 5;
     private static final int OTHER_SIDE = 11;

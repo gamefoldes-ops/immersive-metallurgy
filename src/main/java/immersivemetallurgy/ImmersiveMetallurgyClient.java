@@ -1,8 +1,10 @@
 package immersivemetallurgy;
 
+import immersivemetallurgy.client.IMLaunderRenderer;
 import immersivemetallurgy.client.RefiningFurnaceScreen;
 import immersivemetallurgy.event.IMHoning;
 import immersivemetallurgy.network.IMNetwork;
+import immersivemetallurgy.registry.IMBlockEntities;
 import immersivemetallurgy.registry.IMDataComponents;
 import immersivemetallurgy.registry.IMMenus;
 
@@ -16,6 +18,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
@@ -36,6 +39,11 @@ public class ImmersiveMetallurgyClient {
     @SubscribeEvent
     static void onRegisterMenus(RegisterMenuScreensEvent event) {
         event.register(IMMenus.REFINING_FURNACE.get(), RefiningFurnaceScreen::new);
+    }
+
+    @SubscribeEvent
+    static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(IMBlockEntities.LAUNDER.get(), IMLaunderRenderer::new);
     }
 
     /** The server is blind to the mouse on this version, so while it is held at a stone the client keeps saying so. */

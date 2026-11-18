@@ -1,11 +1,13 @@
 package immersivemetallurgy.client;
 
+import immersivemetallurgy.ImmersiveMetallurgy;
 import immersivemetallurgy.menu.RefiningFurnaceMenu;
 import immersivemetallurgy.registry.IMFluids;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.dries007.tfc.client.RenderHelpers;
 import net.dries007.tfc.common.component.heat.Heat;
-import net.minecraft.ChatFormatting;
+import net.dries007.tfc.config.ItemTemperatureDisplayStyle;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -13,11 +15,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The four wells the furnace's window is read from, drawn the way TFC draws its own: filled with the sprite of
+ * The three wells the furnace's window is read from, drawn the way TFC draws its own: filled with the sprite of
  * whatever is actually in them, so the bath shows bronze as bronze and slag as slag rather than as a number to look
  * up. Metal sits at the bottom of the tank and the slag floats above it, because that is the order the whole
  * machine depends on, and the height the slag channel sits at is drawn across the tank for the same reason.
@@ -26,40 +27,35 @@ import java.util.List;
  * well is drawn somewhere else than it is filled is the kind of bug only a player sees.
  */
 public final class FurnaceGauges {
-    public static final int BATH = 8;
-    public static final int HEAT = 32;
-    public static final int PLATE = 48;
-    public static final int TAP = 60;
-    public static final int WELL_Y = 18;
-    public static final int WELL_HEIGHT = 40;
-    public static final int BATH_WIDTH = 20;
-    public static final int HEAT_WIDTH = 12;
-    public static final int PLATE_WIDTH = 8;
-    public static final int TAP_WIDTH = 8;
-    /** The heat well is taller than the gauges beside it because it is a scale, not a level. */
-    public static final int HEAT_Y = 12;
-    public static final int HEAT_HEIGHT = 50;
+    public static final int BATH = 42;
+    public static final int HEAT = 8;
+    public static final int COAL = 64;
+    public static final int WELL_Y = 22;
+    public static final int WELL_HEIGHT = 66;
+    public static final int BATH_WIDTH = 16;
+    public static final int HEAT_WIDTH = 14;
+    public static final int COAL_WIDTH = 8;
+    /** The heat gauge is TFC blast furnace's own left ramp, copied into our sheet; only the pointer is drawn. */
+    public static final int HEAT_Y = 18;
+    public static final int HEAT_HEIGHT = 70;
 
     /**
-     * TFC's crucible sheet: the ramp is the temperature scale itself (white at brilliant white down to black at
-     * cold), and the 15x5 sprite beside it is the black pointer the game parks at however hot the thing is.
-     * Both are drawn as they are, because a furnace that reads as hot as a crucible should look as hot as it.
+     * Our own sheet, which carries TFC blast furnace's heat ramp in the background and keeps the black 15x5 pointer
+     * at (176,0) exactly where TFC keeps it, so the pointer is blitted the same way the blast furnace blits it.
      */
-    private static final ResourceLocation TFC_CRUCIBLE_GUI =
-            ResourceLocation.fromNamespaceAndPath("tfc", "textures/gui/crucible.png");
-    private static final int RAMP_X = 11;
-    private static final int RAMP_V = 83;
-    private static final int RAMP_WIDTH = 7;
+    private static final ResourceLocation SHEET =
+            ResourceLocation.fromNamespaceAndPath(ImmersiveMetallurgy.MODID, "textures/gui/refining_furnace.png");
     private static final int MARK_X = 176;
     private static final int MARK_V = 0;
     private static final int MARK_WIDTH = 15;
     private static final int MARK_HEIGHT = 5;
+    /** The ramp's cold end, in panel pixels: the pointer rides up from here as the fire heats. */
+    private static final int HEAT_BOTTOM = 76;
     /** What {@link Heat#scaleTemperatureForGui} counts to at brilliant white, in its own pixels. */
     private static final int GUI_SCALE = 51;
 
-    private static final int PLATE_FULL = 0xFFB02E2E;
-    private static final int PLATE_DUST = 0xFF6B7F3A;
-    private static final int TAP_RUN = 0xFFE0A030;
+    /** The coal gauge is a heap of pieces, drawn as the dark of the fuel itself rather than as a liquid. */
+    private static final int COAL_COLOR = 0xFF2E2A26;
 
     private FurnaceGauges() {
     }
@@ -67,8 +63,7 @@ public final class FurnaceGauges {
     public static void draw(GuiGraphics graphics, RefiningFurnaceMenu menu, int left, int top) {
         drawBath(graphics, menu, left, top);
         drawHeat(graphics, menu, left, top);
-        drawPlate(graphics, menu, left, top);
-        drawTap(graphics, menu, left, top);
+        drawCoal(graphics, menu, left, top);
     }
 
     /** The bath: metal from the bottom, the slag it carries floating on top of it, and the channel marked across. */
@@ -87,6 +82,9 @@ public final class FurnaceGauges {
             fill(graphics, IMFluids.SLAG.fluid(), left + BATH, top + WELL_Y + WELL_HEIGHT - metal - slag,
                     BATH_WIDTH, slag);
         }
+        // TFC's fluid sprite binds the metal's colour into the global shader and never puts it back; left set, it
+        // tints every later draw — the frame, the slots, the readout — the colour of whatever is in the bath.
+        RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
         // Where the slag channel sits. A bath below this line keeps its dirt, which is the one thing the height of
         // the stack was bought for and the one thing no line of text made obvious at a glance.
         int mark = px(menu.drainThreshold(), capacity);
@@ -103,83 +101,47 @@ public final class FurnaceGauges {
      * glowing bloom — and a filling bar cannot tell you how much room is left above the metal.
      */
     private static void drawHeat(GuiGraphics graphics, RefiningFurnaceMenu menu, int left, int top) {
-        graphics.blit(TFC_CRUCIBLE_GUI, left + HEAT + (HEAT_WIDTH - RAMP_WIDTH) / 2, top + HEAT_Y,
-                RAMP_X, RAMP_V, RAMP_WIDTH, HEAT_HEIGHT);
-        int marked = Math.min(HEAT_HEIGHT - 1,
-                Math.round(Heat.scaleTemperatureForGui(menu.temperature()) * (HEAT_HEIGHT - 1) / (float) GUI_SCALE));
-        graphics.blit(TFC_CRUCIBLE_GUI, left + HEAT + (HEAT_WIDTH - MARK_WIDTH) / 2,
-                top + HEAT_Y + HEAT_HEIGHT - 1 - marked - MARK_HEIGHT / 2,
-                MARK_X, MARK_V, MARK_WIDTH, MARK_HEIGHT);
-        int pour = Math.min(HEAT_HEIGHT, Math.round(HEAT_HEIGHT * menu.pourHeat() / (float) menu.fireCeiling()));
-        if (pour > 0) {
-            int y = top + HEAT_Y + HEAT_HEIGHT - pour;
-            graphics.fill(left + HEAT - 1, y, left + HEAT + HEAT_WIDTH + 1, y + 1, 0xFF1A1410);
+        int marked = Math.min(GUI_SCALE, Math.round(Heat.scaleTemperatureForGui(menu.temperature())));
+        if (marked > 0) {
+            graphics.blit(SHEET, left + HEAT, top + HEAT_BOTTOM - marked, MARK_X, MARK_V, MARK_WIDTH, MARK_HEIGHT);
         }
     }
 
-    /** How full the slag outlet is — in the plate if there is one, in the frozen heap if there is not. */
-    private static void drawPlate(GuiGraphics graphics, RefiningFurnaceMenu menu, int left, int top) {
-        int capacity = menu.slagCapacity();
+    /**
+     * The coal left in the hearth, drawn the way the blast furnace draws its fuel: a meter of pieces against the
+     * box's capacity, the piece currently alight counted as the fraction of itself that has not burned yet. It is
+     * the only place the remaining fire is shown — no clock beside it.
+     */
+    private static void drawCoal(GuiGraphics graphics, RefiningFurnaceMenu menu, int left, int top) {
+        int capacity = menu.fuelCapacity();
         if (capacity <= 0) {
             return;
         }
-        int filled = Math.min(WELL_HEIGHT, Math.round(WELL_HEIGHT * menu.slagOutletUnits() / (float) capacity));
+        float pieces = menu.fuelCount() + menu.fuelBurnPercent() / 100F;
+        int filled = Math.min(WELL_HEIGHT, Math.round(WELL_HEIGHT * pieces / capacity));
         if (filled > 0) {
-            graphics.fill(left + PLATE, top + WELL_Y + WELL_HEIGHT - filled,
-                    left + PLATE + PLATE_WIDTH, top + WELL_Y + WELL_HEIGHT,
-                    menu.slagOutletUnits() >= capacity ? PLATE_FULL : PLATE_DUST);
+            graphics.fill(left + COAL, top + WELL_Y + WELL_HEIGHT - filled,
+                    left + COAL + COAL_WIDTH, top + WELL_Y + WELL_HEIGHT, COAL_COLOR);
         }
     }
 
-    /** How far the pour in flight has come: the metal that has left the bath and not reached the mould yet. */
-    private static void drawTap(GuiGraphics graphics, RefiningFurnaceMenu menu, int left, int top) {
-        int offer = Math.max(1, menu.pourMb());
-        int gone = offer - menu.tapRemaining();
-        int filled = Math.min(WELL_HEIGHT, Math.round(WELL_HEIGHT * gone / (float) offer));
-        if (menu.tapRemaining() > 0 && filled > 0) {
-            graphics.fill(left + TAP, top + WELL_Y + WELL_HEIGHT - filled,
-                    left + TAP + TAP_WIDTH, top + WELL_Y + WELL_HEIGHT, TAP_RUN);
-        }
-    }
-
-    public static List<Component> bathTooltip(RefiningFurnaceMenu menu) {
-        List<Component> lines = new ArrayList<>();
-        lines.add(Component.translatable("screen.immersive_metallurgy.furnace.gauge.bath",
-                menu.metalMb(), menu.slagMb(), menu.capacity()));
-        lines.add(Component.translatable("screen.immersive_metallurgy.furnace.gauge.channel", menu.drainThreshold())
-                .withStyle(menu.volume() >= menu.drainThreshold() ? ChatFormatting.GREEN : ChatFormatting.RED));
-        return lines;
-    }
-
+    /** The fire read exactly the way a crucible reads it: TFC's colour word plus its sub-level stars, nothing else. */
     public static List<Component> heatTooltip(RefiningFurnaceMenu menu) {
-        return List.of(Component.translatable("screen.immersive_metallurgy.furnace.gauge.heat",
-                menu.temperature(), menu.pourHeat(), menu.fireCeiling()));
+        Component line = ItemTemperatureDisplayStyle.COLOR.formatColored(menu.temperature());
+        return line == null ? List.of() : List.of(line);
     }
 
-    public static List<Component> plateTooltip(RefiningFurnaceMenu menu) {
-        return List.of(Component.translatable("screen.immersive_metallurgy.furnace.gauge.plate",
-                menu.slagOutletUnits(), menu.slagCapacity()));
-    }
-
-    public static List<Component> tapTooltip(RefiningFurnaceMenu menu) {
-        return List.of(Component.translatable("screen.immersive_metallurgy.furnace.gauge.tap",
-                menu.tapRemaining(), menu.pourMb()));
-    }
-
-    public static boolean overBath(int mouseX, int mouseY, int left, int top) {
-        return inside(mouseX, mouseY, left + BATH, top + WELL_Y, BATH_WIDTH, WELL_HEIGHT);
+    public static List<Component> coalTooltip(RefiningFurnaceMenu menu) {
+        return List.of(Component.translatable("screen.immersive_metallurgy.furnace.gauge.coal",
+                menu.fuelCount(), menu.fuelCapacity()));
     }
 
     public static boolean overHeat(int mouseX, int mouseY, int left, int top) {
         return inside(mouseX, mouseY, left + HEAT, top + HEAT_Y, HEAT_WIDTH, HEAT_HEIGHT);
     }
 
-    public static boolean overPlate(int mouseX, int mouseY, int left, int top) {
-        return inside(mouseX, mouseY, left + PLATE, top + WELL_Y, PLATE_WIDTH, WELL_HEIGHT);
-    }
-
-    public static boolean overTap(int mouseX, int mouseY, int left, int top) {
-        return inside(mouseX, mouseY, left + TAP, top + WELL_Y, TAP_WIDTH, WELL_HEIGHT);
+    public static boolean overCoal(int mouseX, int mouseY, int left, int top) {
+        return inside(mouseX, mouseY, left + COAL, top + WELL_Y, COAL_WIDTH, WELL_HEIGHT);
     }
 
     private static boolean inside(int mouseX, int mouseY, int x, int y, int width, int height) {

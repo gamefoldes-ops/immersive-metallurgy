@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,9 +18,11 @@ import java.util.List;
  *
  * The body is a 3x3 stack of refractory walls around an open column: the sole on the ground, one metal-carrying
  * layer per block of height above it, and the top layer standing open to the sky as the throat everything is
- * charged through. What a furnace holds is therefore its own height written out — one layer, one module, one
- * pour — and no tower is needed to reach the big capacities. The duct and the firebrick are interchangeable in a
- * wall, so a stack may be faced entirely in ducts or entirely in brick and still be the same furnace.
+ * charged through. The door stands one layer above the sole, in the wall over the tap, so the sole is a full ring
+ * and the tap lies below the door the way a cupola's tap lies below its working door. What a furnace holds is
+ * therefore its own height written out — one layer, one module, one pour — and no tower is needed to reach the big
+ * capacities. The duct and the firebrick are interchangeable in a wall, so a stack may be faced entirely in ducts
+ * or entirely in brick and still be the same furnace.
  *
  * The two routes are read off the wall over the duct, because the two outputs sit at different depths in the bath.
  * Metal is the heavy thing and lies at the bottom, so the tap is the duct in the floor with brick over it, and the
@@ -29,9 +32,10 @@ import java.util.List;
  * over it is the slag route, and the cell outside it holds a table with a slag plate on it — or, with nothing to
  * catch it there, the slag freezes into a lump that has to be broken out with a pickaxe.
  *
- * Nothing about the build depends on either outlet being filled, so a furnace can be finished, lit and wrong, and
- * its window says so. And a bath only reaches the slag channel if it was filled to match the height the player
- * chose, which is what makes a tall furnace something to plan rather than to keep extending.
+ * The tap outlet may stand empty — the metal simply waits in the bath until a table and mould are laid — but the
+ * slag outlet must already hold a table, because the catcher is a fitting of the machine rather than an extra. And
+ * a bath only reaches the slag channel if it was filled to match the height the player chose, which is what makes
+ * a tall furnace something to plan rather than to keep extending.
  */
 public record FurnaceShape(int modules, int layers, int channelLayer, Direction facing, BlockPos hearth,
                            BlockPos center, BlockPos tapWall, BlockPos tapOutlet, BlockPos slagWall,
@@ -54,7 +58,8 @@ public record FurnaceShape(int modules, int layers, int channelLayer, Direction 
         TWO_SLAG("two_slag"),
         BAD_COLUMN("bad_column"),
         BAD_HEIGHT("bad_height"),
-        THROAT_BLOCKED("throat_blocked");
+        THROAT_BLOCKED("throat_blocked"),
+        NO_SLAG_TABLE("no_slag_table");
 
         private final String key;
 
@@ -67,18 +72,28 @@ public record FurnaceShape(int modules, int layers, int channelLayer, Direction 
         }
     }
 
-    /** The scan's answer: the shape when there is one, and the first thing that stopped it when there is not. */
-    public record Result(FurnaceShape shape, Fault fault) {
+    /**
+     * The scan's answer: the shape when there is one, and the first thing that stopped it when there is not. The
+     * two wall holes are carried even on a fault, because they are read off the build itself — a slag column is a
+     * slag column whether or not its catcher is laid yet — and the player can only lay that catcher once the hole
+     * says which line it is. Withholding the walls until the stack is complete would lock the slag outlet shut:
+     * no conduit means no mark, and no mark means no conduit can be placed.
+     */
+    public record Result(FurnaceShape shape, Fault fault, @Nullable BlockPos tapWall, @Nullable BlockPos slagWall) {
         public boolean formed() {
             return shape != null;
         }
 
         public static Result of(FurnaceShape shape) {
-            return new Result(shape, Fault.NONE);
+            return new Result(shape, Fault.NONE, shape.tapWall(), shape.slagWall());
         }
 
         public static Result fault(Fault fault) {
-            return new Result(null, fault);
+            return new Result(null, fault, null, null);
+        }
+
+        public static Result fault(Fault fault, BlockPos tapWall, BlockPos slagWall) {
+            return new Result(null, fault, tapWall, slagWall);
         }
     }
 
@@ -100,11 +115,11 @@ public record FurnaceShape(int modules, int layers, int channelLayer, Direction 
         if (facing.getAxis() == Direction.Axis.Y) {
             return Result.fault(Fault.NOT_FACING);
         }
-        BlockPos center = hearth.relative(facing);
+        BlockPos center = hearth.relative(facing).below(1);
 
         BlockPos tapWall = null;
         BlockPos slagWall = null;
-        for (BlockPos wall : soleWalls(center, hearth)) {
+        for (BlockPos wall : soleWalls(center)) {
             if (!isWall(level, wall)) {
                 return Result.fault(Fault.WALL_NOT_BRICK);
             }
@@ -164,18 +179,29 @@ public record FurnaceShape(int modules, int layers, int channelLayer, Direction 
             }
         }
 
+        // The slag catcher is a fitting of the machine, not an optional extra: a furnace expensive enough to build
+        // is expected to stand complete, so the stack is not a furnace until a conduit starts at the slag outlet —
+        // a launder or a TFC channel, or the combined table that carries its own launder. A bare mold table there
+        // is not a slag run: the slag has to leave the hole through clay it can bake onto, and the table with the
+        // plate may wait further along the run, or not stand at all until the player wants the slag caught.
+        BlockPos slagOutlet = outside(center, slagWall);
+        if (!isConduit(level, slagOutlet) && !level.getBlockState(slagOutlet).is(IMBlocks.CASTING_TABLE.get())) {
+            // The walls are still marked so the player can lay the very conduit this fault is waiting for.
+            return Result.fault(Fault.NO_SLAG_TABLE, tapWall, slagWall);
+        }
+
         return Result.of(new FurnaceShape(modules, layers, channelLayer, facing, hearth, center, tapWall,
-                outside(center, tapWall), slagWall, outside(center, slagWall), slagWall.above(channelLayer)));
+                outside(center, tapWall), slagWall, slagOutlet, slagWall.above(channelLayer)));
     }
 
-    /** How many open layers stand over the sole: the centre empty, the eight cells around it wall or duct. */
+    /** How many open layers stand over the sole: the centre empty, the eight cells around it wall, duct or door. */
     private static int shaftHeight(LevelAccessor level, BlockPos center, int limit) {
         for (int layer = 1; layer <= limit; layer++) {
             if (!isShaft(level.getBlockState(center.above(layer)))) {
                 return layer - 1;
             }
             for (BlockPos wall : shaftWalls(center, layer)) {
-                if (!isWall(level, wall)) {
+                if (!isWall(level, wall) && !isHearth(level, wall)) {
                     return layer - 1;
                 }
             }
@@ -183,15 +209,9 @@ public record FurnaceShape(int modules, int layers, int channelLayer, Direction 
         return limit;
     }
 
-    /** The seven wall cells of the sole: the hearth itself is a door, not a wall to read. */
-    private static List<BlockPos> soleWalls(BlockPos center, BlockPos hearth) {
-        List<BlockPos> walls = new ArrayList<>(7);
-        for (BlockPos wall : shaftWalls(center, 0)) {
-            if (!wall.equals(hearth)) {
-                walls.add(wall);
-            }
-        }
-        return walls;
+    /** The eight wall cells of the sole: a full ring now that the door stands a layer above it. */
+    private static List<BlockPos> soleWalls(BlockPos center) {
+        return shaftWalls(center, 0);
     }
 
     /** The eight wall cells of one layer of the shaft, counted from the sole upward. */
@@ -212,6 +232,13 @@ public record FurnaceShape(int modules, int layers, int channelLayer, Direction 
      * went by a different name in every recent version, and a furnace that reads its own walls should not care.
      */
     public static Direction direction(BlockPos from, BlockPos to) {
+        int y = to.getY() - from.getY();
+        if (y > 0) {
+            return Direction.UP;
+        }
+        if (y < 0) {
+            return Direction.DOWN;
+        }
         int x = to.getX() - from.getX();
         int z = to.getZ() - from.getZ();
         if (x > 0) {
@@ -241,5 +268,17 @@ public record FurnaceShape(int modules, int layers, int channelLayer, Direction 
 
     private static boolean isDuct(LevelAccessor level, BlockPos pos) {
         return level.getBlockState(pos).is(IMBlocks.REFINING_DUCT.get());
+    }
+
+    /** A cell a slag run can start in: TFC's channel or our own launder, both of which carry it onward. */
+    private static boolean isConduit(LevelAccessor level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        return state.is(TFCBlocks.CHANNEL.get()) || state.is(IMBlocks.LAUNDER.get())
+                || state.is(IMBlocks.LAUNDER_CHANNEL.get());
+    }
+
+    /** The door is a wall the player stands at: it closes one cell of the layer it stands in, one above the sole. */
+    private static boolean isHearth(LevelAccessor level, BlockPos pos) {
+        return level.getBlockState(pos).is(IMBlocks.REFINING_FURNACE.get());
     }
 }

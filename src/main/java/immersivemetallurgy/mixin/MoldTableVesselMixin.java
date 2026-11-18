@@ -17,6 +17,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.apache.commons.lang3.tuple.Pair;
 import org.spongepowered.asm.mixin.Mixin;
@@ -63,16 +65,15 @@ public class MoldTableVesselMixin {
     private static IMSlagDish.Contents dish;
 
     /**
-     * Hanging TFC's own channel over the table, and pouring the slag line through it.
+     * Pouring the slag line through the launder, and telling the tap's redirect below that this table is a tap.
      *
-     * Both of the furnace's holes hang a trough over the table standing in front of them, and both are the same
-     * drawing: the channel's own baked pieces, turned toward the hole and lifted five pixels, with its floor left
-     * open — which is what makes it the variant with a hole rather than a closed one. Nothing is placed and
-     * nothing is stored, because one cell holds one block and that cell belongs to the mold table; the duct behind
-     * it carries which line runs through it, and what is moving right now. Drawn at HEAD, before TFC's own render
-     * has committed to whether it will bail on a table holding a foreign vessel, so a bare table still shows its
-     * launder. The tap's metal is left to TFC below; the slag line has no source of its own, so its stream — slag,
-     * or the metal that ran over the dam — is drawn here too.
+     * The trough itself is no longer drawn here: it is part of the casting table block the player places, model
+     * and hood and all, so the clay stands whether or not anything is flowing. What is left for the renderer is
+     * the moving metal. The tap's stream is TFC's own, driven by the table's source, and only needs moving into
+     * the launder — which is what the redirect below is for, and it is given heights rather than vessels, so the
+     * answer has to be decided while the table is still in hand. The slag line has no source of its own, so its
+     * stream — slag, or the metal that ran over the dam — is drawn here. Drawn at HEAD, before TFC's own render
+     * has committed to whether it will bail on a table holding a foreign vessel.
      */
     @Inject(method = "render(Lnet/dries007/tfc/common/blockentities/MoldTableBlockEntity;FLcom/mojang/blaze3d/"
             + "vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;II)V", at = @At("HEAD"),
@@ -91,21 +92,30 @@ public class MoldTableVesselMixin {
             return;
         }
         launder = on.line() == IMLaunder.Line.TAP;
-        IMLaunder.drawClay(pose, buffers, on, light, overlay);
         if (on.line() == IMLaunder.Line.SLAG) {
             FluidStack flowing = IMLaunder.flowing(level, table, on);
             if (flowing != null) {
                 IMLaunder.drawStream(pose, buffers, flowing, on, light, overlay);
             }
+        } else if (launder && table.hasSource()) {
+            // TFC draws the tap's stream only when a channel stands at the table's source. A table right in the
+            // furnace outlet is fed from the duct, which is no channel, so isFlowing() is false and TFC draws
+            // nothing while the metal still arrives — the pour the player sees land with no stream above it. Draw
+            // it here from the fluid the source carries, the same two boxes the slag line uses, and tell the
+            // redirect below to stand down so a channel-fed tap is not drawn twice.
+            Fluid fluid = table.getFluidToRender();
+            if (fluid != Fluids.EMPTY) {
+                IMLaunder.drawStream(pose, buffers, new FluidStack(fluid, 1), on, light, overlay);
+            }
         }
     }
 
     /**
-     * Replacing the stream that feeds a tap with the launder's own.
+     * Standing TFC's own tap stream down on a launder table.
      *
-     * Only the direction is read from the pair TFC was given, so the metal still arrives along the face it came
-     * from, and the two boxes are the ones the game would have drawn for a channel — lifted into the trough and
-     * carried on down through its hole.
+     * The HEAD inject has already drawn the stream into the trough from the table's source, whether that source
+     * is a channel or the furnace duct, so TFC's channel flow here would only paint a second one over it. A table
+     * that is not on a launder keeps TFC's own drawing untouched.
      */
     @Redirect(method = "render(Lnet/dries007/tfc/common/blockentities/MoldTableBlockEntity;FLcom/mojang/blaze3d/"
             + "vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;II)V", require = 0,
@@ -116,11 +126,11 @@ public class MoldTableVesselMixin {
     private void immersiveMetallurgy$drawTapStream(PoseStack pose, VertexConsumer buffer, TextureAtlasSprite sprite,
                                                    int color, int light, int overlay, Pair<Direction, Byte> source,
                                                    boolean renderFlowSource) {
-        if (!launder) {
-            RenderHelpers.renderChannelFlow(pose, buffer, sprite, color, light, overlay, source, renderFlowSource);
+        if (launder) {
+            // The HEAD inject already drew this tap's stream into the launder; TFC's own would only double it.
             return;
         }
-        IMLaunder.drawStream(pose, buffer, sprite, color, source.getLeft(), light, overlay);
+        RenderHelpers.renderChannelFlow(pose, buffer, sprite, color, light, overlay, source, renderFlowSource);
     }
 
     /**

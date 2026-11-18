@@ -1,16 +1,12 @@
 package immersivemetallurgy.block;
 
 import immersivemetallurgy.block.entity.RefiningFurnaceBlockEntity;
-import immersivemetallurgy.furnace.FurnaceShape;
 import immersivemetallurgy.recipe.RefiningFurnaceStats;
 import immersivemetallurgy.registry.IMBlockEntities;
 
 import com.mojang.serialization.MapCodec;
-import immersivemetallurgy.ImmersiveMetallurgy;
-import net.dries007.tfc.common.items.TFCItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
@@ -40,7 +36,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.neoforged.neoforge.common.ItemAbilities;
 
 /**
  * The door of the furnace, and the only part of it a player works at: the charge is thrown in here, the fire is
@@ -49,12 +44,12 @@ import net.neoforged.neoforge.common.ItemAbilities;
  * It is also the anchor the shape is measured from, so which way it faces decides where the shaft is — one block
  * in front of it — and how tall the stack is, which is whatever the player built upward in whole modules.
  */
-public class RefiningHearthBlock extends BaseEntityBlock {
-    public static final MapCodec<RefiningHearthBlock> CODEC = simpleCodec(RefiningHearthBlock::new);
+public class RefiningFurnaceBlock extends BaseEntityBlock {
+    public static final MapCodec<RefiningFurnaceBlock> CODEC = simpleCodec(RefiningFurnaceBlock::new);
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final BooleanProperty LIT = BlockStateProperties.LIT;
 
-    public RefiningHearthBlock(BlockBehaviour.Properties properties) {
+    public RefiningFurnaceBlock(BlockBehaviour.Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(LIT, false));
     }
@@ -75,53 +70,17 @@ public class RefiningHearthBlock extends BaseEntityBlock {
         if (furnace == null || stats == null || !player.mayBuild()) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
-        if (isIgniter(held)) {
-            return ignite(furnace, stats, level, pos, player);
-        }
         if (!furnace.isLit() && furnace.lining() > 0 && held.is(ItemTags.PICKAXES)
                 && furnace.scrapeLining(player, held, stats) > 0) {
             level.playSound(null, pos, SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1F, 0.8F);
             return ItemInteractionResult.CONSUME;
         }
-        if (held.is(ItemTags.SHOVELS) && furnace.quench()) {
-            level.playSound(null, pos, SoundEvents.GENERIC_EXTINGUISH_FIRE, SoundSource.BLOCKS, 1F, 1F);
-            player.displayClientMessage(Component.translatable("screen." + ImmersiveMetallurgy.MODID
-                    + ".furnace.quenched"), true);
-            return ItemInteractionResult.sidedSuccess(level.isClientSide);
-        }
+        // Lighting and dousing are answered in IMFurnaceFire, not here: the firestarter is held until it catches
+        // (StartFireEvent) and the shovel is read on RightClickBlock, because the game skips this call while sneaking.
         // Nothing is fed to this furnace by hand. A click that ate an item cost a stack to a player who meant to
         // mine the block, so fuel, powder and metal all go in the way they go into a real shaft furnace: dropped
         // down the open throat, where what is not wanted simply keeps falling rather than vanishing.
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-    }
-
-    /**
-     * Anything the game lets a fire catch with. TFC's firestarter carries the igniter ability in a field the
-     * tag does not name, its flint-and-pyrite is a plain item, and vanilla's flint-and-steel answers through
-     * NeoForge's ability — so the ability plus that one item is the whole list of ways to light this fire.
-     */
-    private static boolean isIgniter(ItemStack held) {
-        return held.canPerformAction(ItemAbilities.FIRESTARTER_LIGHT) || held.is(TFCItems.FLINT_AND_PYRITE.asItem());
-    }
-
-    /** Lighting, with the reason a firestarter was refused said out loud instead of eaten. */
-    private static ItemInteractionResult ignite(RefiningFurnaceBlockEntity furnace, RefiningFurnaceStats stats,
-                                                Level level, BlockPos pos, Player player) {
-        String why = furnace.lightRefusal(stats);
-        if (!why.equals("none")) {
-            Component reason = why.equals("shape")
-                    ? Component.translatable("screen." + ImmersiveMetallurgy.MODID + ".furnace.fault." + faultKey(furnace))
-                    : Component.translatable("screen." + ImmersiveMetallurgy.MODID + ".furnace.cannot_light." + why,
-                            furnace.fuelRequired(stats), furnace.fuelCount());
-            player.displayClientMessage(reason, true);
-            return ItemInteractionResult.FAIL;
-        }
-        level.playSound(null, pos, SoundEvents.FURNACE_FIRE_CRACKLE, SoundSource.BLOCKS, 1F, 0.8F);
-        return furnace.light(stats) ? ItemInteractionResult.CONSUME : ItemInteractionResult.FAIL;
-    }
-
-    private static String faultKey(RefiningFurnaceBlockEntity furnace) {
-        return FurnaceShape.Fault.values()[furnace.faultOrdinal()].key();
     }
 
     @Override

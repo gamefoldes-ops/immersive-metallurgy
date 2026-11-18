@@ -1,6 +1,6 @@
 {
   "name": "The Refiner's Fire",
-  "icon": "immersive_metallurgy:refining_hearth",
+  "icon": "immersive_metallurgy:refining_furnace",
   "read_by_default": true,
   "category": "tfc:metallurgy",
   "pages": [
@@ -45,7 +45,7 @@
     {
       "type": "patchouli:spotlight",
       "item": {
-        "item": "immersive_metallurgy:refining_hearth"
+        "item": "immersive_metallurgy:refining_furnace"
       },
       "title": "Steel, and Nothing Earlier",
       "text": "Everything the bath touches here is fired clay: the wall, the ducts, the slag plate, the mold — which is as it should be, since a vessel that takes molten metal wants refractory rather than metal.$p$pWhat keeps this fire out of the bronze age is the **hearth**, the one part built with **steel sheets** and a steel pipe: the firebox that holds the charcoal has to stand up to being quenched and reheated every firing, and a sheet of wrought iron will not. A furnace whose firebox is held together with the metal it is refining has been built backwards."

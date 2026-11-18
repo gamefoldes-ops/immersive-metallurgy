@@ -1,6 +1,7 @@
 package immersivemetallurgy.registry;
 
 import immersivemetallurgy.ImmersiveMetallurgy;
+import immersivemetallurgy.block.entity.LaunderBlockEntity;
 import immersivemetallurgy.block.entity.RefiningFurnaceBlockEntity;
 
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -18,8 +19,13 @@ public final class IMBlockEntities {
             DeferredRegister.create(net.minecraft.core.registries.Registries.BLOCK_ENTITY_TYPE, ImmersiveMetallurgy.MODID);
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<RefiningFurnaceBlockEntity>> HEARTH =
-            BLOCK_ENTITY_TYPES.register("refining_hearth", () -> BlockEntityType.Builder.of(
-                    RefiningFurnaceBlockEntity::new, IMBlocks.REFINING_HEARTH.get()).build(null));
+            BLOCK_ENTITY_TYPES.register("refining_furnace", () -> BlockEntityType.Builder.of(
+                    RefiningFurnaceBlockEntity::new, IMBlocks.REFINING_FURNACE.get()).build(null));
+
+    /** Anchor for the launder's stream renderer; the trough itself holds no state. */
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<LaunderBlockEntity>> LAUNDER =
+            BLOCK_ENTITY_TYPES.register("refining_launder", () -> BlockEntityType.Builder.of(
+                    LaunderBlockEntity::new, IMBlocks.LAUNDER.get()).build(null));
 
     private IMBlockEntities() {
     }

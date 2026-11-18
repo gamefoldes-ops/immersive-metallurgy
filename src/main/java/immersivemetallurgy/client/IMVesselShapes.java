@@ -33,20 +33,6 @@ public final class IMVesselShapes {
             ModelResourceLocation.standalone(ResourceLocation.fromNamespaceAndPath(
                     ImmersiveMetallurgy.MODID, "item/refining_tray"));
 
-    /**
-     * The tap's spout: TFC's own channel, drawn rather than placed.
-     *
-     * A launder hung over a table wants to look like the trough it is, and TFC already drew one — including the
-     * variant with a hole in its bottom for the metal to leave through. So the furnace borrows its pieces
-     * (`base`, the `connection` reaching to the duct, and a `stop` on every side that is not) rather than keeping
-     * a copy of its own. Nothing is placed and nothing is stored: one cell holds one block and that cell belongs
-     * to the mold table, the duct behind the table carries which line it runs on, and this is the renderer that
-     * already draws things in that cell.
-     */
-    public static final ModelResourceLocation CHANNEL_BASE = standalone("tfc:block/channel_base");
-    public static final ModelResourceLocation CHANNEL_CONNECTION = standalone("tfc:block/channel_connection");
-    public static final ModelResourceLocation CHANNEL_STOP = standalone("tfc:block/channel_stop");
-
     private IMVesselShapes() {
     }
 
@@ -69,19 +55,6 @@ public final class IMVesselShapes {
     @SubscribeEvent
     public static void registerShapes(ModelEvent.RegisterAdditional event) {
         event.register(TRAY);
-        event.register(CHANNEL_BASE);
-        event.register(CHANNEL_CONNECTION);
-        event.register(CHANNEL_STOP);
-    }
-
-    /**
-     * One of TFC's channel pieces, or null when the resource pack did not give it — which reads as no launder,
-     * the metal still being painted by TFC itself.
-     */
-    @Nullable
-    public static BakedModel channel(ModelResourceLocation piece) {
-        BakedModel model = Minecraft.getInstance().getModelManager().getModel(piece);
-        return model == Minecraft.getInstance().getModelManager().getMissingModel() ? null : model;
     }
 
     /**
@@ -97,11 +70,6 @@ public final class IMVesselShapes {
             case NORTH -> -270F;
             default -> 0F;
         };
-    }
-
-    /** A model file of another mod, asked for by the very path its own blockstate uses. */
-    private static ModelResourceLocation standalone(String path) {
-        return ModelResourceLocation.standalone(ResourceLocation.parse(path));
     }
 
     /**

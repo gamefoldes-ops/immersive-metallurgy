@@ -10,17 +10,21 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.dries007.tfc.client.RenderHelpers;
+import net.dries007.tfc.common.blockentities.CrucibleBlockEntity;
 import net.dries007.tfc.common.blockentities.MoldTableBlockEntity;
+import net.dries007.tfc.common.blocks.TFCBlocks;
+import net.dries007.tfc.common.component.mold.IMold;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
@@ -28,30 +32,37 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The furnace's launder over a mold table, in either of its two shapes.
+ * The metal moving through the furnace's launder, in either of its two lines.
  *
- * Both the tap and the slag hole hang a trough over the table standing in front of them, and both are the same
- * drawing: TFC's own channel, its pieces turned toward the hole and lifted five pixels off the board, with metal
- * running along it and falling through the hole the channel leaves in its floor. What differs is only what falls.
- * The tap's stream is TFC's own, driven by the table's source, and this class hands it the same two boxes; the
- * slag line has no source to speak of, so its stream — slag, or the metal that ran over the dam — is drawn here.
+ * The trough the metal runs along is no longer drawn here — it is part of the casting table block the player
+ * places, so the clay stands on its own. What is left is the stream: two boxes, the run along the trough and the
+ * fall through the open floor to the board. The tap's stream is TFC's own, driven by the table's source, and this
+ * class hands it the same two boxes; the slag line has no source to speak of, so its stream — slag, or the metal
+ * that ran over the dam — is drawn here from the fluid itself.
  */
 public final class IMLaunder {
     private static final float PIXEL = 1F / 16F;
-    /** Five pixels of air between the board and the launder's floor, which is where the channel stands. */
-    private static final float LIFT = 5 * PIXEL;
-    /** From six pixels into the cell to six past the wall, four high, filling the four-pixel trough. */
-    public static final AABB RUN = box(6, 6, 6, 22, 9, 10);
-    /** The trough's own middle square, dropped through the open floor to the board. */
-    public static final AABB FALL = box(6, 1, 6, 10, 7, 10);
-
-    /**
-     * What fraction of the surrounding light the drawn clay keeps, out of sixteen. The item path hands every vertex
-     * the light it is given and no ambient occlusion at all, while TFC's channel is drawn as a block and comes back
-     * shaded by what stands next to it — same clay, two brightnesses.
-     */
-    private static final int CLAY_SHADE = 12;
-    private static final int CLAY_SHADE_OF = 16;
+    /** The run along the trough, from the fall's far face to six past the wall, four high. */
+    public static final AABB RUN = box(10, 6, 6, 22, 9, 10);
+    /** The corner column: the trough's open mouth dropped to the board, raised to the run's own top so the two meet
+     *  at x=10 edge-to-edge. Four pixels wide (one past the hole toward the open mouth) so the fall reads 4x4 and
+     *  closes the hairline of empty air at the mouth's left edge. Overlapping the run instead left their side faces
+     *  coplanar, which read as a ripple. */
+    public static final AABB FALL = box(6, 1, 6, 10, 9, 10);
+    /** A conduit launder's run: from the mouth's far face to the cell's own far face so the next cell draws its own. */
+    public static final AABB RUN_THROUGH = box(10, 6, 6, 16, 9, 10);
+    /** A sink launder's run: from the fall's far face to the cell's far face, edge-to-edge with the fall. */
+    public static final AABB RUN_NODE = box(10, 6, 6, 16, 9, 10);
+    /** The stream continuing down out of a sink launder into the crucible standing a block below it. */
+    public static final AABB DROP = box(7, -8, 6, 10, 1, 10);
+    /** The combined cell's fall: the same open mouth, dropped to the channel groove floor at y=2 rather than a board,
+     *  and four pixels wide like {@link #FALL} so the column reads 4x4 and closes the hairline at the mouth's left. */
+    public static final AABB FALL_STACK = box(6, 2, 6, 10, 9, 10);
+    public static final AABB RUN_STACK = box(10, 6, 6, 16, 9, 10);
+    /** The fall continuing out of the cell into a mold table standing a block below: down to that table's board,
+     *  so the stream lands in the vessel instead of stopping in mid-air at the trough's own floor. */
+    public static final AABB DROP_TABLE = box(7, -14, 6, 10, 1, 10);
+    public static final AABB DROP_TABLE_STACK = box(7, -14, 6, 10, 2, 10);
 
     /** Which hole this table stands in front of. */
     public enum Line { NONE, TAP, SLAG }
@@ -105,29 +116,6 @@ public final class IMLaunder {
         return metal == null ? null : new FluidStack(metal, 1);
     }
 
-    /** The clay: TFC's channel, turned toward the hole, with its floor left open. */
-    public static void drawClay(PoseStack pose, MultiBufferSource buffers, On on, int light, int overlay) {
-        BakedModel base = IMVesselShapes.channel(IMVesselShapes.CHANNEL_BASE);
-        BakedModel joint = IMVesselShapes.channel(IMVesselShapes.CHANNEL_CONNECTION);
-        BakedModel stop = IMVesselShapes.channel(IMVesselShapes.CHANNEL_STOP);
-        if (base == null || joint == null || stop == null) {
-            return;
-        }
-        VertexConsumer sink = buffers.getBuffer(RenderType.solid());
-        // The stack is only what the model is asked for quads about; a launder is not an item and has no overrides,
-        // so a duct in the hand answers the same as anything else. Built per draw on purpose: a static stack here
-        // was once a crash, because client classes are loaded before items exist.
-        ItemStack probe = new ItemStack(IMBlocks.REFINING_DUCT.get());
-        int clay = shaded(light);
-        piece(pose, sink, base, probe, clay, overlay, 0F);
-        piece(pose, sink, joint, probe, clay, overlay, IMVesselShapes.pieceYaw(on.side()));
-        for (Direction other : Direction.Plane.HORIZONTAL) {
-            if (other != on.side()) {
-                piece(pose, sink, stop, probe, clay, overlay, IMVesselShapes.pieceYaw(other));
-            }
-        }
-    }
-
     /** The slag line's stream, drawn from the fluid itself. */
     public static void drawStream(PoseStack pose, MultiBufferSource buffers, FluidStack fluid, On on, int light,
                                   int overlay) {
@@ -135,6 +123,201 @@ public final class IMLaunder {
                 .apply(IClientFluidTypeExtensions.of(fluid.getFluidType()).getStillTexture());
         drawStream(pose, buffers.getBuffer(RenderType.cutout()), sprite, RenderHelpers.getFluidColor(fluid),
                 on.side(), light, overlay);
+    }
+
+    /**
+     * The stream on a launder that stands on its own: the run down its trough, and the fall through the open mouth.
+     * A crucible a block below draws nothing of its own, so the drop continues into it; a channel below draws its
+     * own pool and up-arm, so the fall stops at the cell floor and hands over rather than painting a second column
+     * over it. A conduit launder draws only its own cell, so two launders in a row never share a face.
+     */
+    public static void drawNode(PoseStack pose, MultiBufferSource buffers, FluidStack fluid, Direction side,
+                                boolean drop, boolean intoTable, boolean conduit, int light, int overlay) {
+        TextureAtlasSprite sprite = Minecraft.getInstance().getTextureAtlas(RenderHelpers.BLOCKS_ATLAS)
+                .apply(IClientFluidTypeExtensions.of(fluid.getFluidType()).getStillTexture());
+        VertexConsumer sink = buffers.getBuffer(RenderType.cutout());
+        int color = RenderHelpers.getFluidColor(fluid);
+        pose.pushPose();
+        pose.translate(0.5F, 0.0F, 0.5F);
+        pose.mulPose(Axis.YP.rotationDegrees(IMVesselShapes.pieceYaw(side)));
+        pose.translate(-0.5F, 0.0F, -0.5F);
+        if (drop) {
+            RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, FALL, color);
+            RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, RUN_NODE, color);
+            RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, DROP, color);
+        } else if (intoTable) {
+            RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, FALL, color);
+            RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, RUN_NODE, color);
+            RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, DROP_TABLE, color);
+        } else if (conduit) {
+            RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, FALL, color);
+            RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, RUN_NODE, color);
+        } else {
+            RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, RUN_THROUGH, color);
+        }
+        pose.popPose();
+    }
+
+    /** The stream on a launder with a channel under it in the same cell: the run down the trough and the fall
+     *  into the channel below, which draws its own flow on from there. */
+    public static void drawStack(PoseStack pose, MultiBufferSource buffers, FluidStack fluid, Direction side,
+                                 boolean intoTable, int light, int overlay) {
+        TextureAtlasSprite sprite = Minecraft.getInstance().getTextureAtlas(RenderHelpers.BLOCKS_ATLAS)
+                .apply(IClientFluidTypeExtensions.of(fluid.getFluidType()).getStillTexture());
+        VertexConsumer sink = buffers.getBuffer(RenderType.cutout());
+        int color = RenderHelpers.getFluidColor(fluid);
+        pose.pushPose();
+        pose.translate(0.5F, 0.0F, 0.5F);
+        pose.mulPose(Axis.YP.rotationDegrees(IMVesselShapes.pieceYaw(side)));
+        pose.translate(-0.5F, 0.0F, -0.5F);
+        RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, FALL_STACK, color);
+        RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, RUN_STACK, color);
+        if (intoTable) {
+            RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, DROP_TABLE_STACK, color);
+        }
+        pose.popPose();
+    }
+
+    /** What the hole behind this launder is running, walked back along the run to the duct that feeds it. */
+    public static int flowBehind(Level level, BlockPos pos, Direction side) {
+        BlockPos here = pos;
+        Direction dir = side;
+        for (int step = 0; step < 8; step++) {
+            here = here.relative(dir);
+            int flow = ductFlow(level, here);
+            if (flow >= 0) {
+                return flow;
+            }
+            if (isConduit(level, here)) {
+                continue;
+            }
+            if (isConduit(level, here.below())) {
+                here = here.below();
+                continue;
+            }
+            Direction bend = null;
+            BlockPos bent = null;
+            for (Direction turn : new Direction[]{dir.getClockWise(), dir.getCounterClockWise()}) {
+                BlockPos cell = here.relative(turn);
+                int turned = ductFlow(level, cell);
+                if (turned >= 0) {
+                    return turned;
+                }
+                if (isConduit(level, cell)) {
+                    bend = turn;
+                    bent = cell;
+                    break;
+                }
+            }
+            if (bend == null) {
+                return RefiningDuctBlock.FLOW_NONE;
+            }
+            dir = bend;
+            here = bent;
+        }
+        return RefiningDuctBlock.FLOW_NONE;
+    }
+
+    /** The duct's flow at a cell, or -1 when the cell is not a duct. */
+    private static int ductFlow(Level level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        return state.is(IMBlocks.REFINING_DUCT.get()) ? state.getValue(RefiningDuctBlock.FLOW) : -1;
+    }
+
+    /** The metal a tap run is carrying, read off the sink it ends at: the dish on a table, or the pot itself. */
+    @Nullable
+    public static FluidStack metalAhead(Level level, BlockPos pos, Direction away) {
+        BlockPos here = pos;
+        Direction dir = away;
+        for (int step = 0; step < 8; step++) {
+            if (level.getBlockEntity(here.below()) instanceof CrucibleBlockEntity
+                    || level.getBlockEntity(here.below()) instanceof MoldTableBlockEntity) {
+                return metalAt(level, here.below());
+            }
+            BlockPos next = here.relative(dir);
+            if (isSink(level, next)) {
+                return metalAt(level, next);
+            }
+            if (isConduit(level, next)) {
+                here = next;
+                continue;
+            }
+            if (isConduit(level, here.below())) {
+                here = here.below();
+                continue;
+            }
+            Direction bend = null;
+            BlockPos bent = null;
+            for (Direction turn : new Direction[]{dir.getClockWise(), dir.getCounterClockWise()}) {
+                BlockPos cell = here.relative(turn);
+                if (isSink(level, cell)) {
+                    return metalAt(level, cell);
+                }
+                if (isConduit(level, cell)) {
+                    bend = turn;
+                    bent = cell;
+                    break;
+                }
+            }
+            if (bend == null) {
+                return null;
+            }
+            dir = bend;
+            here = bent;
+        }
+        return null;
+    }
+
+    /** Whether a cell holds something the run ends in, full or not: a table or a crucible. */
+    private static boolean isSink(Level level, BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof MoldTableBlockEntity
+                || level.getBlockEntity(pos) instanceof CrucibleBlockEntity;
+    }
+
+    private static boolean isConduit(Level level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        return state.is(TFCBlocks.CHANNEL.get()) || state.is(IMBlocks.LAUNDER.get())
+                || state.is(IMBlocks.LAUNDER_CHANNEL.get());
+    }
+
+    /** Whether a channel or launder stands on the ground under this cell, waiting to carry the stream on. */
+    public static boolean conduitBelow(Level level, BlockPos pos) {
+        return isConduit(level, pos.below());
+    }
+
+    /** Whether a mold table stands a block under this cell, waiting to catch the stream in its vessel. */
+    public static boolean tableBelow(Level level, BlockPos pos) {
+        return level.getBlockEntity(pos.below()) instanceof MoldTableBlockEntity;
+    }
+
+    /** The metal standing in a sink, or null when it holds nothing liquid. */
+    @Nullable
+    private static FluidStack metalAt(Level level, BlockPos pos) {
+        if (level.getBlockEntity(pos) instanceof MoldTableBlockEntity table) {
+            ItemStack vessel = table.getMoldStack();
+            String id = vessel.get(IMDataComponents.SKIMMING_FLUID.get());
+            Integer mb = vessel.get(IMDataComponents.SKIMMING_MB.get());
+            if (id != null && mb != null && mb > 0) {
+                Fluid metal = BuiltInRegistries.FLUID.get(ResourceLocation.parse(id));
+                if (metal != null) {
+                    return new FluidStack(metal, 1);
+                }
+            }
+            // An ordinary casting mould keeps its metal in its own tank, not in the dish's skimming record.
+            IMold mold = IMold.get(vessel);
+            if (mold != null) {
+                FluidStack tank = mold.getFluidInTank(0);
+                if (!tank.isEmpty()) {
+                    return tank.copyWithAmount(1);
+                }
+            }
+            return null;
+        }
+        if (level.getBlockEntity(pos) instanceof CrucibleBlockEntity crucible) {
+            FluidStack result = crucible.getAlloyResult();
+            return result.isEmpty() ? null : result;
+        }
+        return null;
     }
 
     /**
@@ -150,24 +333,6 @@ public final class IMLaunder {
         RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, RUN, color);
         RenderHelpers.renderTexturedCuboid(pose, sink, sprite, light, overlay, FALL, color);
         pose.popPose();
-    }
-
-    /** One channel piece, standing in this cell and turned about its centre. */
-    private static void piece(PoseStack pose, VertexConsumer sink, BakedModel model, ItemStack probe, int light,
-                              int overlay, float yaw) {
-        pose.pushPose();
-        pose.translate(0.5F, LIFT, 0.5F);
-        pose.mulPose(Axis.YP.rotationDegrees(yaw));
-        pose.translate(-0.5F, 0.0F, -0.5F);
-        Minecraft.getInstance().getItemRenderer().renderModelLists(model, probe, light, overlay, pose, sink);
-        pose.popPose();
-    }
-
-    /** The same packed sky and block light, pulled down to the shade a block of clay would sit in. */
-    private static int shaded(int light) {
-        int sky = (light >> 16) * CLAY_SHADE / CLAY_SHADE_OF;
-        int block = (light & 0xFFFF) * CLAY_SHADE / CLAY_SHADE_OF;
-        return (sky << 16) | block;
     }
 
     private static AABB box(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {

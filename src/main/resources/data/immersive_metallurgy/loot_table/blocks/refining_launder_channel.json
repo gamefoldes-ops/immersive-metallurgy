@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "name": "loot_0",
+      "rolls": 1,
+      "entries": [ { "type": "minecraft:item", "name": "tfc:channel" } ],
+      "conditions": [ { "condition": "minecraft:survives_explosion" } ]
+    },
+    {
+      "name": "loot_1",
+      "rolls": 1,
+      "entries": [ { "type": "minecraft:item", "name": "tfc:channel" } ],
+      "conditions": [ { "condition": "minecraft:survives_explosion" } ]
+    }
+  ]
+}

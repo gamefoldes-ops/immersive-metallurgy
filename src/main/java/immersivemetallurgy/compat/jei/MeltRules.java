@@ -64,7 +64,7 @@ public final class MeltRules {
         }
         int smallest = 1;
         int largest = table.maxModules();
-        rows.add(new MeltRule(List.of(item(ImmersiveMetallurgy.MODID + ":refining_hearth")), List.of(
+        rows.add(new MeltRule(List.of(item(ImmersiveMetallurgy.MODID + ":refining_furnace")), List.of(
                 key("jei.furnace.title"),
                 key("jei.furnace.module", text(table.mbPerModule()), text(table.maxModules())),
                 key("jei.furnace.channel", text(table.drainThreshold(smallest)), text(smallest),
@@ -73,7 +73,7 @@ public final class MeltRules {
                         text(oneDecimal(table.mbSlagPerFlux() * table.metalDrag()))),
                 key("jei.furnace.heat", text(table.baseTemperature()), text(table.draughtPerLayer()),
                         text(table.fireTemperature(table.maxOpenLayers())), text(table.pourTemperature()),
-                        minutes(table.boilTicks()), minutes(table.fuelBurnTicks())),
+                        minutes(table.boilTicks()), text(table.coalTicksAtWhite() / 20)),
                 key("jei.furnace.lining", text(table.liningScrapeMb()),
                         text(Math.round(100 * table.liningReturn()))))));
     }

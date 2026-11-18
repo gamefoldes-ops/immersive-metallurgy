@@ -10,7 +10,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -48,8 +47,6 @@ public final class IMSlagPlate {
                 event.setUseBlock(TriState.FALSE);
                 event.setUseItem(TriState.FALSE);
                 event.setCancellationResult(InteractionResult.CONSUME);
-                event.getEntity().displayClientMessage(Component.translatable("screen." + ImmersiveMetallurgy.MODID
-                        + ".furnace.slag_table_locked"), true);
                 return;
             }
             return;

@@ -74,6 +74,17 @@ public final class IMDataComponents {
                     .networkSynchronized(ByteBufCodecs.VAR_INT)
                     .build());
 
+    /**
+     * Slag baked onto a channel or a crucible, one step per slag run through it. It rides the item so a dirty
+     * channel stays dirty through being broken and laid again, and a channel that has taken enough of it is
+     * clogged for good: the count is the whole history of the piece, not a state of the cell it stands in.
+     */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> SLAG_DIRT =
+            DATA_COMPONENTS.register("slag_dirt", () -> DataComponentType.<Integer>builder()
+                    .persistent(Codec.INT)
+                    .networkSynchronized(ByteBufCodecs.VAR_INT)
+                    .build());
+
     private IMDataComponents() {
     }
 

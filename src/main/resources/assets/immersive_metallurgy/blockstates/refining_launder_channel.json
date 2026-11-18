@@ -1,0 +1,18 @@
+{
+  "multipart": [
+    { "apply": { "model": "tfc:block/channel_base" } },
+    { "when": { "down": false }, "apply": { "model": "tfc:block/channel_bottom" } },
+    { "when": { "north": true }, "apply": { "model": "tfc:block/channel_connection", "y": 270 } },
+    { "when": { "east": true }, "apply": { "model": "tfc:block/channel_connection", "y": 0 } },
+    { "when": { "south": true }, "apply": { "model": "tfc:block/channel_connection", "y": 90 } },
+    { "when": { "west": true }, "apply": { "model": "tfc:block/channel_connection", "y": 180 } },
+    { "when": { "north": false }, "apply": { "model": "tfc:block/channel_stop", "y": 270 } },
+    { "when": { "east": false }, "apply": { "model": "tfc:block/channel_stop", "y": 0 } },
+    { "when": { "south": false }, "apply": { "model": "tfc:block/channel_stop", "y": 90 } },
+    { "when": { "west": false }, "apply": { "model": "tfc:block/channel_stop", "y": 180 } },
+    { "when": { "facing": "east" }, "apply": { "model": "immersive_metallurgy:block/refining_casting_trough" } },
+    { "when": { "facing": "south" }, "apply": { "model": "immersive_metallurgy:block/refining_casting_trough", "y": 90 } },
+    { "when": { "facing": "west" }, "apply": { "model": "immersive_metallurgy:block/refining_casting_trough", "y": 180 } },
+    { "when": { "facing": "north" }, "apply": { "model": "immersive_metallurgy:block/refining_casting_trough", "y": 270 } }
+  ]
+}

@@ -43,8 +43,8 @@ public final class IMItemTooltips {
         List<Component> lines = new ArrayList<>();
 
         // The two vessels the furnace owns say what they are for on the spot, because nothing about their shape
-        // tells a player that one of them will not accept a crucible and the other will not accept metal. They
-        // also say what stands in them: a mould picked up off a table is otherwise a mystery wrap.
+        // tells a player that the dish takes slag and nothing else while the mould takes a whole module of metal.
+        // They also say what stands in them: a mould picked up off a table is otherwise a mystery wrap.
         boolean plate = stack.is(IMItems.SLAG_PLATE.get());
         if (plate || stack.is(IMItems.REFINING_MOLD.get())) {
             lines.add(Component.translatable("immersive_metallurgy.tooltip."

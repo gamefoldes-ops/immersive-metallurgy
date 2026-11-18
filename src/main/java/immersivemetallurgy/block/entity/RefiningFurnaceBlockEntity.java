@@ -3,13 +3,15 @@ package immersivemetallurgy.block.entity;
 import immersivemetallurgy.ImmersiveMetallurgy;
 import immersivemetallurgy.component.AlloyRecord;
 import immersivemetallurgy.block.RefiningDuctBlock;
-import immersivemetallurgy.block.RefiningHearthBlock;
+import immersivemetallurgy.block.RefiningFurnaceBlock;
 import immersivemetallurgy.component.MeltComposition;
 import immersivemetallurgy.component.MeltCarries;
 import immersivemetallurgy.furnace.Casts;
 import immersivemetallurgy.furnace.FurnaceShape;
 import immersivemetallurgy.furnace.MoltenTower;
 import immersivemetallurgy.furnace.SlagDish;
+import immersivemetallurgy.furnace.SlagDirt;
+import immersivemetallurgy.furnace.TapSink;
 import immersivemetallurgy.menu.RefiningFurnaceMenu;
 import immersivemetallurgy.recipe.RefiningFurnaceStats;
 import immersivemetallurgy.registry.IMBlockEntities;
@@ -52,8 +54,14 @@ import net.minecraft.world.level.material.Fluid;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
@@ -75,7 +83,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
  * at the other outlet, or freezes in the open ground where nothing stands, and is broken out with a pickaxe.
  */
 public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minecraft.world.MenuProvider {
-    public enum Phase { IDLE, HEATING, BOILING, COOLING }
+    public enum Phase { IDLE, HEATING, BOILING, COOLING, HOLDING }
 
     /** What the furnace wants out of a click, and the reason it said no. */
     public enum Refusal { NONE, UNFORMED, SETTING, FUEL_FULL, POWDER_FULL, NOT_A_CHARGE }
@@ -146,6 +154,10 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     private int pourLeft;
     private BlockPos pourTable = BlockPos.ZERO;
     private Direction pourSide = Direction.NORTH;
+    /** Gangue a dirty run adds to the metal on its way out, as a slag-to-metal ratio the casting already reads. */
+    private float pourSlagRatio;
+    /** Whether a slag run is currently reaching its catcher, so dirt is counted once per run and not per tick. */
+    private boolean slagRunning;
     private FurnaceShape shape;
     private FurnaceShape.Fault fault = FurnaceShape.Fault.NONE;
     private int rescanCooldown;
@@ -163,6 +175,8 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
      */
     private float temperature;
     private int fuelTicks;
+    /** The full burn time of the piece currently alight, so the window can draw how far through it the fire is. */
+    private int fuelBurnTotal;
     /** Whether a shovel has dropped this fire, which holds the fuel off until the hearth is lit again. */
     private boolean doused;
     /**
@@ -240,7 +254,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
                 // New charge in a bath that was already boiling: it has to melt, and the dirt it brought has to
                 // be boiled off from here, so the heat goes back to melting rather than finishing a boil that no
                 // longer describes what is in the vessel.
-                if (metal && phase == Phase.BOILING) {
+                if (metal && (phase == Phase.BOILING || phase == Phase.HOLDING)) {
                     phase = Phase.HEATING;
                     timer = 0;
                     setChanged();
@@ -305,7 +319,11 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
 
     /** How much of the bath is slag rather than metal, in millilitres. */
     public int slagMb() {
-        return (int) Math.round(slagInBath());
+        int mb = (int) Math.round(slagInBath());
+        // A single millilitre left clinging after a drain is not a reading worth showing: it painted a sliver of
+        // slag in the window and subtracted itself from the metal, so a bath that had given up all its dirt still
+        // looked a millilitre short of the pour it had just finished.
+        return mb <= 1 ? 0 : mb;
     }
 
     /**
@@ -380,14 +398,14 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     }
 
     /**
-     * The heat at which this bath begins to give metal up. A crucible is poured when its melt is liquid and a
-     * shaft furnace is no different: tin in the charge is molten long before copper is, and what has melted can
-     * be drawn off while the rest still sits solid in the stack — it simply comes out carrying the dirt it is
-     * floating in. The flat figure in the tuning sheet is the floor for a bath with nothing molten in it at all.
+     * The heat at which this bath begins to give metal up: the melt temperature of the easiest metal standing in
+     * it, because what has actually melted can be drawn off while the rest still sits solid in the stack. A flat
+     * figure would let a copper bath run at a heat copper is not liquid at, so the metal's own melt point is the
+     * gate; the tuning sheet's floor only answers for a bath with nothing molten in it at all.
      */
     public float pourHeat(RefiningFurnaceStats stats) {
         float lowest = meltOfBath(stats);
-        return lowest < 0 ? stats.pourTemperature() : Math.min(lowest, stats.pourTemperature());
+        return lowest < 0 ? stats.pourTemperature() : lowest;
     }
 
     /** The melt temperature of what the bath has become, which is what the boil works on. */
@@ -428,7 +446,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             return new Loaded(0, Refusal.SETTING);
         }
         if (stats.isFuel(held)) {
-            return take(fuel, held, fuelRequired(stats) - fuelCount(), Refusal.FUEL_FULL);
+            return take(fuel, held, fuelCapacity(stats) - fuelCount(), Refusal.FUEL_FULL);
         }
         if (stats.mbOfSlagPer(held) > 0) {
             return take(reagent, held, stats.reagentCap(shape.modules()) - reagentUnits(stats), Refusal.POWDER_FULL);
@@ -522,15 +540,21 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (phase != Phase.IDLE) {
             return "lit";
         }
-        return fuelCount() >= fuelRequired(stats) ? "none" : "fuel";
+        return fuelCount() >= 1 ? "none" : "fuel";
     }
 
     public boolean canLight(RefiningFurnaceStats stats) {
         return lightRefusal(stats).equals("none");
     }
 
-    public int fuelRequired(RefiningFurnaceStats stats) {
-        return shape == null ? 0 : stats.fuelPerModule() * shape.modules();
+    /** How much coal the hearth can hold: it grows with the shaft, but a single piece is enough to light it. */
+    public int fuelCapacity(RefiningFurnaceStats stats) {
+        return shape == null ? 0 : stats.fuelCapacity(shape.modules());
+    }
+
+    /** How far through the piece currently alight the fire is, as a percent, for the coal gauge to drain smoothly. */
+    public int fuelBurnPercent() {
+        return fuelBurnTotal <= 0 ? 0 : Math.round(100F * Math.max(0, fuelTicks) / fuelBurnTotal);
     }
 
     /**
@@ -545,6 +569,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         phase = Phase.HEATING;
         timer = 0;
         fuelTicks = 0;
+        fuelBurnTotal = 0;
         reagentCredit = 0;
         slagWaiting = 0;
         // Whatever the walls caught from the last firing comes back into the bath this one melts into: plating
@@ -597,6 +622,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         // The holes in the wall outlive the hearth that read them as a tap and a slag run, so they are told to
         // stop saying so — otherwise a broken furnace leaves a spout hanging over a table for years.
         markDucts(shape, null);
+        markMouths(shape, null);
         setChanged();
     }
 
@@ -605,41 +631,186 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
      * channel pulled out mid-firing means the next click finds no line — the furnace does not pour into a gap,
      * and nothing has to be repaired in somebody else's block entity.
      */
-    public record TapLine(MoldTableBlockEntity table, BlockPos tablePos, List<BlockPos> channels, Direction intoTable) {
+    public record TapLine(TapSink table, BlockPos tablePos, List<BlockPos> channels, Direction intoTable) {
     }
 
     /**
-     * Where the metal of a tap is going: the mold table standing in the tap's outlet cell, whether it is there
-     * itself or reached by a run of casting channel walked outward, straight and level. TFC's channels do not
-     * climb, so neither do we, and a run that turns a corner is not a tap line — the player hears that rather
-     * than watching metal disappear into a wall.
+     * Where the metal of a tap is going: a mold table standing in the outlet cell or reached by a run walked
+     * outward, straight and level, or a crucible standing a block below a launder the run ends on. TFC's channels
+     * do not climb, so neither do we, and a run that turns a corner is not a tap line — the player hears that
+     * rather than watching metal disappear into a wall. Our own launder counts as a conduit like TFC's channel,
+     * so a run may mix the two; a launder with a crucible under it is where the run ends and the metal drops in.
      */
     public TapLine tapLine() {
         if (shape == null || level == null) {
             return null;
         }
         BlockPos outlet = shape.tapOutlet();
-        Direction ahead = FurnaceShape.direction(shape.tapWall(), outlet);
+        return lineFrom(outlet, FurnaceShape.direction(shape.tapWall(), outlet));
+    }
+
+    /** The walk both the tap and, later, the slag run share: conduit cells outward to a table or a crucible. */
+    private TapLine lineFrom(BlockPos outlet, Direction ahead) {
         if (level.getBlockEntity(outlet) instanceof MoldTableBlockEntity table) {
-            return new TapLine(table, outlet, List.of(), ahead);
+            return new TapLine(new TapSink.Table(table), outlet, List.of(), ahead);
         }
-        if (!level.getBlockState(outlet).is(TFCBlocks.CHANNEL.get())) {
+        if (!isConduit(outlet)) {
             return null;
         }
         List<BlockPos> channels = new ArrayList<>();
         BlockPos here = outlet;
+        Direction dir = ahead;
         for (int step = 0; step < MAX_TAP_RUN; step++) {
-            channels.add(here);
-            BlockPos next = here.relative(ahead);
-            if (level.getBlockEntity(next) instanceof MoldTableBlockEntity table) {
-                return new TapLine(table, next, channels, ahead);
-            }
-            if (!level.getBlockState(next).is(TFCBlocks.CHANNEL.get())) {
+            if (clogged(here)) {
+                // A clogged pipe passes nothing, so a run through it is not a run at all.
                 return null;
             }
-            here = next;
+            channels.add(here);
+            TapSink under = TapSink.of(level.getBlockEntity(here.below()));
+            if (under != null) {
+                // A table or a crucible standing a block below the conduit: the run drops into it and ends, so a
+                // channel turned downward feeds the mold table under it just as a launder feeds a crucible.
+                return new TapLine(under, here.below(), channels, dir);
+            }
+            BlockPos next = here.relative(dir);
+            if (level.getBlockEntity(next) instanceof MoldTableBlockEntity table) {
+                return new TapLine(new TapSink.Table(table), next, channels, dir);
+            }
+            if (isConduit(next)) {
+                here = next;
+                continue;
+            }
+            // A channel laid on the ground under the launder instead of a table: the run drops into it and keeps
+            // going from there, so the clay on the ground carries the metal sideways like any TFC channel run.
+            if (isConduit(here.below())) {
+                here = here.below();
+                continue;
+            }
+            // The run may bend: a channel run laid along the ground turns corners, and the stream turns with it.
+            Direction bend = null;
+            BlockPos bent = null;
+            for (Direction turn : new Direction[]{dir.getClockWise(), dir.getCounterClockWise()}) {
+                BlockPos cell = here.relative(turn);
+                if (level.getBlockEntity(cell) instanceof MoldTableBlockEntity table) {
+                    return new TapLine(new TapSink.Table(table), cell, channels, turn);
+                }
+                if (isConduit(cell)) {
+                    bend = turn;
+                    bent = cell;
+                    break;
+                }
+            }
+            if (bend == null) {
+                return null;
+            }
+            dir = bend;
+            here = bent;
         }
         return null;
+    }
+
+    private boolean isLaunder(BlockPos pos) {
+        return level.getBlockState(pos).is(IMBlocks.LAUNDER.get());
+    }
+
+    private boolean isConduit(BlockPos pos) {
+        return level.getBlockState(pos).is(TFCBlocks.CHANNEL.get()) || isLaunder(pos)
+                || level.getBlockState(pos).is(IMBlocks.LAUNDER_CHANNEL.get());
+    }
+
+    private boolean clogged(BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof SlagDirt dirt && dirt.clogged();
+    }
+
+    /**
+     * Lights up the whole channel network the outlet feeds, not just the one walked line: metal poured into a
+     * channel run spreads into every branch and corner, the way it does out of a crucible, so each conduit is
+     * given the face the metal reached it from and TFC draws its own flow from there. A clogged pipe passes
+     * nothing and stops the spread behind it. The actual pour still goes to the single sink the tap line ends
+     * in; this only decides what the player sees running and, for slag, what gets baked on.
+     */
+    private void spreadFlow(BlockPos outlet, BlockPos wall, ResourceLocation fluid, boolean bakeDirt) {
+        Deque<BlockPos> queue = new ArrayDeque<>();
+        Map<BlockPos, BlockPos> parent = new HashMap<>();
+        Set<BlockPos> seen = new HashSet<>();
+        queue.add(outlet);
+        parent.put(outlet, wall);
+        seen.add(outlet);
+        while (!queue.isEmpty() && seen.size() <= 64) {
+            BlockPos here = queue.poll();
+            if (clogged(here)) {
+                continue;
+            }
+            BlockPos from = parent.get(here);
+            if (level.getBlockEntity(here) instanceof ChannelBlockEntity duct) {
+                duct.setLinkProperties(Pair.of(FurnaceShape.direction(here, from), (byte) 1), isConduit(from), 1, fluid);
+            }
+            if (bakeDirt && level.getBlockEntity(here) instanceof SlagDirt dirt) {
+                dirt.addSlagDirt();
+            }
+            for (Direction side : new Direction[]{Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST,
+                    Direction.DOWN}) {
+                BlockPos next = here.relative(side);
+                if (seen.add(next) && isConduit(next)) {
+                    parent.put(next, here);
+                    queue.add(next);
+                }
+            }
+        }
+    }
+
+    /**
+     * The mirror of {@link #spreadFlow}: when a pour or a slag run ends, every conduit it lit is told its link
+     * broke, so TFC takes the metal off the channel and the drawn stream goes dry with the flow. Without this the
+     * links spreadFlow wrote stay set forever — a table fed straight from the duct has no channel at its source
+     * for finishFlow to walk back from, so nothing else ever breaks them and the stream hangs over an empty mould.
+     */
+    private void clearFlow(BlockPos outlet) {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        Deque<BlockPos> queue = new ArrayDeque<>();
+        Set<BlockPos> seen = new HashSet<>();
+        queue.add(outlet);
+        seen.add(outlet);
+        while (!queue.isEmpty() && seen.size() <= 64) {
+            BlockPos here = queue.poll();
+            if (level.getBlockEntity(here) instanceof ChannelBlockEntity duct && duct.hasFlow()) {
+                duct.notifyBrokenLink(duct.getNumberOfFlows());
+            }
+            for (Direction side : new Direction[]{Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST,
+                    Direction.DOWN}) {
+                BlockPos next = here.relative(side);
+                if (seen.add(next) && isConduit(next)) {
+                    queue.add(next);
+                }
+            }
+        }
+    }
+
+    /** The slag run, walked the same way as the tap: out of the slag hole to a plate table or a crucible. */
+    public TapLine slagLine() {
+        if (shape == null || level == null) {
+            return null;
+        }
+        BlockPos outlet = shape.slagOutlet();
+        return lineFrom(outlet, FurnaceShape.direction(shape.slagWall(), outlet));
+    }
+
+    /**
+     * Bakes one step of slag onto every conduit of the slag run and onto the crucible it ends in, once per run.
+     * The plate is the one catcher this never touches: slag on a plate is lifted off by hand, slag in a pipe is not.
+     */
+    private void dirtySlagRun() {
+        TapLine line = slagLine();
+        if (line == null) {
+            return;
+        }
+        if (line.table() instanceof TapSink.Crucible crucible) {
+            ((SlagDirt) crucible.crucible()).addSlagDirt();
+        }
+        ResourceLocation slag = BuiltInRegistries.FLUID.getKey(IMFluids.SLAG.fluid());
+        spreadFlow(shape.slagOutlet(), shape.slagWall(), slag, true);
     }
 
     /**
@@ -674,7 +845,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         TapLine line = tapLine();
         FluidStack offer = bath.drain(level, offered, IFluidHandler.FluidAction.SIMULATE);
         Direction side = line.intoTable().getOpposite();
-        IFluidHandler sink = line.table().getSidedFluidInventory(side);
+        IFluidHandler sink = line.table().inventory(side);
         int wanted = sink == null ? 0 : sink.fill(offer, IFluidHandler.FluidAction.SIMULATE);
         if (wanted <= 0) {
             // A table standing tight against the duct is fed through the face that touches the furnace, and a run
@@ -687,7 +858,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
                 if (candidate == side) {
                     continue;
                 }
-                IFluidHandler alt = line.table().getSidedFluidInventory(candidate);
+                IFluidHandler alt = line.table().inventory(candidate);
                 int also = alt == null ? 0 : alt.fill(offer, IFluidHandler.FluidAction.SIMULATE);
                 if (also > 0) {
                     side = candidate;
@@ -697,11 +868,15 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             }
         }
         if (wanted <= 0) {
+            if (!line.table().needsMold()) {
+                // A crucible that took nothing is a crucible that is full; there is no vessel to lift off it.
+                return "full";
+            }
             // Three different things make a mould refuse a pour, and the player does a different one of three
             // chores in each case: lift a finished cast, empty a vessel holding another metal, or go and find out
             // why the table is not holding a vessel at all. One word for all three sent people to empty a table
             // that had nothing on it.
-            IMold vessel = IMold.get(line.table().getMoldStack());
+            IMold vessel = IMold.get(line.table().moldStack());
             if (vessel == null || vessel.getTankCapacity(0) <= 0) {
                 return "novessel";
             }
@@ -710,19 +885,22 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         pourLeft = wanted;
         pourTable = line.tablePos();
         pourSide = side;
-        ResourceLocation fluid = BuiltInRegistries.FLUID.getKey(offer.getFluid());
-        BlockPos from = shape.tapWall();
-        for (int step = 0; step < line.channels().size(); step++) {
-            BlockPos channel = line.channels().get(step);
-            if (level.getBlockEntity(channel) instanceof ChannelBlockEntity duct) {
-                // Only a channel that stands behind another channel is connected to one: the first of the run is
-                // fed by the tap hole itself, and TFC draws that end differently from a joint.
-                duct.setLinkProperties(Pair.of(FurnaceShape.direction(channel, from), (byte) 1), step > 0, 1, fluid);
+        int dirt = 0;
+        for (BlockPos pos : line.channels()) {
+            if (level.getBlockEntity(pos) instanceof SlagDirt carrier) {
+                dirt += carrier.slagDirt();
             }
-            from = channel;
         }
+        // Metal washed down a pipe that slag has baked onto picks up some of that bake-on as gangue, which the
+        // casting recipe already turns into a flawed piece; a clean run adds nothing.
+        pourSlagRatio = dirt > 0 ? Math.min(0.5F, dirt * 0.05F) : 0F;
+        ResourceLocation fluid = BuiltInRegistries.FLUID.getKey(offer.getFluid());
+        spreadFlow(shape.tapOutlet(), shape.tapWall(), fluid, false);
+        writeTapFlow(RefiningDuctBlock.FLOW_METAL);
         // The pair a table carries points back along the stream, at the cell the metal came out of: TFC's own
         // isFlowing() looks for a channel there, and the renderer draws the spout from it.
+        BlockPos from = line.channels().isEmpty() ? shape.tapWall()
+                : line.channels().get(line.channels().size() - 1);
         line.table().setSource(from, offer.getFluid(), Pair.of(pourSide, (byte) 1));
         setChanged();
         return "none";
@@ -733,7 +911,8 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (pourLeft <= 0) {
             return;
         }
-        if (!(level.getBlockEntity(pourTable) instanceof MoldTableBlockEntity table)) {
+        TapSink table = TapSink.of(level.getBlockEntity(pourTable));
+        if (table == null) {
             pourLeft = 0;
             return;
         }
@@ -748,16 +927,12 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             closeTap(table);
             return;
         }
-        int filled = table.getSidedFluidInventory(pourSide).fill(pour, IFluidHandler.FluidAction.EXECUTE);
+        if (pourSlagRatio > 0) {
+            pour.set(IMDataComponents.SLAG_RATIO.get(), pourSlagRatio);
+        }
+        int filled = table.inventory(pourSide).fill(pour, IFluidHandler.FluidAction.EXECUTE);
         if (filled > 0) {
-            // A clay mould is cold, and metal poured into a cold mould freezes where it lands. TFC's own drip
-            // path heats the receiving mould as it fills — without that the tap assembled a quarter of a cast,
-            // the table then held it, and every further millilitre was refused as "already full".
-            IMold mold = IMold.get(table.getMoldStack());
-            if (mold != null) {
-                mold.setTemperature(temperature);
-                table.setAndUpdateSlots(MoldTableBlockEntity.MOLD_SLOT);
-            }
+            table.heatMold(temperature);
         }
         if (filled < pour.getAmount()) {
             // The mould filled up under the stream, so what did not fit goes back into the bath rather than out
@@ -776,31 +951,19 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
      * the link it was given and breaks each channel's link in turn, which is the only way a tap stops looking
      * open: TFC draws the metal sitting in a channel straight off that link.
      */
-    private void closeTap(MoldTableBlockEntity table) {
+    private void closeTap(TapSink table) {
         pourLeft = 0;
+        pourSlagRatio = 0;
         table.finishFlow();
+        writeTapFlow(RefiningDuctBlock.FLOW_NONE);
+        if (shape != null) {
+            clearFlow(shape.tapOutlet());
+        }
     }
 
     /** How much of an open tap has not reached the mould yet, which is why a second click is refused. */
     public int tapRemaining() {
         return pourLeft;
-    }
-
-    /**
-     * What actually stands on the tap table, in the two numbers that tell a full mould from one that was never a
-     * vessel at all. A refusal that says only "full" sends a player to empty a table that has nothing in it, so
-     * the machine says what it saw instead of what it assumed.
-     */
-    public Component tapContents() {
-        TapLine line = tapLine();
-        ItemStack vessel = line == null ? ItemStack.EMPTY : line.table().getMoldStack();
-        if (vessel.isEmpty()) {
-            return Component.literal("нет сосуда");
-        }
-        IMold mold = IMold.get(vessel);
-        return Component.literal(BuiltInRegistries.ITEM.getKey(vessel.getItem()).getPath() + " "
-                + (mold == null ? "?" : mold.getFluidInTank(0).getAmount()) + "/"
-                + (mold == null ? "?" : mold.getTankCapacity(0)) + " mB");
     }
 
     /**
@@ -816,13 +979,15 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (line == null) {
             return "nochannel";
         }
-        if (line.table().getMoldStack().isEmpty()) {
-            return "mold";
-        }
-        if (line.table().getMoldStack().is(IMItems.SLAG_PLATE.get())) {
-            // The furnace's own slag dish standing on the tap table is the same object in the wrong cell: it holds
-            // slag and nothing else, so a pour into it is a pour into a vessel that will never take metal.
-            return "slagdish";
+        if (line.table().needsMold()) {
+            if (line.table().moldStack().isEmpty()) {
+                return "mold";
+            }
+            if (line.table().moldStack().is(IMItems.SLAG_PLATE.get())) {
+                // The furnace's own slag dish standing on the tap table is the same object in the wrong cell: it
+                // holds slag and nothing else, so a pour into it is a pour into a vessel that will never take metal.
+                return "slagdish";
+            }
         }
         if (pourLeft > 0) {
             return "busy";
@@ -889,7 +1054,10 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
      */
     private void paintTower(RefiningFurnaceStats stats) {
         int standing = bath.getAmount() + chargeMb(stats);
-        int asked = MoltenTower.signature(shape, stats, standing, isLit());
+        // The bath glows while it is liquid, not only while the fire burns: a hot bath left to cool on its own is
+        // still molten metal, and drawing it as cold cream metal read as a lighting bug inside the shaft.
+        boolean glow = isLit() || isPourable(stats);
+        int asked = MoltenTower.signature(shape, stats, standing, glow);
         if (asked == towerSignature) {
             return;
         }
@@ -901,7 +1069,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             tower = null;
             return;
         }
-        MoltenTower.show(level, shape, stats, standing, isLit());
+        MoltenTower.show(level, shape, stats, standing, glow);
         tower = shape;
     }
 
@@ -931,11 +1099,16 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
 
     /** One tick of the firing, as the phase machine sees it. */
     private void advance(RefiningFurnaceStats stats) {
-        burnFuel(stats);
+        // The fire is fed while it heats, boils or holds the finished bath hot. Cooling is the one phase that
+        // never spends fuel: by then the coal is gone or the fire was doused, so the bath cools on its own.
+        boolean firing = phase == Phase.HEATING || phase == Phase.BOILING || phase == Phase.HOLDING;
+        if (firing) {
+            burnFuel(stats);
+        }
         tickTap(stats);
         // A fed fire climbs toward what its own chimney can hold; a starved one falls back toward the outside air.
         temperature = HeatCapability.adjustTempTowards(temperature,
-                fuelTicks > 0 ? stats.fireTemperature(shape.layers()) : AMBIENT);
+                firing && fuelTicks > 0 ? stats.fireTemperature(shape.layers()) : AMBIENT);
 
         if (phase == Phase.HEATING) {
             heatCharge(stats);
@@ -954,15 +1127,27 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             // powder took out of the metal runs off through the channel afterwards, while the bath is still
             // liquid enough to give it up.
             if (--timer <= 0) {
+                // The boil is done but the fire need not be: with coal left the bath is held hot and tappable
+                // instead of dropped into cooling, so a finished heat does not strand metal in a cooling bath.
+                phase = fuelTicks > 0 || fuelCount() > 0 ? Phase.HOLDING : Phase.COOLING;
+            }
+        } else if (phase == Phase.HOLDING) {
+            drainSlag(stats);
+            if (fuelTicks <= 0 && fuelCount() == 0) {
                 phase = Phase.COOLING;
             }
         } else if (phase == Phase.COOLING) {
             drainSlag(stats);
-            if (temperature < stats.pourTemperature() && (doused || fuelCount() == 0)) {
+            // The fire is out for the whole of the cooling, so unburnt coal left in the hearth is the next heat's
+            // and does not hold this one open: the bath sets as soon as it is below tapping heat.
+            if (temperature < stats.pourTemperature()) {
                 coolDown();
             }
         }
         spill(stats);
+        // The face follows the phase the tick ended in, not the one it began: a fire that died this tick, or a
+        // bath dropped into cooling, shows a cold furnace straight away rather than a lit one that is not heating.
+        setLit(phase == Phase.HEATING || phase == Phase.BOILING || phase == Phase.HOLDING);
     }
 
     /**
@@ -1171,9 +1356,10 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         }
         fuelTicks--;
         if (fuelTicks <= 0 && fuelCount() > 0) {
-            int burn = stats.burnTicks(nextFuel());
+            int burn = stats.burnTicks(nextFuel(), temperature);
             consumeOne(fuel);
             fuelTicks += burn;
+            fuelBurnTotal = burn;
         }
     }
 
@@ -1188,34 +1374,20 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     }
 
     /**
-     * How much longer this fire can last: what the burning piece has left, plus every piece still lying in the
-     * box at its own burn time. The window counts this down, because "cooling" over a furnace with ten minutes of
-     * charcoal in it is not a reading of the machine but a lie about it.
-     */
-    public int fireSecondsLeft(RefiningFurnaceStats stats) {
-        int ticks = Math.max(0, fuelTicks);
-        for (ItemStack stack : fuel) {
-            if (!stack.isEmpty()) {
-                ticks += stack.getCount() * stats.burnTicks(stack);
-            }
-        }
-        return ticks / 20;
-    }
-
-    /**
      * Dropping the fire with a shovel, which is how a shaft furnace is really stopped: the blast is cut and the
      * fire dies where it stands. The fuel is not taken out and not destroyed — it is simply no longer burning, and
      * the next lighting starts from what is still in the hearth.
      */
     public boolean quench() {
-        if (level == null || level.isClientSide || phase == Phase.IDLE) {
+        if (level == null || level.isClientSide || phase == Phase.IDLE || phase == Phase.COOLING) {
+            // Already out or already cooling: a second shovel is a silent no-op, not another hiss of steam.
             return false;
         }
         doused = true;
         fuelTicks = 0;
-        if (phase == Phase.HEATING || phase == Phase.BOILING) {
-            phase = Phase.COOLING;
-        }
+        fuelBurnTotal = 0;
+        phase = Phase.COOLING;
+        setLit(false);
         setChanged();
         return true;
     }
@@ -1230,39 +1402,70 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         Fluid slag = IMFluids.SLAG.fluid();
         double present = bath.getContent().getDouble(slag);
         if (present <= 0 || bath.getAmount() < stats.drainThreshold(shape.modules())) {
+            slagRunning = false;
             return;
         }
         if (reagentCredit <= 0) {
             ItemStack used = takeReagent(stats);
             if (used == null) {
+                slagRunning = false;
                 return;
             }
             reagentCredit = stats.mbOfSlagPer(used);
         }
         int mb = (int) Math.min(stats.slagDrainMbPerTick(), Math.min(reagentCredit, present));
         if (mb <= 0) {
+            slagRunning = false;
+            return;
+        }
+        TapLine run = slagLine();
+        if (run != null && run.table() instanceof TapSink.Crucible crucible) {
+            // Slag run into a crucible does not stay there as metal: it bakes onto the pot, one step per run, and
+            // a pot baked to the limit takes no more. Nothing is lifted off it — the plate is the only clean catcher.
+            if (((SlagDirt) crucible.crucible()).clogged()) {
+                slagRunning = false;
+                return;
+            }
+            MeltComposition intoPot = (MeltComposition) (Object) bath;
+            int baked = intoPot.immersiveMetallurgyTake(slag, mb);
+            if (baked <= 0) {
+                slagRunning = false;
+                return;
+            }
+            reagentCredit -= baked;
+            loseMetal(stats, baked);
+            if (!slagRunning) {
+                slagRunning = true;
+                dirtySlagRun();
+            }
+            markSlagFlow(RefiningDuctBlock.FLOW_SLAG);
+            setChanged();
             return;
         }
         IMold plate = ensureSlagPlate();
         SlagDish dish = slagDish();
         if (plate == null || dish == null) {
+            slagRunning = false;
             freezeSlag(mb, stats);
             return;
         }
         // What the dish is holding of metal is volume it is not giving to dirt, and the two of them share one bowl.
         mb = Math.min(mb, dish.roomMb());
         if (mb <= 0) {
+            slagRunning = false;
             return;
         }
         int offered = plate.fill(new FluidStack(slag, mb), IFluidHandler.FluidAction.SIMULATE);
         if (offered <= 0) {
             // The plate is full to its rim, which is the readout the window gives and the reason the bath keeps
             // its dirt: cleaning the slag plate is the one standing errand of a firing.
+            slagRunning = false;
             return;
         }
         MeltComposition composition = (MeltComposition) (Object) bath;
         int taken = composition.immersiveMetallurgyTake(slag, Math.min(mb, offered));
         if (taken <= 0) {
+            slagRunning = false;
             return;
         }
         reagentCredit -= taken;
@@ -1276,17 +1479,21 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         plate.setTemperature(temperature);
         updateSlagTable();
         if (filled > 0) {
+            if (!slagRunning) {
+                slagRunning = true;
+                dirtySlagRun();
+            }
             markSlagFlow(RefiningDuctBlock.FLOW_SLAG);
+        } else {
+            slagRunning = false;
         }
         setChanged();
     }
 
-    /** The table standing in the slag outlet, whether or not anything is on it. */
+    /** The table the slag run ends at, whether it stands in the outlet itself or out along a run of channel. */
     private MoldTableBlockEntity slagTable() {
-        if (shape == null || level == null) {
-            return null;
-        }
-        return level.getBlockEntity(shape.slagOutlet()) instanceof MoldTableBlockEntity table ? table : null;
+        TapLine line = slagLine();
+        return line != null && line.table() instanceof TapSink.Table table ? table.table() : null;
     }
 
     /**
@@ -1535,14 +1742,14 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
      * the state without any of them having to ask the block entity.
      */
     public void setLit(boolean lit) {
-        if (level == null || level.isClientSide || getBlockState().getValue(RefiningHearthBlock.LIT) == lit) {
+        if (level == null || level.isClientSide || getBlockState().getValue(RefiningFurnaceBlock.LIT) == lit) {
             return;
         }
-        level.setBlock(worldPosition, getBlockState().setValue(RefiningHearthBlock.LIT, lit), Block.UPDATE_ALL);
+        level.setBlock(worldPosition, getBlockState().setValue(RefiningFurnaceBlock.LIT, lit), Block.UPDATE_ALL);
     }
 
     public Direction facing() {
-        return getBlockState().getValue(RefiningHearthBlock.FACING);
+        return getBlockState().getValue(RefiningFurnaceBlock.FACING);
     }
 
     private void scan(Level level, BlockState state) {
@@ -1550,7 +1757,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (stats == null) {
             return;
         }
-        FurnaceShape.Result result = FurnaceShape.scan(level, worldPosition, state.getValue(RefiningHearthBlock.FACING),
+        FurnaceShape.Result result = FurnaceShape.scan(level, worldPosition, state.getValue(RefiningFurnaceBlock.FACING),
                 stats.maxModules(), stats.channelOffsetFromTop());
         FurnaceShape before = shape;
         shape = result.shape();
@@ -1563,31 +1770,38 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             // put right again rather than the player's to notice.
             ensureSlagPlate();
         }
-        markDucts(before, shape);
+        markDucts(before, result);
+        markMouths(before, shape);
         setChanged();
     }
 
     /**
      * Tells the two holes in the wall which line each of them carries, so that whatever can only read block
-     * states — first of all the renderer that hangs the tap's spout over the table standing in front of it — can
-     * see it without asking the furnace, across the side or otherwise. A stack that came apart, or that the player
-     * grew by one module, leaves its old holes saying nothing at all.
+     * states — first of all the renderer that hangs the tap's spout over the table standing in front of it, and
+     * the click that lays a launder or a table into the outlet — can see it without asking the furnace. The walls
+     * come from the scan result rather than the formed shape, so a slag outlet still waiting for its conduit is
+     * already marked: otherwise the player could never lay the conduit the stack is waiting for. A stack that
+     * came apart, or that the player grew by one module, leaves its old holes saying nothing at all.
      */
-    private void markDucts(FurnaceShape before, FurnaceShape now) {
+    private void markDucts(FurnaceShape before, @Nullable FurnaceShape.Result now) {
         if (level == null || level.isClientSide) {
             return;
         }
+        BlockPos nowTap = now == null ? null : now.tapWall();
+        BlockPos nowSlag = now == null ? null : now.slagWall();
         if (before != null) {
-            if (now == null || !before.tapWall().equals(now.tapWall())) {
+            if (nowTap == null || !before.tapWall().equals(nowTap)) {
                 markDuct(before.tapWall(), RefiningDuctBlock.LINE_NONE);
             }
-            if (now == null || !before.slagWall().equals(now.slagWall())) {
+            if (nowSlag == null || !before.slagWall().equals(nowSlag)) {
                 markDuct(before.slagWall(), RefiningDuctBlock.LINE_NONE);
             }
         }
-        if (now != null) {
-            markDuct(now.tapWall(), RefiningDuctBlock.LINE_TAP);
-            markDuct(now.slagWall(), RefiningDuctBlock.LINE_SLAG);
+        if (nowTap != null) {
+            markDuct(nowTap, RefiningDuctBlock.LINE_TAP);
+        }
+        if (nowSlag != null) {
+            markDuct(nowSlag, RefiningDuctBlock.LINE_SLAG);
         }
     }
 
@@ -1597,6 +1811,40 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             return;
         }
         level.setBlockAndUpdate(duct, state.setValue(RefiningDuctBlock.LINE, line));
+    }
+
+    /**
+     * Opens the two mouths a player sees from inside the shaft: the tap as a hole in the floor and the channel as
+     * a hole in the wall at its own height. The column between them stays closed on the inside — it is a pipe in
+     * the wall, not a hole into the bath — so only these two cells are told which face opens.
+     */
+    private void markMouths(FurnaceShape before, FurnaceShape now) {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        if (before != null) {
+            if (now == null || !before.center().equals(now.center())) {
+                markMouth(before.center(), 0);
+            }
+            if (now == null || !before.channel().equals(now.channel())) {
+                markMouth(before.channel(), 0);
+            }
+        }
+        if (now != null) {
+            // The tap reads from above as a hole in the floor, and the floor a player actually sees down the shaft is
+            // the centre cell's top face — the sole-ring duct under the wall is buried, so its own top never shows.
+            // The channel reads from inside as a hole in the wall, so its mouth is the face that looks at the centre.
+            markMouth(now.center(), Direction.UP.get3DDataValue());
+            markMouth(now.channel(), FurnaceShape.direction(now.channel(), now.center()).get3DDataValue());
+        }
+    }
+
+    private void markMouth(BlockPos duct, int face) {
+        BlockState state = level.getBlockState(duct);
+        if (!state.is(IMBlocks.REFINING_DUCT.get()) || state.getValue(RefiningDuctBlock.MOUTH) == face) {
+            return;
+        }
+        level.setBlockAndUpdate(duct, state.setValue(RefiningDuctBlock.MOUTH, face));
     }
 
     /**
@@ -1615,6 +1863,9 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         if (slagFlowTicks > 0 && --slagFlowTicks == 0) {
             slagFlowKind = RefiningDuctBlock.FLOW_NONE;
             writeSlagFlow();
+            if (shape != null) {
+                clearFlow(shape.slagOutlet());
+            }
         }
     }
 
@@ -1628,6 +1879,18 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
             return;
         }
         level.setBlockAndUpdate(shape.slagWall(), state.setValue(RefiningDuctBlock.FLOW, slagFlowKind));
+    }
+
+    /** The tap's own word for what its duct is carrying, so a launder standing in the run can draw the metal. */
+    private void writeTapFlow(int kind) {
+        if (level == null || level.isClientSide || shape == null) {
+            return;
+        }
+        BlockState state = level.getBlockState(shape.tapWall());
+        if (!state.is(IMBlocks.REFINING_DUCT.get()) || state.getValue(RefiningDuctBlock.FLOW) == kind) {
+            return;
+        }
+        level.setBlockAndUpdate(shape.tapWall(), state.setValue(RefiningDuctBlock.FLOW, kind));
     }
 
     /** Which missing part stopped the stack from being a furnace, as a number the window can carry. */
@@ -1762,7 +2025,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
     /** Whether a mold stands on the table the tap would run into, for the readout that says why it would not. */
     public boolean tapHasMold() {
         TapLine line = tapLine();
-        return line != null && !line.table().getMoldStack().isEmpty();
+        return line != null && (!line.table().needsMold() || !line.table().moldStack().isEmpty());
     }
 
     @Override
@@ -1772,7 +2035,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
 
     @Override
     public Component getDisplayName() {
-        return Component.translatable("container." + ImmersiveMetallurgy.MODID + ".refining_hearth");
+        return Component.translatable("container." + ImmersiveMetallurgy.MODID + ".refining_furnace");
     }
 
     @Override
@@ -1792,6 +2055,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         }
         tag.putFloat("temperature", temperature);
         tag.putInt("fuel_ticks", fuelTicks);
+        tag.putInt("fuel_burn_total", fuelBurnTotal);
         tag.putBoolean("doused", doused);
         tag.putLong("last_calendar_tick", lastCalendarTick);
         tag.putLong("last_day_time", lastDayTime);
@@ -1816,6 +2080,7 @@ public class RefiningFurnaceBlockEntity extends BlockEntity implements net.minec
         heapSeed = tag.contains("heap_seed") ? ItemStack.parseOptional(registries, tag.getCompound("heap_seed")) : ItemStack.EMPTY;
         temperature = tag.getFloat("temperature");
         fuelTicks = tag.getInt("fuel_ticks");
+        fuelBurnTotal = tag.getInt("fuel_burn_total");
         doused = tag.getBoolean("doused");
         // A furnace saved before the fire kept a clock has no answer, and the honest one is "start from now":
         // guessing at the missing span would burn a firing that was never lit.

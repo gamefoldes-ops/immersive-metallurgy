@@ -9,8 +9,10 @@
     "BlastFurnaceOutputMixin",
     "BloomeryInputMixin",
     "BloomeryOutputMixin",
+    "BlockDropsDirtMixin",
     "CastingRecipeRecordMixin",
-    "ChannelFlowMoldMixin",
+    "ChannelDirtMixin",
+    "CrucibleDirtMixin",
     "CrucibleLedgerCaptureMixin",
     "CrucibleLedgerRestoreMixin",
     "FluidAlloyRecordMixin",
@@ -18,7 +20,6 @@
     "ItemStackFlawedNameMixin",
     "ItemStackMeltStackingMixin",
     "MetalItemFlawedIngotMixin",
-    "MoldTableLaunderShapeMixin",
     "MoldTablePlateDropMixin",
     "MoldTablePlateLockMixin",
     "VanillaCraftingMeltMixin",
@@ -26,6 +27,7 @@
     "WeldingRecipeRecordMixin"
   ],
   "client": [
+    "ChannelLaunderRenderMixin",
     "CrucibleScreenResultLabelMixin",
     "MoldTableItemShapeMixin",
     "MoldTableVesselMixin"

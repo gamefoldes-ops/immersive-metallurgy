@@ -1,0 +1,1 @@
+{"parent":"minecraft:block/block","textures":{"bore":"immersive_metallurgy:block/refining_bore","particle":"immersive_metallurgy:block/refining_bore"},"elements":[{"from":[5,15,-0.02],"to":[11,21,0],"faces":{"north":{"uv":[0,0,16,16],"texture":"#bore"}}}]}

@@ -1,1 +1,1 @@
-{"parent":"immersive_metallurgy:block/refining_duct"}
+{"parent":"minecraft:block/cube_column","textures":{"side":"immersive_metallurgy:block/refining_duct_open","end":"tfc:block/fire_bricks","particle":"immersive_metallurgy:block/refining_duct_open"}}

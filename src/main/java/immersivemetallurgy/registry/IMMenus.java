@@ -19,7 +19,7 @@ public final class IMMenus {
             DeferredRegister.create(Registries.MENU, ImmersiveMetallurgy.MODID);
 
     public static final DeferredHolder<MenuType<?>, MenuType<RefiningFurnaceMenu>> REFINING_FURNACE =
-            MENU_TYPES.register("refining_hearth", () -> new MenuType<>(RefiningFurnaceMenu::new, FeatureFlagSet.of()));
+            MENU_TYPES.register("refining_furnace", () -> new MenuType<>(RefiningFurnaceMenu::new, FeatureFlagSet.of()));
 
     private IMMenus() {
     }
